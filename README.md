@@ -1,36 +1,26 @@
 # SỜ MỜ LỜ
 
-Một văn phòng 3D nhiều người chơi chạy trên trình duyệt. Người chơi tạo phòng bằng mã, gửi link mời, đi lại, chat và tương tác bằng hiệu ứng emoji.
+Game văn phòng 3D nhiều người chơi trên trình duyệt, chạy bằng Node.js, Express, Socket.IO và Three.js.
 
-## Chạy trên máy cá nhân
+## Chạy
 
 ```sh
 npm install
 npm start
 ```
 
-Mở `http://localhost:3000`. Phòng có giới hạn cấu hình 50 người. Dữ liệu phòng lưu trong bộ nhớ máy chủ và sẽ mất khi máy chủ khởi động lại.
+Mở `http://localhost:3000`. Nhập tên, chọn một trong bốn nhân vật, rồi để trống mã phòng để tạo phòng mới. Nút Mời bạn sao chép link có kèm mã phòng.
 
 ## Điều khiển
 
 - WASD hoặc phím mũi tên: di chuyển
-- Chạm/click nền: đi đến vị trí
-- Chạm người chơi: chọn mục tiêu
-- Khung chat: gửi tin nhắn và bong bóng thoại
-- Nút bên dưới hoặc phím tắt: tương tác
+- Chạm hoặc click sàn: đi đến điểm đó
+- Chạm người chơi khác: chọn để tương tác
+- Chat tự do, tin nhắn hiển thị trong bong bóng
+- Nút hành động phía dưới hoặc phím tắt Z, X, C, B, V, M, N
 
-## Triển khai
+## Render Free
 
-Tệp `render.yaml` khai báo dịch vụ web Node.js trên Render Free. Khi dịch vụ Free không hoạt động, Render có thể tạm dừng máy chủ; lần truy cập tiếp theo có thể cần chờ dịch vụ thức dậy. Mã phòng và trạng thái người chơi không được lưu bền vững.
+Đặt thư mục gốc dịch vụ là `app`, lệnh build là `npm install`, lệnh chạy là `npm start`. Dịch vụ dùng Socket.IO trên cùng cổng HTTP. Máy chủ giữ phòng trong RAM; khi Render khởi động lại hoặc tạm dừng, người chơi sẽ phải vào lại phòng.
 
-## Nguồn
-
-Giao diện 3D được dựng bằng Three.js; máy chủ nhiều người chơi dùng Express và Socket.IO. Mô hình nhân vật được tạo từ hình khối Three.js, không tải mô hình bên ngoài.
-
-## Kiểm tra kết nối
-
-```sh
-npm run test:smoke
-```
-
-Kiểm tra trang, tài nguyên, hai người trong cùng phòng, đồng bộ di chuyển, chat và tương tác ném.
+Phòng giới hạn 50 người trong mã, nhưng mới kiểm tra đồng bộ với hai kết nối. Chưa có bài kiểm thử tải 20–50 kết nối đồng thời.
