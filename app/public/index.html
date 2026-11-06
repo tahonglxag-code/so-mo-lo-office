@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#382a41">
+  <title>SỜ MỜ LỜ — Văn phòng không lối thoát</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@500;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <main id="app">
+    <header class="topbar">
+      <div class="brand"><span class="sun">✿</span><div><strong>SỜ MỜ LỜ</strong><small>Văn phòng không lối thoát</small></div></div>
+      <div class="room-info"><span class="live-dot"></span><span id="room-label">Chưa vào phòng</span><small id="count-label">0/50</small></div>
+      <div class="ticker">☕ Chúc bạn một ngày làm việc… vừa đủ thôi!</div>
+      <button id="invite" class="invite" disabled>🔗 Mời bạn <span id="copy-state"></span></button>
+    </header>
+    <section class="world-wrap">
+      <canvas id="world"></canvas>
+      <div class="room-tag tag-cafe">☕ QUẦY CÀ PHÊ</div>
+      <div class="room-tag tag-meet">🗣 PHÒNG HỌP</div>
+      <div class="room-tag tag-wc">🚻 WC</div>
+      <div class="toast" id="toast"></div>
+      <aside class="feed" id="feed"></aside>
+      <div class="help"><span>WASD / phím mũi tên để di chuyển</span><span>Chạm giữ màn hình để đi</span><span>Chọn người chơi rồi tương tác</span></div>
+      <div class="mobile-pad" id="mobile-pad"><button data-key="forward">▲</button><div><button data-key="left">◀</button><button data-key="backward">▼</button><button data-key="right">▶</button></div></div>
+    </section>
+    <footer class="dock">
+      <section class="chatbox"><div class="chat-head"><strong>💬 Tám chuyện</strong><span id="chat-hint">Chào cả phòng!</span></div><div id="messages" class="messages"></div><form id="chat-form"><input id="chat-input" maxlength="160" placeholder="Nhắn gì đó cho phòng…" autocomplete="off"><button>Gửi ➤</button></form></section>
+      <section class="actions"><div class="target-line">Đang chọn: <strong id="target-name">chưa chọn ai</strong></div><div class="action-grid">
+        <button data-action="bonk">Z · 👊 Kí đầu</button><button data-action="punch">X · 💥 Đấm</button><button data-action="smirk">C · 😏 Cười khinh</button><button data-action="bow">B · 🙇 Quỳ lạy</button>
+        <button data-action="run">V · 🏃 Bỏ chạy</button><button data-action="meditate">M · 🧘 Thiền</button><button data-action="sleep">N · 😴 Ngủ</button><div class="throw-control"><select id="item"><option>❤️</option><option>🧋</option><option>💸</option><option>📋</option><option>⏰</option><option>💩</option></select><button data-action="throw">🎯 Ném</button></div>
+      </div></section>
+    </footer>
+    <div class="modal" id="join-modal"><form id="join-form" class="join-card"><div class="logo-mark">✿</div><p class="eyebrow">NƠI MỌI DEADLINE ĐỀU LÀ DEADLINE</p><h1>Chào mừng tới<br><span>SỜ MỜ LỜ</span></h1><p class="sub">Vào văn phòng 3D, trốn việc cùng hội bạn.</p><label>Tên hiển thị<input id="name" maxlength="18" placeholder="VD: Cá sếp" required></label><label>Mã phòng <span>(để trống tạo phòng mới)</span><input id="room" maxlength="8" placeholder="VD: ABC123" autocomplete="off"></label><p class="avatar-label">Chọn nhân vật của bạn</p><div class="avatars">
+      <button type="button" class="avatar selected" data-avatar="snake"><span>🐍</span><small>Rắn gian</small></button><button type="button" class="avatar" data-avatar="fish"><span>🐟</span><small>Cá hai mang</small></button><button type="button" class="avatar" data-avatar="pig"><span>🐷</span><small>Lợn</small></button><button type="button" class="avatar" data-avatar="cow"><span>🐮</span><small>Bò sữa</small></button>
+    </div><button class="primary" type="submit">Vào phòng thôi →</button><p id="join-error" class="error"></p><small class="free-note">Chơi miễn phí · Tối đa 50 người/phòng</small></form></div>
+  </main>
+  <script src="/socket.io/socket.io.js"></script>
+  <script type="module" src="/game.js"></script>
+</body>
+</html>
