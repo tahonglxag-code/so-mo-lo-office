@@ -1,0 +1,9 @@
+services:
+  - type: web
+    name: so-mo-lo-game
+    runtime: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /
+    autoDeploy: false
