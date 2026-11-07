@@ -90,12 +90,122 @@ function label(text, color = '#493650') {
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   ctx.fillStyle = color;
-  ctx.fillText(text.slice(0, 22), 256, 64, 460);
+  ctx.fillText(String(text ?? ''), 256, 64, 460);
   const texture = new THREE.CanvasTexture(c);
   texture.colorSpace = THREE.SRGBColorSpace;
   const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: texture, transparent: true, depthTest: false }));
   sprite.scale.set(2.8, .7, 1);
   return sprite;
+}
+
+function speechBubble(text, color = '#37293e') {
+  const fontSize = 44;
+  const lineHeight = 52;
+  const maxTextWidth = 560;
+  const padX = 30;
+  const padY = 20;
+  const canvas = document.createElement('canvas');
+  const context = canvas.getContext('2d');
+  context.font = `900 ${fontSize}px Nunito, sans-serif`;
+  const lines = [];
+  for (const paragraph of String(text ?? '').split('\n')) {
+    let line = '';
+    for (const word of paragraph.split(/\s+/).filter(Boolean)) {
+      const candidate = line ? `${line} ${word}` : word;
+      if (context.measureText(candidate).width <= maxTextWidth) {
+        line = candidate;
+        continue;
+      }
+      if (line) lines.push(line);
+      if (context.measureText(word).width <= maxTextWidth) {
+        line = word;
+        continue;
+      }
+      let part = '';
+      for (const character of word) {
+        const next = part + character;
+        if (context.measureText(next).width > maxTextWidth && part) {
+          lines.push(part);
+          part = character;
+        } else part = next;
+      }
+      line = part;
+    }
+    if (line) lines.push(line);
+  }
+  if (!lines.length) lines.push(' ');
+  const contentWidth = Math.max(110, ...lines.map(line => context.measureText(line).width));
+  canvas.width = Math.ceil(contentWidth + padX * 2);
+  canvas.height = lines.length * lineHeight + padY * 2;
+  context.font = `900 ${fontSize}px Nunito, sans-serif`;
+  context.fillStyle = '#fff3dd';
+  context.strokeStyle = '#725b73';
+  context.lineWidth = 6;
+  context.beginPath();
+  context.roundRect(4, 4, canvas.width - 8, canvas.height - 8, 24);
+  context.fill();
+  context.stroke();
+  context.fillStyle = color;
+  context.textAlign = 'center';
+  context.textBaseline = 'middle';
+  lines.forEach((line, index) => context.fillText(line, canvas.width / 2, padY + lineHeight * index + lineHeight / 2, maxTextWidth));
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: texture, transparent: true, depthTest: false }));
+  sprite.scale.set(canvas.width / 160, canvas.height / 160, 1);
+  return sprite;
+}
+
+function patternMaterial(baseColor, pattern, region) {
+  const canvas = document.createElement('canvas');
+  canvas.width = 1024;
+  canvas.height = 512;
+  const context = canvas.getContext('2d');
+  context.fillStyle = baseColor;
+  context.fillRect(0, 0, canvas.width, canvas.height);
+  if (pattern === 'cow') {
+    const headSpots = [[.25,.12,.075,.13],[.12,.27,.05,.1],[.38,.29,.05,.1],[.24,.48,.06,.09],[.04,.38,.05,.1],[.46,.39,.05,.1]];
+    const bodySpots = [[.04,.16,.065,.14],[.16,.35,.075,.18],[.27,.18,.095,.16],[.39,.72,.08,.17],[.52,.3,.07,.16],[.64,.19,.08,.16],[.76,.42,.09,.17],[.9,.22,.075,.18],[.98,.36,.06,.16]];
+    const spots = region === 'head' ? headSpots : bodySpots;
+    for (const [u, v, rx, ry] of spots) {
+      const cx = u * canvas.width;
+      const cy = v * canvas.height;
+      context.fillStyle = '#262329';
+      context.beginPath();
+      context.moveTo(cx - rx * canvas.width * .7, cy - ry * canvas.height * .25);
+      context.bezierCurveTo(cx - rx * canvas.width, cy - ry * canvas.height, cx - rx * canvas.width * .35, cy - ry * canvas.height * 1.1, cx + rx * canvas.width * .25, cy - ry * canvas.height * .72);
+      context.bezierCurveTo(cx + rx * canvas.width * 1.05, cy - ry * canvas.height * .35, cx + rx * canvas.width * .85, cy + ry * canvas.height * .55, cx + rx * canvas.width * .25, cy + ry * canvas.height * .88);
+      context.bezierCurveTo(cx - rx * canvas.width * .3, cy + ry * canvas.height * 1.12, cx - rx * canvas.width * 1.05, cy + ry * canvas.height * .55, cx - rx * canvas.width * .7, cy - ry * canvas.height * .25);
+      context.fill();
+    }
+  } else {
+    const rows = region === 'head' ? [.12,.32,.54,.75,.88] : [.1,.29,.48,.67,.84];
+    const columns = region === 'head' ? [.08,.25,.42,.58,.75,.92] : [.04,.16,.28,.4,.52,.64,.76,.88,.98];
+    for (let row = 0; row < rows.length; row++) {
+      for (let column = 0; column < columns.length; column++) {
+        const u = columns[column] + (row % 2 ? .035 : 0);
+        if (u > 1) continue;
+        const cx = u * canvas.width;
+        const cy = rows[row] * canvas.height;
+        const rx = region === 'head' ? 26 : 30;
+        const ry = region === 'head' ? 22 : 26;
+        context.strokeStyle = '#593d2e';
+        context.lineWidth = 11;
+        context.beginPath();
+        context.ellipse(cx, cy, rx, ry, .18 * ((row + column) % 3 - 1), .2, Math.PI * 1.85);
+        context.stroke();
+        context.fillStyle = '#593d2e';
+        context.beginPath();
+        context.ellipse(cx + rx * .42, cy - ry * .25, 7, 7, 0, 0, Math.PI * 2);
+        context.fill();
+      }
+    }
+  }
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  const material = new THREE.MeshStandardMaterial({ color: '#ffffff', map: texture, roughness: .86 });
+  material.userData.generatedAnimalPattern = true;
+  return material;
 }
 
 function makeRoomLabel(text, x, z) {
@@ -271,6 +381,10 @@ function faceLine(parent, points, material, radius = .018) {
 function animal(type, tint = null) {
   const root = new THREE.Group();
   const fur = tint ? mat(tint) : ({ snake: mat('#64bc83'), fish: mat('#57a9d8'), sloth: mat('#92745b'), cow: mat('#fffaf0'), leopard: mat('#d7a353') }[type]);
+  const cowBodyFur = type === 'cow' ? patternMaterial('#fffaf0', 'cow', 'body') : fur;
+  const cowHeadFur = type === 'cow' ? patternMaterial('#fffaf0', 'cow', 'head') : fur;
+  const leopardBodyFur = type === 'leopard' ? patternMaterial('#d7a353', 'leopard', 'body') : fur;
+  const leopardHeadFur = type === 'leopard' ? patternMaterial('#d7a353', 'leopard', 'head') : fur;
   const blush = mat('#f39a9c');
   const eye = mat('#24212b');
   const dark = mat('#34303a');
@@ -320,24 +434,12 @@ function animal(type, tint = null) {
       }
     }
   } else if (type === 'leopard') {
-    const spots = mat('#593d2e');
-    const rosetteMat = new THREE.MeshStandardMaterial({color:'#593d2e',side:THREE.DoubleSide,roughness:.85});
-    const rosette = (x,y,z,r) => {
-      const ring = new THREE.Mesh(new THREE.TorusGeometry(r*.68,r*.2,6,14),rosetteMat);
-      ring.position.set(x,y,z);
-      ring.scale.set(1,1,.55);
-      root.add(ring);
-      sphere(root,x,y,z-.012,r*.2,r*.2,.018,fur,8);
-    };
-    sphere(root,0,.68,.02,.52,.66,.44,fur,18);
-    sphere(root,0,1.38,-.15,.48,.46,.4,fur,18);
+    sphere(root,0,.68,.02,.52,.66,.44,leopardBodyFur,18);
+    sphere(root,0,1.38,-.15,.48,.46,.4,leopardHeadFur,18);
     sphere(root,0,.64,-.385,.28,.39,.075,mat('#f2d8a5'),14);
     for(const x of [-.36,.36]) {
       sphere(root,x,1.67,-.08,.16,.18,.1,fur,12);
-      sphere(root,x,1.68,-.145,.09,.105,.035,spots,10);
     }
-    for(const [x,y,z,r] of [[-.3,1.2,-.45,.1],[.3,1.2,-.45,.1],[-.2,1.58,-.42,.09],[.2,1.58,-.42,.09],[-.34,.57,-.28,.12],[.34,.57,-.28,.12],[-.31,.91,-.3,.11],[.31,.91,-.3,.11],[-.17,.34,-.36,.1],[.17,.34,-.36,.1],[-.47,.72,-.06,.1],[.47,.72,-.06,.1]]) rosette(x,y,z,r);
-    for(const [x,y,z] of [[-.28,1.59,.16],[0,1.65,.22],[.28,1.59,.16],[-.34,1.38,.18],[.34,1.38,.18],[-.35,1.08,.27],[.35,1.08,.27],[-.43,.82,.22],[.43,.82,.22],[-.35,.58,.3],[.35,.58,.3],[-.2,.37,.37],[.2,.37,.37],[0,.92,.43]]) sphere(root,x,y,z,.047,.055,.025,spots,8);
     for(const x of [-.18,.18]) {
       sphere(root,x,1.43,-.525,.062,.085,.028,eye,12);
       sphere(root,x-.012,1.46,-.548,.016,.022,.01,mats.white,8);
@@ -351,15 +453,13 @@ function animal(type, tint = null) {
       const arm=new THREE.Mesh(new THREE.CylinderGeometry(.095,.11,.55,10),fur);
       arm.position.set(x*.53,.73,-.03); arm.rotation.z=x*.14; root.add(arm);
       sphere(root,x*.61,.43,-.08,.13,.12,.13,fur,10);
-      for(let i=0;i<2;i++) sphere(root,x*(.56+i*.1),.45,-.17,.035,.055,.025,spots,8);
     }
     const tail=new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3([new THREE.Vector3(.42,.38,.25),new THREE.Vector3(.75,.35,.5),new THREE.Vector3(.82,.55,.72)]),16,.075,8,false),fur);
     root.add(tail);
-    sphere(root,.82,.55,.72,.12,.12,.12,spots,10);
+    sphere(root,.82,.55,.72,.12,.12,.12,mat('#593d2e'),10);
   } else {
-    sphere(root,0,.68,0,.55,.62,.44,fur,18);
-    sphere(root,0,1.36,-.16,.49,.47,.42,fur,18);
-    for(const [x,y,z,s] of [[-.3,.77,-.36,.18],[.29,.59,-.38,.17],[.34,.91,-.34,.13],[-.36,.45,-.34,.12]]) sphere(root,x,y,z,s,.19,s*.42,mat('#28252c'),10);
+    sphere(root,0,.68,0,.55,.62,.44,cowBodyFur,18);
+    sphere(root,0,1.36,-.16,.49,.47,.42,cowHeadFur,18);
     for(const x of [-.45,.45]) {
       sphere(root,x,1.31,-.15,.17,.11,.1,fur,12);
       const horn=new THREE.Mesh(new THREE.ConeGeometry(.1,.27,8),mats.cream); horn.position.set(x*.72,1.8,-.13); horn.rotation.z=x<0?.2:-.2; root.add(horn);
@@ -412,8 +512,8 @@ function createPlayer(data) {
   group.traverse(o=>{o.userData.playerId=data.id;});
   const name=label(`${avatarIcons[data.avatar]||'🙂'} ${data.name}`);
   name.position.set(0,2.2,0); name.scale.set(2.8,.7,1); group.add(name);
-  const bubble=label(data.bubble||'', '#37293e');
-  bubble.position.set(0,2.76,0); bubble.scale.set(3.2,.8,1); bubble.visible=Boolean(data.bubble); group.add(bubble);
+  const bubble=speechBubble(data.bubble||'', '#37293e');
+  bubble.position.set(0,2.62+bubble.scale.y/2,0); bubble.visible=Boolean(data.bubble); group.add(bubble);
   scene.add(group);
   const entry={...data,group,nameSprite:name,bubbleSprite:bubble,target:new THREE.Vector3(data.x||0,0,data.z||0),poseUntil:0};
   players.set(data.id,entry);
@@ -423,9 +523,12 @@ function createPlayer(data) {
 function setBubble(id,text) {
   const p=players.get(id); if(!p)return;
   p.bubbleSprite.material.map.dispose();
-  const fresh=label(text,'#37293e');
+  const fresh=speechBubble(text,'#37293e');
   p.bubbleSprite.material.map=fresh.material.map;
+  p.bubbleSprite.scale.copy(fresh.scale);
+  p.bubbleSprite.position.y=2.62+fresh.scale.y/2;
   p.bubbleSprite.material.needsUpdate=true;
+  fresh.material.dispose();
   p.bubbleSprite.visible=true;
   clearTimeout(p.bubbleTimer);
   p.bubbleTimer=setTimeout(()=>p.bubbleSprite.visible=false,6500);
@@ -434,7 +537,20 @@ function setBubble(id,text) {
 function removePlayer(id) {
   const p=players.get(id); if(!p)return;
   scene.remove(p.group);
-  p.group.traverse(o=>{if(o.geometry)o.geometry.dispose();});
+  p.group.traverse(o=>{
+    if(o.geometry)o.geometry.dispose();
+    const materials=Array.isArray(o.material)?o.material:o.material?[o.material]:[];
+    for(const material of materials){
+      if(material.userData.generatedAnimalPattern){
+        material.map?.dispose();
+        material.dispose();
+      }
+    }
+  });
+  for(const sprite of [p.nameSprite,p.bubbleSprite]){
+    sprite?.material?.map?.dispose();
+    sprite?.material?.dispose();
+  }
   players.delete(id);
   if(selectedId===id){selectedId='';document.querySelector('#target-name').textContent='chưa chọn ai';}
 }
@@ -546,7 +662,9 @@ socket.on('default-line',data=>setBubble(data.id,data.text));
 socket.on('feed',data=>addFeed(data.text,data.kind));
 socket.on('act',event=>{
   const from=players.get(event.from),to=players.get(event.to);
-  addFeed(`${avatarIcons[from?.avatar]||'🙂'} ${event.fromName} ${event.action==='throw'?`ném ${event.item} cho`: 'tương tác với'} ${event.targetName}`);
+  const actionPhrases={punch:'vừa đấm vào',bonk:'vừa kí đầu',smirk:'vừa cười khinh vào',bow:'vừa quỳ lạy trước'};
+  const feedText=event.action==='throw'?`${event.fromName} vừa ném ${event.item} cho ${event.targetName}`:`${event.fromName} ${actionPhrases[event.action]||'vừa tương tác với'} ${event.targetName}`;
+  addFeed(`${avatarIcons[from?.avatar]||'🙂'} ${feedText}`);
   setBubble(event.to,`${event.item?event.item+' ':''}${event.line}`);
   if(to){
     const start=performance.now();to.poseUntil=start+900;
