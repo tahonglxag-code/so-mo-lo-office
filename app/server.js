@@ -21,6 +21,14 @@ const workSeats = [
   { id: 'desk-6', x: -15.45, z: 9.2 }
 ];
 const workMilestones = [9, 69, 99, 199, 299, 399, 499, 599, 699, 799, 899];
+setInterval(() => {
+  for (const [code, room] of rooms) {
+    if (!room.pendingMoves?.size) continue;
+    const moves = [...room.pendingMoves.values()];
+    room.pendingMoves.clear();
+    if (room.size > 1) io.to(code).volatile.emit('moves', moves);
+  }
+}, 100).unref();
 const avatars = new Set(['snake', 'fish', 'sloth', 'cow', 'leopard']);
 const defaultLines = {
   snake: ['chị khổ lắm em', 'chị lạy em', 'chị hứa mai chị gửi', 'em ơi', 'ủa em', 'alo em'],
@@ -57,6 +65,25 @@ function cleanText(value, max) {
   return String(value ?? '').replace(/[<>\u0000-\u001f]/g, '').trim().slice(0, max);
 }
 
+function publicPlayer(player) {
+  return {
+    id: player.id,
+    name: player.name,
+    avatar: player.avatar,
+    x: player.x,
+    z: player.z,
+    yaw: player.yaw,
+    bubble: player.bubble,
+    bubbleUntil: player.bubbleUntil,
+    pose: player.pose,
+    poseUntil: player.poseUntil,
+    workSeatId: player.workSeatId,
+    working: player.working,
+    workStartedAt: player.workStartedAt,
+    auraUntil: player.auraUntil
+  };
+}
+
 function randomLine(avatar) {
   const choices = defaultLines[avatar] || defaultLines.snake;
   return choices[randomInt(choices.length)];
@@ -80,8 +107,6 @@ function scheduleIdleLine(code, player) {
 
 function releaseWorkSeat(code, player) {
   if (!player?.workSeatId) return;
-  clearInterval(player.workInterval);
-  player.workInterval = null;
   for (const timer of player.workTimers || []) clearTimeout(timer);
   player.workTimers = [];
   player.workSeatId = '';
@@ -95,15 +120,6 @@ function releaseWorkSeat(code, player) {
 
 function startWorkTimer(code, player) {
   player.workStartedAt = Date.now();
-  player.workInterval = setInterval(() => {
-    if (!rooms.get(code)?.has(player.id) || !player.working || !player.workSeatId) return;
-    io.to(code).emit('work-tick', {
-      id: player.id,
-      seatId: player.workSeatId,
-      startedAt: player.workStartedAt,
-      seconds: Math.min(999, Math.floor((Date.now() - player.workStartedAt) / 1000))
-    });
-  }, 1000);
   player.workTimers = workMilestones.map(seconds => setTimeout(() => {
     if (!rooms.get(code)?.has(player.id) || !player.working || !player.workSeatId) return;
     io.to(code).emit('work-milestone', { id: player.id, name: player.name, seconds, final: false });
@@ -128,7 +144,11 @@ io.on('connection', socket => {
     const requested = cleanText(data?.room, 10).toUpperCase();
     if (requested && !/^[A-Z0-9]{3,10}$/.test(requested)) return reply({ error: 'Mã phòng chỉ dùng 3–10 chữ cái hoặc chữ số.' });
     const code = requested || roomCode();
-    if (!rooms.has(code)) rooms.set(code, new Map());
+    if (!rooms.has(code)) {
+      const newRoom = new Map();
+      newRoom.pendingMoves = new Map();
+      rooms.set(code, newRoom);
+    }
     const room = rooms.get(code);
     if (room.size >= 50) return reply({ error: 'Phòng đã đủ 50 người.' });
     const player = {
@@ -145,20 +165,22 @@ io.on('connection', socket => {
       workSeatId: '',
       working: false,
       workStartedAt: 0,
-      workInterval: null,
-      workTimers: [],
       auraUntil: 0,
       lastActivity: Date.now()
     };
-    Object.defineProperty(player, 'idleTimer', { value: null, writable: true });
+    Object.defineProperties(player, {
+      idleTimer: { value: null, writable: true },
+      workTimers: { value: [], writable: true },
+      lastMoveAt: { value: 0, writable: true }
+    });
     player.bubble = randomLine(avatar);
     player.bubbleUntil = Date.now() + 6500;
     socket.data.room = code;
     socket.data.name = name;
     socket.join(code);
     room.set(socket.id, player);
-    socket.emit('joined', { room: code, id: socket.id, players: [...room.values()] });
-    socket.to(code).emit('player-joined', player);
+    socket.emit('joined', { room: code, id: socket.id, players: [...room.values()].map(publicPlayer) });
+    socket.to(code).emit('player-joined', publicPlayer(player));
     io.to(code).emit('feed', { text: `${name} vừa vào văn phòng`, kind: 'join' });
     io.to(code).emit('default-line', { id: player.id, text: player.bubble });
     scheduleIdleLine(code, player);
@@ -169,8 +191,13 @@ io.on('connection', socket => {
     const code = socket.data.room;
     const player = rooms.get(code)?.get(socket.id);
     if (!player || !data) return;
+    const now = Date.now();
+    if (now - player.lastMoveAt < 80) return;
+    player.lastMoveAt = now;
     const nextX = Math.max(-maxX, Math.min(maxX, Number(data.x) || 0));
     const nextZ = Math.max(-maxZ, Math.min(maxZ, Number(data.z) || 0));
+    const nextYaw = Number(data.yaw) || 0;
+    const changed = Math.hypot(nextX - player.x, nextZ - player.z) > .01 || Math.abs(nextYaw - player.yaw) > .01;
     if (Math.hypot(nextX - player.x, nextZ - player.z) > .12) {
       player.lastActivity = Date.now();
       if (player.workSeatId) {
@@ -188,8 +215,8 @@ io.on('connection', socket => {
     }
     player.x = nextX;
     player.z = nextZ;
-    player.yaw = Number(data.yaw) || 0;
-    socket.to(code).volatile.emit('move', { id: socket.id, x: player.x, z: player.z, yaw: player.yaw });
+    player.yaw = nextYaw;
+    if (changed) rooms.get(code).pendingMoves.set(socket.id, { id: socket.id, x: player.x, z: player.z, yaw: player.yaw });
   });
 
   socket.on('self-action', action => {
@@ -310,8 +337,8 @@ io.on('connection', socket => {
     if (!room) return;
     const name = room.get(socket.id)?.name || 'Người chơi';
     clearTimeout(room.get(socket.id)?.idleTimer);
-    clearInterval(room.get(socket.id)?.workInterval);
     for (const timer of room.get(socket.id)?.workTimers || []) clearTimeout(timer);
+    room.pendingMoves?.delete(socket.id);
     room.delete(socket.id);
     socket.to(code).emit('player-left', socket.id);
     io.to(code).emit('feed', { text: `${name} đã rời văn phòng`, kind: 'leave' });
