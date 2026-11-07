@@ -611,7 +611,7 @@ function frame(now) {
     if(!running&&(dx||dz)){const mag=Math.hypot(dx,dz);dx/=mag;dz/=mag;me.group.position.x=THREE.MathUtils.clamp(me.group.position.x+dx*5.2*dt,-13.4,13.4);me.group.position.z=THREE.MathUtils.clamp(me.group.position.z+dz*5.2*dt,-9.7,9.7);me.group.rotation.y=Math.atan2(-dx,-dz);}
     if(now-lastMove>55){socket.volatile.emit('move',{x:me.group.position.x,z:me.group.position.z,yaw:me.group.rotation.y});lastMove=now;}
     const look=new THREE.Vector3(me.group.position.x,0,me.group.position.z);
-    const distance=innerWidth<760?25:19;
+    const distance=innerWidth<760?20:15;
     camera.position.lerp(new THREE.Vector3(look.x,distance,look.z+distance),.06);camera.lookAt(look);
   }
   for(const p of players.values()){
