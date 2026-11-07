@@ -18,7 +18,7 @@ Mở `http://localhost:3000`. Nhập tên, chọn XÀ, CÁ 2 MANG, LƯỜI, BẦ
 - Click hoặc chạm người chơi khác: chọn để tương tác.
 - Khung chat: nhắn tự do, hiển thị bong bóng thoại.
 - Nút hành động phía dưới hoặc phím Z, X, C, B, V, M, N.
-- LÀM VIỆC: nhận một trong 10 chỗ; đồng hồ bắt đầu khi nhân vật tới bàn, báo các mốc thời gian và tự kết thúc ở 999 giây.
+- LÀM VIỆC: tối đa 6 người cùng lúc, mỗi chỗ có một bàn, laptop và ghế; đồng hồ bắt đầu khi nhân vật tới bàn, gửi các mốc thời gian lên cổng chung và tự kết thúc ở 999 giây.
 - HỌP GẤP gọi người chơi trong phòng vào phòng họp B; LÚA VỀ rải tiền giấy trong 5 giây.
 
 ## Render Free
