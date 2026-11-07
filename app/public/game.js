@@ -1,4 +1,6 @@
 import * as THREE from '/three.module.js';
+import {tinhGocMay} from './goc-may.js';
+import {CSS3DRenderer,CSS3DObject} from '/css3d.js';
 
 const socket = io({ transports: ['websocket', 'polling'] });
 const canvas = document.querySelector('#world');
@@ -26,8 +28,16 @@ let moneyTexture = null;
 let auraTexture = null;
 const scene = new THREE.Scene();
 scene.background = new THREE.Color('#c5b0c1');
-scene.fog = new THREE.Fog('#c5b0c1', 32, 65);
-const camera = new THREE.PerspectiveCamera(40, 1, 0.1, 100);
+scene.fog = new THREE.Fog('#c5b0c1', 120, 240);
+const canhRadio=new THREE.Scene();
+const veRadio=new CSS3DRenderer();
+veRadio.domElement.style.cssText='position:absolute;inset:0;pointer-events:none;overflow:hidden';
+document.querySelector('.world-wrap').append(veRadio.domElement);
+const bangRadio=new CSS3DObject(document.querySelector('#radio-panel'));
+bangRadio.position.set(-13.5,2,-12.7);
+bangRadio.scale.setScalar(.014);
+canhRadio.add(bangRadio);
+const camera = new THREE.PerspectiveCamera(40, 1, 0.1, 240);
 camera.position.set(0, 16, 16);
 camera.lookAt(0, 0, 0);
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false, powerPreference: 'low-power' });
@@ -240,6 +250,7 @@ function makeRoomLabel(text, x, z) {
 }
 
 let wcDoor = null;
+const cuaHop=new Map();
 let wcDoorTimer = null;
 
 function enclosedRoom(xMin, xMax, zMin, zMax, title, doorX) {
@@ -265,7 +276,7 @@ function enclosedRoom(xMin, xMax, zMin, zMax, title, doorX) {
   scene.add(door);
   box(door, doorWidth - .16, 2.28, .12, vatLieu, (doorWidth - .16) / 2, 1.14, 0);
   box(door, .06, .13, .06, mats.dark, doorWidth * .34, 1.12, -.08);
-  if (title === 'WC') wcDoor = door;
+  if (title === 'WC') wcDoor = door;else cuaHop.set(title,door);
   makeRoomLabel(title, (xMin + xMax) / 2, (zMin + zMax) / 2);
 }
 
@@ -316,7 +327,6 @@ function office() {
   for (let x=-3.5;x<=3.5;x+=2.3) stool(x, 8.2);
   const sign=box(scene,3,.85,.14,mats.purple,0,1.7,-12.83);
   sign.material=mat('#665379');
-  box(scene,5.4,1.5,.14,mats.dark,-13.5,1.1,-12.5);
   makeRoomLabel('VP SỜ MỜ LỜ', 0, -12.2);
 }
 
@@ -828,10 +838,14 @@ socket.on('work-complete',event=>{
   setAura(p,event.auraUntil);
 });
 socket.on('urgent-meeting',event=>{
+  targetWorld=null;
+  for(const cua of [...cuaHop.values(),wcDoor].filter(Boolean)){cua.rotation.y=Math.PI/2;clearTimeout(cua.userData.dong);cua.userData.dong=setTimeout(()=>{cua.rotation.y=0;renderer.shadowMap.needsUpdate=true;},event.duration+500);}
+  renderer.shadowMap.needsUpdate=true;
   for(const data of event.players||[]){
     const p=players.get(data.id);if(!p)continue;
     p.workSeatId='';p.working=false;p.meditating=false;p.pose='';setBubble(p.id,'');
-    p.runMotion={points:[p.group.position.clone(),new THREE.Vector3(data.x,0,data.z)],started:performance.now(),duration:event.duration,jump:false};
+    p.khoaDen=performance.now()+(data.duration||event.duration);
+    p.runMotion={points:[p.group.position.clone(),...(data.path||[{x:data.x,z:data.z}]).map(v=>new THREE.Vector3(v.x,0,v.z))],started:performance.now(),duration:data.duration||event.duration,jump:false};
     p.target.set(data.x,0,data.z);
   }
 });
@@ -979,9 +993,8 @@ function frame(now) {
     if(now<(me.khoaDen||0)){dx=0;dz=0;}
     if(!running&&(dx||dz)){const mag=Math.hypot(dx,dz);dx/=mag;dz/=mag;me.group.position.x=THREE.MathUtils.clamp(me.group.position.x+dx*5.2*dt,-18.4,18.4);me.group.position.z=THREE.MathUtils.clamp(me.group.position.z+dz*5.2*dt,-11.5,11.5);me.group.rotation.y=Math.atan2(-dx,-dz);}
     if(socket.connected&&now>=(me.khoaDen||0)&&now-lastMove>100){socket.volatile.emit('move',{x:me.group.position.x,z:me.group.position.z,yaw:me.group.rotation.y});lastMove=now;}
-    const look=new THREE.Vector3(me.group.position.x,0,me.group.position.z);
-    const distance=innerWidth<760?16:12;
-    camera.position.lerp(new THREE.Vector3(look.x,distance,look.z+distance),.06);camera.lookAt(look);
+    const goc=tinhGocMay(me.group.position.x,me.group.position.z,camera.fov,camera.aspect);
+    camera.position.set(goc.viTri.x,goc.viTri.y,goc.viTri.z);camera.lookAt(goc.tam.x,goc.tam.y,goc.tam.z);
   }
   for(const p of players.values()){
     if(p.pose==='meditate'){
@@ -989,7 +1002,7 @@ function frame(now) {
       else{p.pose='';p.meditating=false;p.body.scale.set(1,1,1);p.body.position.y=0;p.group.position.y=0;}
     }
     if(p.moneyUntil){if(now<p.moneyUntil)p.group.position.y=.8+Math.abs(Math.sin(now*.012))*.22;else{p.group.position.y=0;p.moneyUntil=0;}}
-    if(p.id!==selfId){const running=animateRun(p,now);if(!running)p.group.position.lerp(p.target,Math.min(1,dt*11));if(Number.isFinite(p.yaw))p.group.rotation.y=THREE.MathUtils.lerp(p.group.rotation.y,p.yaw,.15);}
+    if(p.id!==selfId){const running=animateRun(p,now);if(!running)p.group.position.lerp(p.target,Math.min(1,dt*11));if(!running&&Number.isFinite(p.yaw))p.group.rotation.y=THREE.MathUtils.lerp(p.group.rotation.y,p.yaw,.15);}
   }
   for(const p of players.values())hoatAnh(p,now);
   for(let i=vatNem.length-1;i>=0;i--){
@@ -997,7 +1010,6 @@ function frame(now) {
     if(!dich||t>=1){scene.remove(v.sprite);v.sprite.material.map.dispose();v.sprite.material.dispose();vatNem.splice(i,1);continue;}
     const den=dich.group.position.clone().add(new THREE.Vector3(0,1.1,0));v.sprite.position.lerpVectors(v.tu,den,t);v.sprite.position.y+=Math.sin(t*Math.PI)*2;
   }
-  dinhViRadio();
   const nowEpoch=Date.now();
   for(const [seatId,display] of workDisplays){
     const worker=[...players.values()].find(player=>player.working&&player.workSeatId===seatId);
@@ -1012,10 +1024,10 @@ function frame(now) {
     bill.material.opacity=Math.min(1,(bill.userData.expires-now)/650);
     if(now>=bill.userData.expires||bill.position.y<-.5){scene.remove(bill);bill.geometry.dispose();bill.material.dispose();moneyBills.splice(index,1);}
   }
-  if(!document.hidden)renderer.render(scene,camera);
+  if(!document.hidden){renderer.render(scene,camera);veRadio.render(canhRadio,camera);}
 }
 
-function resize(){const w=canvas.clientWidth,h=canvas.clientHeight;renderer.setSize(w,h,false);camera.aspect=w/Math.max(1,h);camera.fov=innerWidth<760?54:40;camera.updateProjectionMatrix();}
+function resize(){const w=canvas.clientWidth,h=canvas.clientHeight;renderer.setSize(w,h,false);veRadio.setSize(w,h);camera.aspect=w/Math.max(1,h);camera.fov=innerWidth<760?54:40;camera.updateProjectionMatrix();}
 new ResizeObserver(resize).observe(canvas);resize();requestAnimationFrame(frame);
 
 const query=new URLSearchParams(location.search);
@@ -1047,12 +1059,6 @@ document.querySelector('#music-pause').onclick=()=>guiNhac({action:'pause'});
 document.querySelector('#music-resume').onclick=()=>guiNhac({action:'play'});
 document.querySelector('#music-sound').onclick=()=>{if(trinhPhat&&sanSangNhac){trinhPhat.unMute();trinhPhat.setVolume(60);dongBoNhac();}};
 setInterval(()=>{if(!document.hidden)dongBoNhac();},10000);
-function dinhViRadio(){
-  const diem=new THREE.Vector3(-13.5,1.9,-12.4).project(camera),khung=document.querySelector('.world-wrap'),panel=document.querySelector('#radio-panel');
-  const w=khung.clientWidth,h=khung.clientHeight;
-  panel.style.left=`${(diem.x+1)/2*w}px`;
-  panel.style.top=`${Math.max(panel.offsetHeight/2+8,Math.min(h-panel.offsetHeight/2-8,(-diem.y+1)/2*h))}px`;
-}
 
 document.querySelector('#target-select').addEventListener('change',e=>{if(e.target.value)selectPlayer(e.target.value);else{selectedId='';document.querySelector('#target-name').textContent='chưa chọn ai';}});
 
