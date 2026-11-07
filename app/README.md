@@ -1,4 +1,4 @@
-# SỜ MỜ LỜ
+# VP SỜ MỜ LỜ
 
 Game văn phòng 3D nhiều người chơi chạy trên trình duyệt bằng Three.js, Express và Socket.IO.
 
@@ -9,7 +9,7 @@ npm install
 npm start
 ```
 
-Mở `http://localhost:3000`, nhập tên và chọn nhân vật. Để trống mã phòng để tạo phòng mới; nút Mời bạn sao chép link phòng.
+Mở `http://localhost:3000`, nhập tên và chọn nhân vật. Để trống mã để tạo mã tự động; nhập mã riêng để dùng làm mã phòng. Nếu mã đã có người dùng, người chơi sẽ vào phòng đó. Nút Mời bạn sao chép link phòng.
 
 ## Nhân vật
 
