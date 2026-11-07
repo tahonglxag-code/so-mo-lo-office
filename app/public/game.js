@@ -311,7 +311,8 @@ function office() {
   for (let x=-3.5;x<=3.5;x+=2.3) stool(x, 8.2);
   const sign=box(scene,3,.85,.14,mats.purple,0,1.7,-12.83);
   sign.material=mat('#665379');
-  makeRoomLabel('VP SỜ MỜ LỜ', 0, -12.2);
+  box(scene,5.4,3.2,.14,mats.dark,0,2.7,-12.5);
+  makeRoomLabel('VP SỜ MỜ LỜ · RADIO', 0, -12.2);
 }
 
 function workTable(z, seatId) {
@@ -612,6 +613,7 @@ function createPlayer(data) {
   scene.add(group);
   const entry={...data,group,body:group.userData.body,nameSprite:name,bubbleSprite:null,bubbleSticky:Boolean(data.working),target:new THREE.Vector3(data.x||0,0,data.z||0),poseUntil:0,working:Boolean(data.working),workSeatId:data.workSeatId||'',workStartedAt:data.workStartedAt||0,meditating:false,auraUntil:0,auraSprite:null,auraRing:null};
   players.set(data.id,entry);
+  if(data.id!==selfId){const opt=document.createElement('option');opt.value=data.id;opt.textContent=data.name;document.querySelector('#target-select').append(opt);}
   if(entry.working)setBubble(data.id,'kiếp trâu ngựa',true);
   if(data.auraUntil>Date.now())setAura(entry,data.auraUntil);
   return entry;
@@ -660,12 +662,14 @@ function removePlayer(id) {
     sprite?.material?.dispose();
   }
   players.delete(id);
+  for(const opt of document.querySelector('#target-select').options)if(opt.value===id){opt.remove();break;}
   if(selectedId===id){selectedId='';document.querySelector('#target-name').textContent='chưa chọn ai';}
 }
 
 function selectPlayer(id) {
   if(id===selfId)return toast('Chọn một người chơi khác để tương tác nhé.');
   selectedId=id;
+  document.querySelector('#target-select').value=id;
   const p=players.get(id);
   document.querySelector('#target-name').textContent=p?.name||'người chơi';
   for(const entry of players.values()) entry.group.scale.setScalar(entry.id===id?1.14:1);
@@ -834,7 +838,7 @@ socket.on('act',event=>{
   const now=performance.now();
   if(event.approach){
     from.khoaDen=to.khoaDen=now+event.approach+event.duration;
-    targetWorld=null;
+    if(from.id===selfId||to.id===selfId)targetWorld=null;
     from.runMotion={points:[from.group.position.clone(),new THREE.Vector3(event.x,0,event.z)],started:now,duration:event.approach,jump:false};
     from.hanhDong={loai:event.action,batDau:now+event.approach,ketThuc:now+event.approach+event.duration};
     from.yaw=event.yaw;
@@ -847,25 +851,31 @@ socket.on('act-impact',event=>{
   if(['punch','bonk'].includes(event.action)){
     to.hanhDong={loai:'nga',batDau:performance.now(),ketThuc:performance.now()+2000};
     to.khoaDen=performance.now()+2000;
+    if(to.choang){to.group.remove(to.choang);to.choang.material.map.dispose();to.choang.material.dispose();}
+    to.choang=taoIcon('💫');to.choang.position.set(0,1.3,0);to.group.add(to.choang);
   }
 });
-function taoVatNem(nguoi, dich, icon, now){
-  if(vatNem.length>=24)return;
+function taoIcon(icon){
   const c=document.createElement('canvas');c.width=c.height=96;
   const ctx=c.getContext('2d');ctx.font='64px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(icon,48,48);
   const tex=new THREE.CanvasTexture(c);
   const sprite=new THREE.Sprite(new THREE.SpriteMaterial({map:tex,transparent:true,depthTest:false}));
-  sprite.scale.set(.9,.9,1);sprite.renderOrder=105;scene.add(sprite);
+  sprite.scale.set(.9,.9,1);sprite.renderOrder=105;return sprite;
+}
+function taoVatNem(nguoi, dich, icon, now){
+  if(vatNem.length>=24)return;
+  const sprite=taoIcon(icon);scene.add(sprite);
   vatNem.push({sprite,dich:dich.id,tu:nguoi.group.position.clone().add(new THREE.Vector3(0,1.1,0)),batDau:now});
 }
 function hoatAnh(p,now){
   const hd=p.hanhDong;if(!hd||now<hd.batDau)return;
   const t=(now-hd.batDau)/(hd.ketThuc-hd.batDau);
   const dau=p.group.userData.dau;
-  if(t>=1){p.body.rotation.set(0,0,0);p.body.position.y=0;if(dau)dau.rotation.z=0;for(const tay of p.group.userData.tay||[])tay.rotation.x=0;p.hanhDong=null;return;}
+  if(t>=1){if(p.choang){p.group.remove(p.choang);p.choang.material.map.dispose();p.choang.material.dispose();p.choang=null;}p.body.rotation.set(0,0,0);p.body.position.y=0;if(dau)dau.rotation.z=0;for(const tay of p.group.userData.tay||[])tay.rotation.x=0;p.hanhDong=null;return;}
   if(hd.loai==='nga'){
     const nga=Math.min(1,t*6);p.body.rotation.x=-Math.PI/2*nga;p.body.position.y=.28*nga;
-    if(dau)dau.rotation.z=Math.PI/4;
+    if(dau)dau.rotation.z=Math.PI/4;else p.body.rotation.z=Math.PI/4;
+    if(p.choang){p.choang.position.x=Math.sin(now*.008)*.35;p.choang.material.rotation=Math.sin(now*.005)*.3;}
   }else if(hd.loai==='bow'){
     const nhip=Math.sin((t*2%1)*Math.PI);p.body.rotation.x=-Math.PI/2*Math.min(1,nhip*2);p.body.position.y=.22*nhip;
   }else{
@@ -1035,6 +1045,9 @@ setInterval(()=>{if(!document.hidden)dongBoNhac();},10000);
 function dinhViRadio(){
   const diem=new THREE.Vector3(0,3,-12.4).project(camera),khung=document.querySelector('.world-wrap'),panel=document.querySelector('#radio-panel');
   const w=khung.clientWidth,h=khung.clientHeight;
+  if(diem.z>1||diem.y>.65||diem.y<-.65||Math.abs(diem.x)>.7){diem.x=-1+330/w;diem.y=1-300/h;}
   panel.style.left=`${Math.max(165,Math.min(w-165,(diem.x+1)/2*w))}px`;
   panel.style.top=`${Math.max(150,Math.min(h-150,(-diem.y+1)/2*h))}px`;
 }
+
+document.querySelector('#target-select').addEventListener('change',e=>{if(e.target.value)selectPlayer(e.target.value);else{selectedId='';document.querySelector('#target-name').textContent='chưa chọn ai';}});
