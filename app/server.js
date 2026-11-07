@@ -10,6 +10,16 @@ const app = express();
 const httpServer = createServer(app);
 const io = new Server(httpServer, { cors: { origin: true }, maxHttpBufferSize: 1e5 });
 const rooms = new Map();
+const maxX = 18.4;
+const maxZ = 11.5;
+const workSeats = [
+  { id: 'desk-1', x: -15.45, z: -4.82 }, { id: 'desk-2', x: -15.45, z: -4.18 },
+  { id: 'desk-3', x: -15.45, z: -2.62 }, { id: 'desk-4', x: -15.45, z: -1.98 },
+  { id: 'desk-5', x: -15.45, z: -.42 }, { id: 'desk-6', x: -15.45, z: .22 },
+  { id: 'desk-7', x: -15.45, z: 1.78 }, { id: 'desk-8', x: -15.45, z: 2.42 },
+  { id: 'desk-9', x: -15.45, z: 4.3 }, { id: 'desk-10', x: -15.45, z: 6.5 }
+];
+const workMilestones = [9, 69, 99, 199, 299, 399, 499, 599, 699, 799, 899];
 const avatars = new Set(['snake', 'fish', 'sloth', 'cow', 'leopard']);
 const defaultLines = {
   snake: ['chị khổ lắm em', 'chị lạy em', 'chị hứa mai chị gửi', 'em ơi', 'ủa em', 'alo em'],
@@ -53,9 +63,11 @@ function randomLine(avatar) {
 
 function scheduleIdleLine(code, player) {
   clearTimeout(player.idleTimer);
+  if (player.workSeatId) return;
   player.idleTimer = setTimeout(() => {
     const room = rooms.get(code);
     if (!room?.has(player.id)) return;
+    if (player.workSeatId) return;
     if (Date.now() - player.lastActivity < 30000) return scheduleIdleLine(code, player);
     const text = randomLine(player.avatar);
     player.bubble = text;
@@ -63,6 +75,38 @@ function scheduleIdleLine(code, player) {
     io.to(code).emit('default-line', { id: player.id, text });
     scheduleIdleLine(code, player);
   }, 30000);
+}
+
+function releaseWorkSeat(code, player) {
+  if (!player?.workSeatId) return;
+  for (const timer of player.workTimers || []) clearTimeout(timer);
+  player.workTimers = [];
+  player.workSeatId = '';
+  player.working = false;
+  player.workStartedAt = 0;
+  player.bubble = '';
+  player.bubbleUntil = 0;
+  io.to(code).emit('work-state', { id: player.id, working: false });
+  scheduleIdleLine(code, player);
+}
+
+function startWorkTimer(code, player) {
+  player.workStartedAt = Date.now();
+  player.workTimers = workMilestones.map(seconds => setTimeout(() => {
+    if (!rooms.get(code)?.has(player.id) || !player.working || !player.workSeatId) return;
+    io.to(code).emit('work-milestone', { id: player.id, name: player.name, seconds, final: false });
+  }, seconds * 1000));
+  player.workTimers.push(setTimeout(() => {
+    if (!rooms.get(code)?.has(player.id) || !player.working || !player.workSeatId) return;
+    releaseWorkSeat(code, player);
+    player.x = 0;
+    player.z = 0;
+    player.lastActivity = Date.now();
+    player.auraUntil = Date.now() + 300000;
+    io.to(code).emit('work-complete', { id: player.id, x: player.x, z: player.z, duration: 1800, auraUntil: player.auraUntil });
+    io.to(code).emit('work-milestone', { id: player.id, name: player.name, seconds: 999, final: true });
+    io.to(code).emit('feed', { text: `${player.name} đã làm việc được 999s, hãy chiêm ngưỡng hào quang của ${player.name}` });
+  }, 999000));
 }
 
 io.on('connection', socket => {
@@ -86,6 +130,11 @@ io.on('connection', socket => {
       bubbleUntil: 0,
       pose: '',
       poseUntil: 0,
+      workSeatId: '',
+      working: false,
+      workStartedAt: 0,
+      workTimers: [],
+      auraUntil: 0,
       lastActivity: Date.now()
     };
     Object.defineProperty(player, 'idleTimer', { value: null, writable: true });
@@ -107,11 +156,22 @@ io.on('connection', socket => {
     const code = socket.data.room;
     const player = rooms.get(code)?.get(socket.id);
     if (!player || !data) return;
-    const nextX = Math.max(-13.4, Math.min(13.4, Number(data.x) || 0));
-    const nextZ = Math.max(-10.2, Math.min(10.2, Number(data.z) || 0));
+    const nextX = Math.max(-maxX, Math.min(maxX, Number(data.x) || 0));
+    const nextZ = Math.max(-maxZ, Math.min(maxZ, Number(data.z) || 0));
     if (Math.hypot(nextX - player.x, nextZ - player.z) > .12) {
       player.lastActivity = Date.now();
-      scheduleIdleLine(code, player);
+      if (player.workSeatId) {
+        const seat = workSeats.find(item => item.id === player.workSeatId);
+        const distance = seat ? Math.hypot(nextX - seat.x, nextZ - seat.z) : Infinity;
+        if (player.working && distance > .82) releaseWorkSeat(code, player);
+        else if (!player.working && seat && distance < .55) {
+          player.working = true;
+          player.bubble = 'kiếp trâu ngựa';
+          player.bubbleUntil = 0;
+          startWorkTimer(code, player);
+          io.to(code).emit('work-state', { id: player.id, working: true, seatId: player.workSeatId, startedAt: player.workStartedAt, text: player.bubble });
+        }
+      } else scheduleIdleLine(code, player);
     }
     player.x = nextX;
     player.z = nextZ;
@@ -122,32 +182,72 @@ io.on('connection', socket => {
   socket.on('self-action', action => {
     const code = socket.data.room;
     const player = rooms.get(code)?.get(socket.id);
-    if (!player || !['run', 'meditate', 'toilet'].includes(action)) return;
-    const duration = action === 'run' ? 650 : action === 'toilet' ? 2600 : 4000;
+    if (!player || !['run', 'meditate', 'toilet', 'money'].includes(action)) return;
+    if (action === 'money' || action === 'run' || action === 'toilet') releaseWorkSeat(code, player);
+    const duration = action === 'run' ? 900 : action === 'toilet' ? 2600 : action === 'money' ? 5000 : 4000;
     let line = '';
     let path = [];
     if (action === 'run') {
-      const distance = 2.8;
-      player.x = Math.max(-13.4, Math.min(13.4, player.x - Math.sin(player.yaw) * distance));
-      player.z = Math.max(-10.2, Math.min(10.2, player.z - Math.cos(player.yaw) * distance));
+      const distance = 5.6;
+      player.x = Math.max(-maxX, Math.min(maxX, player.x - Math.sin(player.yaw) * distance));
+      player.z = Math.max(-maxZ, Math.min(maxZ, player.z - Math.cos(player.yaw) * distance));
       path = [{ x: player.x, z: player.z }];
     } else if (action === 'toilet') {
-      path = [{ x: -13.2, z: -5.15 }, { x: -13.2, z: -8.15 }];
-      player.x = -13.2;
+      path = [{ x: -17.8, z: -5.2 }, { x: -17.8, z: -8.15 }];
+      player.x = -17.8;
       player.z = -8.15;
       line = 'đang đi toilet...';
       player.bubble = line;
       player.bubbleUntil = Date.now() + 6500;
-    } else {
+    } else if (action === 'meditate') {
       line = 'lương bất biến giữa dòng deadline vạn biến';
       player.bubble = line;
       player.bubbleUntil = Date.now() + 6500;
+    } else {
+      line = 'LÚA VỀ';
     }
     player.pose = action;
     player.poseUntil = Date.now() + duration;
     player.lastActivity = Date.now();
-    scheduleIdleLine(code, player);
+    if (!player.workSeatId) scheduleIdleLine(code, player);
     io.to(code).emit('self-action', { id: player.id, action, x: player.x, z: player.z, yaw: player.yaw, path, line, duration, at: Date.now() });
+  });
+
+  socket.on('work', () => {
+    const code = socket.data.room;
+    const room = rooms.get(code);
+    const player = room?.get(socket.id);
+    if (!player) return;
+    if (player.workSeatId) return socket.emit('work-result', { error: 'Bạn đang giữ một chỗ làm việc. Hãy di chuyển khỏi bàn để nhả chỗ.' });
+    const occupied = new Set([...room.values()].map(item => item.workSeatId).filter(Boolean));
+    const seat = workSeats.find(item => !occupied.has(item.id));
+    if (!seat) return socket.emit('work-result', { error: 'Hết chỗ rồi, không thể làm việc, đây chính là thông điệp dũ chụ' });
+    player.workSeatId = seat.id;
+    player.working = false;
+    player.lastActivity = Date.now();
+    clearTimeout(player.idleTimer);
+    socket.emit('work-result', { ok: true, seat });
+    io.to(code).emit('work-move', { id: player.id, seat, duration: Math.max(700, Math.hypot(player.x - seat.x, player.z - seat.z) / 5.2 * 1000) });
+  });
+
+  socket.on('urgent-meeting', () => {
+    const code = socket.data.room;
+    const room = rooms.get(code);
+    if (!room?.has(socket.id)) return;
+    const players = [...room.values()].map((player, index) => {
+      releaseWorkSeat(code, player);
+      const column = index % 8;
+      const row = Math.floor(index / 8);
+      player.x = 11.2 + column * .8;
+      player.z = 2 + row * .8;
+      player.lastActivity = Date.now();
+      player.bubble = '';
+      player.bubbleUntil = 0;
+      scheduleIdleLine(code, player);
+      return { id: player.id, x: player.x, z: player.z, yaw: player.yaw };
+    });
+    io.to(code).emit('urgent-meeting', { players, duration: 1800 });
+    io.to(code).emit('feed', { text: '🚨 HỌP GẤP: cả phòng đã được gọi vào phòng họp B' });
   });
 
   socket.on('chat', value => {
@@ -197,6 +297,7 @@ io.on('connection', socket => {
     if (!room) return;
     const name = room.get(socket.id)?.name || 'Người chơi';
     clearTimeout(room.get(socket.id)?.idleTimer);
+    for (const timer of room.get(socket.id)?.workTimers || []) clearTimeout(timer);
     room.delete(socket.id);
     socket.to(code).emit('player-left', socket.id);
     io.to(code).emit('feed', { text: `${name} đã rời văn phòng`, kind: 'leave' });
