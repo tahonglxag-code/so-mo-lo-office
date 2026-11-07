@@ -13,6 +13,11 @@ let roomCode = '';
 let myName = '';
 let myAvatar = 'snake';
 let selectedId = '';
+let hasJoinedRoom = false;
+const vatNem = [];
+let trangThaiNhac = null;
+let trinhPhat = null;
+let sanSangNhac = false;
 const players = new Map();
 const keys = new Set();
 const moneyBills = [];
@@ -510,7 +515,7 @@ function animal(type, tint = null) {
     const smile=new THREE.Mesh(new THREE.TorusGeometry(.075,.012,6,12,Math.PI),dark); smile.position.set(0,.85,-.66); smile.rotation.z=Math.PI; body.add(smile);
     for(const x of [-.43,.43]) {
       const arm=new THREE.Mesh(new THREE.CylinderGeometry(.105,.12,.86,10),fur);
-      arm.position.set(x*1.12,.48,.02); arm.rotation.z=x<0?-.08:.08; body.add(arm);
+      arm.userData.tay=true; arm.position.set(x*1.12,.48,.02); arm.rotation.z=x<0?-.08:.08; body.add(arm);
       for(let i=0;i<3;i++) {
         const claw=new THREE.Mesh(new THREE.ConeGeometry(.035,.16,7),mat('#e8ddbd'));
         claw.position.set(x*1.12+(i-1)*.07,.055,.02); claw.rotation.x=Math.PI; body.add(claw);
@@ -534,7 +539,7 @@ function animal(type, tint = null) {
     faceLine(body,[[0,1.21,-.557],[0,1.16,-.555],[-.075,1.13,-.545],[0,1.105,-.55],[.075,1.13,-.545]],dark,.014);
     for(const x of [-1,1]) {
       const arm=new THREE.Mesh(new THREE.CylinderGeometry(.095,.11,.55,10),fur);
-      arm.position.set(x*.53,.73,-.03); arm.rotation.z=x*.14; body.add(arm);
+      arm.userData.tay=true; arm.position.set(x*.53,.73,-.03); arm.rotation.z=x*.14; body.add(arm);
       sphere(body,x*.61,.43,-.08,.13,.12,.13,fur,10);
     }
     const tail=new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3([new THREE.Vector3(.42,.38,.25),new THREE.Vector3(.75,.35,.5),new THREE.Vector3(.82,.55,.72)]),16,.075,8,false),fur);
@@ -552,7 +557,7 @@ function animal(type, tint = null) {
     sphere(body,-.09,1.17,-.7,.035,.055,.025,dark,8); sphere(body,.09,1.17,-.7,.035,.055,.025,dark,8);
     for(const x of [-1,1]) {
       const arm=new THREE.Mesh(new THREE.CylinderGeometry(.11,.13,.57,10),fur);
-      arm.position.set(x*.61,.78,-.04); arm.rotation.z=x*.15; body.add(arm);
+      arm.userData.tay=true; arm.position.set(x*.61,.78,-.04); arm.rotation.z=x*.15; body.add(arm);
       sphere(body,x*.68,.48,-.08,.14,.12,.13,fur,10);
     }
   }
@@ -562,6 +567,14 @@ function animal(type, tint = null) {
     leg.position.set(x,tall?.21:.15,.05); leg.castShadow=true; body.add(leg);
   }
   body.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true;}});
+  let dau;
+  if(type==='snake') dau=body.children.find(o=>o.isGroup);
+  else if(type!=='fish'){
+    dau=new THREE.Group();dau.position.y=1.3;body.add(dau);
+    for(const o of [...body.children])if(o!==dau&&o.position.y>=1){body.remove(o);o.position.y-=1.3;dau.add(o);}
+  }
+  root.userData.dau=dau;
+  root.userData.tay=[];body.traverse(o=>{if(o.userData.tay)root.userData.tay.push(o);});
   root.userData.body = body;
   return root;
 }
@@ -593,7 +606,7 @@ function createPlayer(data) {
   group.position.set(data.x||0,0,data.z||0);
   group.rotation.y=data.yaw||0;
   group.userData.playerId=data.id;
-  group.traverse(o=>{o.userData.playerId=data.id;});
+  group.traverse(o=>{o.userData.playerId=data.id;o.castShadow=false;o.receiveShadow=false;});
   const name=nameLabel(data.name,avatarColors[data.avatar]||'#493650');
   name.position.set(0,2.45,0); group.add(name);
   scene.add(group);
@@ -747,7 +760,10 @@ canvas.addEventListener('pointermove',event=>{
 });
 
 socket.on('joined',data=>{
+  for(const id of [...players.keys()])removePlayer(id);
   selfId=data.id;roomCode=data.room;
+  hasJoinedRoom=true;
+  capNhatNhac(data.music);
   modal.classList.add('hidden');
   for(const player of data.players)createPlayer(player);
   const me=players.get(selfId); if(me)me.group.scale.setScalar(1.08);
@@ -759,9 +775,11 @@ socket.on('joined',data=>{
 });
 socket.on('player-joined',data=>{createPlayer(data);document.querySelector('#count-label').textContent=`${players.size}/50`;addFeed(`${avatarIcons[data.avatar]} ${data.name} vừa vào văn phòng`,'join');});
 socket.on('player-left',id=>{const p=players.get(id);if(p)addFeed(`${p.name} đã rời văn phòng`,'leave');removePlayer(id);document.querySelector('#count-label').textContent=`${players.size}/50`;});
-socket.on('move',data=>{
-  const p=players.get(data.id);if(!p)return;
-  p.target.set(data.x,0,data.z);p.yaw=data.yaw;
+socket.on('moves',updates=>{
+  for(const data of updates){
+    const p=players.get(data.id);if(!p)continue;
+    p.target.set(data.x,0,data.z);p.yaw=data.yaw;
+  }
 });
 socket.on('chat',data=>{
   addMessage(data.name,data.text,data.id===selfId);
@@ -786,14 +804,8 @@ socket.on('work-state',event=>{
   const p=players.get(event.id);if(!p)return;
   p.working=event.working;p.workSeatId=event.working?event.seatId||p.workSeatId:'';
   p.workStartedAt=event.working?event.startedAt||Date.now():0;
-  p.workElapsed=event.working?0:null;
   if(event.working){p.meditating=false;p.pose='';p.body.scale.set(1,1,1);p.body.position.y=0;setBubble(event.id,event.text||'kiếp trâu ngựa',true);}
   else setBubble(event.id,'');
-});
-socket.on('work-tick',event=>{
-  const p=players.get(event.id);if(!p||!p.working||p.workSeatId!==event.seatId)return;
-  p.workStartedAt=event.startedAt;
-  p.workElapsed=event.seconds;
 });
 socket.on('work-milestone',event=>{
   if(!event.final)addFeed(`${event.name} đã làm việc được ${event.seconds}s`,'work');
@@ -816,23 +828,51 @@ socket.on('urgent-meeting',event=>{
 });
 socket.on('act',event=>{
   const from=players.get(event.from),to=players.get(event.to);
-  const actionPhrases={punch:'vừa đấm vào',bonk:'vừa kí đầu',smirk:'vừa cười khinh vào',bow:'vừa quỳ lạy trước'};
-  const feedText=event.action==='throw'?`${event.fromName} vừa ném ${event.item} cho ${event.targetName}`:`${event.fromName} ${actionPhrases[event.action]||'vừa tương tác với'} ${event.targetName}`;
-  addFeed(`${avatarIcons[from?.avatar]||'🙂'} ${feedText}`);
-  setBubble(event.to,`${event.item?event.item+' ':''}${event.line}`);
-  if(to){
-    const start=performance.now();to.poseUntil=start+900;
-    const base=to.group.scale.x;
-    const pose=()=>{const now=performance.now();if(now>to.poseUntil){to.group.scale.setScalar(to.id===selfId?1.08:1);to.group.position.y=0;return;}
-      const elapsed=(now-start)/900;to.group.scale.setScalar(base*(1+.2*Math.sin(elapsed*Math.PI*6)));to.group.position.y=.1*Math.abs(Math.sin(elapsed*Math.PI*6));requestAnimationFrame(pose);};pose();
+  if(!from||!to)return;
+  const cau={punch:'vừa đấm vào',bonk:'vừa kí đầu',smirk:'vừa cười khinh vào',bow:'vừa quỳ lạy trước'};
+  addFeed(event.action==='throw'?`${event.fromName} vừa ném ${event.item} cho ${event.targetName}`:`${event.fromName} ${cau[event.action]} ${event.targetName}`);
+  const now=performance.now();
+  if(event.approach){
+    from.khoaDen=to.khoaDen=now+event.approach+event.duration;
+    targetWorld=null;
+    from.runMotion={points:[from.group.position.clone(),new THREE.Vector3(event.x,0,event.z)],started:now,duration:event.approach,jump:false};
+    from.hanhDong={loai:event.action,batDau:now+event.approach,ketThuc:now+event.approach+event.duration};
+    from.yaw=event.yaw;
   }
-  if(event.action==='throw'&&from&&to){
-    const orb=new THREE.Mesh(new THREE.SphereGeometry(.24,12,8),new THREE.MeshStandardMaterial({color:'#ffbf68',emissive:'#cd6a44',emissiveIntensity:.7}));
-    orb.position.copy(from.group.position).add(new THREE.Vector3(0,1.1,0));scene.add(orb);
-    const a=orb.position.clone(),b=to.group.position.clone().add(new THREE.Vector3(0,1.1,0)),start=performance.now();
-    const fly=()=>{const t=Math.min(1,(performance.now()-start)/500);orb.position.lerpVectors(a,b,t);orb.position.y+=Math.sin(t*Math.PI)*1.3;if(t<1)requestAnimationFrame(fly);else scene.remove(orb);};fly();
+  if(event.action==='throw')taoVatNem(from,to,event.item,now);
+});
+socket.on('act-impact',event=>{
+  const to=players.get(event.to);if(!to)return;
+  setBubble(event.to,event.line);
+  if(['punch','bonk'].includes(event.action)){
+    to.hanhDong={loai:'nga',batDau:performance.now(),ketThuc:performance.now()+2000};
+    to.khoaDen=performance.now()+2000;
   }
 });
+function taoVatNem(nguoi, dich, icon, now){
+  if(vatNem.length>=24)return;
+  const c=document.createElement('canvas');c.width=c.height=96;
+  const ctx=c.getContext('2d');ctx.font='64px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(icon,48,48);
+  const tex=new THREE.CanvasTexture(c);
+  const sprite=new THREE.Sprite(new THREE.SpriteMaterial({map:tex,transparent:true,depthTest:false}));
+  sprite.scale.set(.9,.9,1);sprite.renderOrder=105;scene.add(sprite);
+  vatNem.push({sprite,dich:dich.id,tu:nguoi.group.position.clone().add(new THREE.Vector3(0,1.1,0)),batDau:now});
+}
+function hoatAnh(p,now){
+  const hd=p.hanhDong;if(!hd||now<hd.batDau)return;
+  const t=(now-hd.batDau)/(hd.ketThuc-hd.batDau);
+  const dau=p.group.userData.dau;
+  if(t>=1){p.body.rotation.set(0,0,0);p.body.position.y=0;if(dau)dau.rotation.z=0;for(const tay of p.group.userData.tay||[])tay.rotation.x=0;p.hanhDong=null;return;}
+  if(hd.loai==='nga'){
+    const nga=Math.min(1,t*6);p.body.rotation.x=-Math.PI/2*nga;p.body.position.y=.28*nga;
+    if(dau)dau.rotation.z=Math.PI/4;
+  }else if(hd.loai==='bow'){
+    const nhip=Math.sin((t*2%1)*Math.PI);p.body.rotation.x=-Math.PI/2*Math.min(1,nhip*2);p.body.position.y=.22*nhip;
+  }else{
+    const danh=Math.sin(Math.min(1,t*5)*Math.PI);p.body.rotation.z=.2*danh;
+    const tay=p.group.userData.tay?.[0];if(tay)tay.rotation.x=-Math.PI/2*danh;
+  }
+}
 socket.on('self-action',event=>{
   const p=players.get(event.id);if(!p)return;
   p.yaw=event.yaw;
@@ -858,6 +898,20 @@ socket.on('connect_error',()=>{
   if(!modal.classList.contains('hidden'))document.querySelector('#join-error').textContent='Không kết nối được máy chủ. Kiểm tra mạng rồi thử lại.';
   toast('Đang thử kết nối lại…');
 });
+socket.on('disconnect',()=>{
+  if(!hasJoinedRoom)return;
+  document.querySelector('#invite').disabled=true;
+  document.querySelector('#room-label').textContent='Đang kết nối lại…';
+  document.querySelector('#count-label').textContent='…/50';
+  toast('Mất kết nối phòng, đang tự nối lại…');
+});
+socket.on('connect',()=>{
+  if(!hasJoinedRoom||!roomCode)return;
+  socket.timeout(8000).emit('join',{name:myName,avatar:myAvatar,room:roomCode},(error,result)=>{
+    if(error||result?.error||!result?.ok){toast(result?.error||'Chưa vào lại được phòng. Đang thử kết nối lại…');return;}
+    toast('Đã kết nối lại phòng.');
+  });
+});
 
 let lastMove=0;
 let lastFrame=performance.now();
@@ -871,7 +925,7 @@ function createMoneyShower(player){
     context.fillStyle='#16834e';context.font='900 64px Nunito, sans-serif';context.textAlign='center';context.textBaseline='middle';context.fillText('$',128,66);
     moneyTexture=new THREE.CanvasTexture(textureCanvas);moneyTexture.colorSpace=THREE.SRGBColorSpace;
   }
-  for(let index=0;index<22;index++){
+  for(let index=0;index<Math.min(16,100-moneyBills.length);index++){
     const material=new THREE.MeshBasicMaterial({map:moneyTexture,side:THREE.DoubleSide,transparent:true});
     const bill=new THREE.Mesh(new THREE.PlaneGeometry(.62,.3),material);
     bill.position.set(player.group.position.x,1.5+Math.random()*1.5,player.group.position.z);
@@ -907,8 +961,9 @@ function frame(now) {
     const running=animateRun(me,now);
     if(!running&&targetWorld){const tx=targetWorld.x-me.group.position.x,tz=targetWorld.z-me.group.position.z;const d=Math.hypot(tx,tz);if(d>.35){dx=tx/d;dz=tz/d;}else targetWorld=null;}
     if(!running&&me.workSeatId&&!me.working){dx=0;dz=0;}
+    if(now<(me.khoaDen||0)){dx=0;dz=0;}
     if(!running&&(dx||dz)){const mag=Math.hypot(dx,dz);dx/=mag;dz/=mag;me.group.position.x=THREE.MathUtils.clamp(me.group.position.x+dx*5.2*dt,-18.4,18.4);me.group.position.z=THREE.MathUtils.clamp(me.group.position.z+dz*5.2*dt,-11.5,11.5);me.group.rotation.y=Math.atan2(-dx,-dz);}
-    if(now-lastMove>55){socket.volatile.emit('move',{x:me.group.position.x,z:me.group.position.z,yaw:me.group.rotation.y});lastMove=now;}
+    if(socket.connected&&now>=(me.khoaDen||0)&&now-lastMove>100){socket.volatile.emit('move',{x:me.group.position.x,z:me.group.position.z,yaw:me.group.rotation.y});lastMove=now;}
     const look=new THREE.Vector3(me.group.position.x,0,me.group.position.z);
     const distance=innerWidth<760?16:12;
     camera.position.lerp(new THREE.Vector3(look.x,distance,look.z+distance),.06);camera.lookAt(look);
@@ -921,10 +976,17 @@ function frame(now) {
     if(p.moneyUntil){if(now<p.moneyUntil)p.group.position.y=.8+Math.abs(Math.sin(now*.012))*.22;else{p.group.position.y=0;p.moneyUntil=0;}}
     if(p.id!==selfId){const running=animateRun(p,now);if(!running)p.group.position.lerp(p.target,Math.min(1,dt*11));if(Number.isFinite(p.yaw))p.group.rotation.y=THREE.MathUtils.lerp(p.group.rotation.y,p.yaw,.15);}
   }
+  for(const p of players.values())hoatAnh(p,now);
+  for(let i=vatNem.length-1;i>=0;i--){
+    const v=vatNem[i],dich=players.get(v.dich),t=Math.min(1,(now-v.batDau)/2000);
+    if(!dich||t>=1){scene.remove(v.sprite);v.sprite.material.map.dispose();v.sprite.material.dispose();vatNem.splice(i,1);continue;}
+    const den=dich.group.position.clone().add(new THREE.Vector3(0,1.1,0));v.sprite.position.lerpVectors(v.tu,den,t);v.sprite.position.y+=Math.sin(t*Math.PI)*2;
+  }
+  dinhViRadio();
   const nowEpoch=Date.now();
   for(const [seatId,display] of workDisplays){
     const worker=[...players.values()].find(player=>player.working&&player.workSeatId===seatId);
-    paintWorkDisplay(display,worker?Math.min(999,worker.workElapsed??Math.floor(Math.max(0,nowEpoch-worker.workStartedAt)/1000)):null);
+    paintWorkDisplay(display,worker?Math.min(999,Math.floor(Math.max(0,nowEpoch-worker.workStartedAt)/1000)):null);
   }
   for(const p of players.values())if(p.auraUntil){
     if(nowEpoch<p.auraUntil){const pulse=.72+Math.sin(now*.004)*.12;if(p.auraSprite)p.auraSprite.material.opacity=pulse;if(p.auraRing)p.auraRing.rotation.z+=dt*.8;}
@@ -945,3 +1007,34 @@ const query=new URLSearchParams(location.search);
 if(query.get('room'))document.querySelector('#room').value=query.get('room');
 document.querySelector('#name').value=localStorage.getItem('smlName')||'';
 document.querySelector('#join-form').addEventListener('submit',()=>localStorage.setItem('smlName',document.querySelector('#name').value.trim()));
+
+function capNhatNhac(state){
+  if(!state)return;trangThaiNhac=state;
+  document.querySelector('#radio-panel').classList.toggle('has-music',Boolean(state.videoId));
+  document.querySelector('#music-status').textContent=state.videoId?(state.playing?'Đang phát chung trong phòng':'Nhạc đang tạm dừng'):'Chưa có nhạc • mọi người cùng nghe';
+  if(!state.videoId)return;
+  if(!window.YT?.Player){if(!document.querySelector('#youtube-api')){const script=document.createElement('script');script.id='youtube-api';script.src='https://www.youtube.com/iframe_api';document.head.append(script);}return;}
+  if(!trinhPhat){trinhPhat=new YT.Player('youtube-player',{width:300,height:200,videoId:state.videoId,playerVars:{playsinline:1,origin:location.origin},events:{onReady:()=>{sanSangNhac=true;dongBoNhac();},onAutoplayBlocked:()=>document.querySelector('#music-status').textContent='Bấm Bật âm thanh để nghe nhạc chung',onError:()=>document.querySelector('#music-status').textContent='Video không cho phép phát nhúng. Hãy chọn bài khác.'}});return;}
+  dongBoNhac();
+}
+window.onYouTubeIframeAPIReady=()=>capNhatNhac(trangThaiNhac);
+function dongBoNhac(){
+  if(!sanSangNhac||!trangThaiNhac?.videoId)return;
+  const n=trangThaiNhac,giay=n.position+(n.playing?(Date.now()-n.changedAt)/1000:0);
+  if(trinhPhat.getVideoData()?.video_id!==n.videoId)trinhPhat.loadVideoById({videoId:n.videoId,startSeconds:giay});
+  else if(Math.abs(trinhPhat.getCurrentTime()-giay)>2)trinhPhat.seekTo(giay,true);
+  if(n.playing)trinhPhat.playVideo();else trinhPhat.pauseVideo();
+}
+function guiNhac(data){socket.timeout(8000).emit('music',data,(err,result)=>{if(err||result?.error)toast(result?.error||'Chưa gửi được yêu cầu phát nhạc.');});}
+socket.on('music-state',capNhatNhac);
+document.querySelector('#music-form').addEventListener('submit',e=>{e.preventDefault();guiNhac({url:document.querySelector('#music-url').value,action:'play'});});
+document.querySelector('#music-pause').onclick=()=>guiNhac({action:'pause'});
+document.querySelector('#music-resume').onclick=()=>guiNhac({action:'play'});
+document.querySelector('#music-sound').onclick=()=>{if(trinhPhat&&sanSangNhac){trinhPhat.unMute();trinhPhat.setVolume(60);dongBoNhac();}};
+setInterval(()=>{if(!document.hidden)dongBoNhac();},10000);
+function dinhViRadio(){
+  const diem=new THREE.Vector3(0,3,-12.4).project(camera),khung=document.querySelector('.world-wrap'),panel=document.querySelector('#radio-panel');
+  const w=khung.clientWidth,h=khung.clientHeight;
+  panel.style.left=`${Math.max(165,Math.min(w-165,(diem.x+1)/2*w))}px`;
+  panel.style.top=`${Math.max(150,Math.min(h-150,(-diem.y+1)/2*h))}px`;
+}
