@@ -748,6 +748,7 @@ canvas.addEventListener('pointermove',event=>{
 
 socket.on('joined',data=>{
   selfId=data.id;roomCode=data.room;
+  modal.classList.add('hidden');
   for(const player of data.players)createPlayer(player);
   const me=players.get(selfId); if(me)me.group.scale.setScalar(1.08);
   document.querySelector('#room-label').textContent=`Phòng ${roomCode}`;
