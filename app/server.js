@@ -50,6 +50,7 @@ const interactionLines = {
 app.use(express.static(path.join(root, 'public')));
 app.get('/three.module.js', (_req, res) => res.sendFile(path.join(root, 'node_modules/three/build/three.module.js')));
 app.get('/three.core.js', (_req, res) => res.sendFile(path.join(root, 'node_modules/three/build/three.core.js')));
+app.get('/healthz', (_req, res) => res.json({ ok: true, rooms: rooms.size, players: [...rooms.values()].reduce((n, room) => n + room.size, 0), uptime: Math.floor(process.uptime()) }));
 app.get('*', (_req, res) => res.sendFile(path.join(root, 'public/index.html')));
 
 function roomCode() {
@@ -80,7 +81,8 @@ function publicPlayer(player) {
     workSeatId: player.workSeatId,
     working: player.working,
     workStartedAt: player.workStartedAt,
-    auraUntil: player.auraUntil
+    auraUntil: player.auraUntil,
+    lockedUntil: player.lockedUntil || 0
   };
 }
 
@@ -147,9 +149,14 @@ io.on('connection', socket => {
     if (!rooms.has(code)) {
       const newRoom = new Map();
       newRoom.pendingMoves = new Map();
+      newRoom.music = { videoId: '', playing: false, position: 0, changedAt: Date.now() };
       rooms.set(code, newRoom);
     }
     const room = rooms.get(code);
+    if (room.has(socket.id)) {
+      socket.emit('joined', { room: code, id: socket.id, players: [...room.values()].map(publicPlayer), music: room.music });
+      return reply({ ok: true, room: code });
+    }
     if (room.size >= 50) return reply({ error: 'Phòng đã đủ 50 người.' });
     const player = {
       id: socket.id,
@@ -179,7 +186,7 @@ io.on('connection', socket => {
     socket.data.name = name;
     socket.join(code);
     room.set(socket.id, player);
-    socket.emit('joined', { room: code, id: socket.id, players: [...room.values()].map(publicPlayer) });
+    socket.emit('joined', { room: code, id: socket.id, players: [...room.values()].map(publicPlayer), music: room.music });
     socket.to(code).emit('player-joined', publicPlayer(player));
     io.to(code).emit('feed', { text: `${name} vừa vào văn phòng`, kind: 'join' });
     io.to(code).emit('default-line', { id: player.id, text: player.bubble });
@@ -192,7 +199,7 @@ io.on('connection', socket => {
     const player = rooms.get(code)?.get(socket.id);
     if (!player || !data) return;
     const now = Date.now();
-    if (now - player.lastMoveAt < 80) return;
+    if (now < (player.lockedUntil || 0) || now - player.lastMoveAt < 80) return;
     player.lastMoveAt = now;
     const nextX = Math.max(-maxX, Math.min(maxX, Number(data.x) || 0));
     const nextZ = Math.max(-maxZ, Math.min(maxZ, Number(data.z) || 0));
@@ -200,7 +207,8 @@ io.on('connection', socket => {
     const changed = Math.hypot(nextX - player.x, nextZ - player.z) > .01 || Math.abs(nextYaw - player.yaw) > .01;
     if (Math.hypot(nextX - player.x, nextZ - player.z) > .12) {
       player.lastActivity = Date.now();
-      if (player.workSeatId) {
+    }
+    if (player.workSeatId) {
         const seat = workSeats.find(item => item.id === player.workSeatId);
         const distance = seat ? Math.hypot(nextX - seat.x, nextZ - seat.z) : Infinity;
         if (player.working && distance > .82) releaseWorkSeat(code, player);
@@ -211,7 +219,6 @@ io.on('connection', socket => {
           startWorkTimer(code, player);
           io.to(code).emit('work-state', { id: player.id, working: true, seatId: player.workSeatId, startedAt: player.workStartedAt, text: player.bubble });
         }
-      } else scheduleIdleLine(code, player);
     }
     player.x = nextX;
     player.z = nextZ;
@@ -222,6 +229,7 @@ io.on('connection', socket => {
   socket.on('self-action', action => {
     const code = socket.data.room;
     const player = rooms.get(code)?.get(socket.id);
+    if (player && Date.now() < (player.lockedUntil || 0)) return;
     if (!player || !['run', 'meditate', 'toilet', 'money'].includes(action)) return;
     if (action === 'money' || action === 'run' || action === 'toilet') releaseWorkSeat(code, player);
     const duration = action === 'run' ? 900 : action === 'toilet' ? 2600 : action === 'money' ? 5000 : 4000;
@@ -257,7 +265,7 @@ io.on('connection', socket => {
     const code = socket.data.room;
     const room = rooms.get(code);
     const player = room?.get(socket.id);
-    if (!player) return;
+    if (!player || Date.now() < (player.lockedUntil || 0)) return;
     if (player.workSeatId) return socket.emit('work-result', { error: 'Bạn đang giữ một chỗ làm việc. Hãy di chuyển khỏi bàn để nhả chỗ.' });
     const occupied = new Set([...room.values()].map(item => item.workSeatId).filter(Boolean));
     const seat = workSeats.find(item => !occupied.has(item.id));
@@ -309,26 +317,64 @@ io.on('connection', socket => {
     if (data.action === 'throw' && !items.has(data?.item)) return;
     const target = rooms.get(code)?.get(cleanText(data?.target, 40));
     if (!target || target.id === player.id) return;
+    const now = Date.now();
+    if (now < (player.lockedUntil || 0) || now < (target.lockedUntil || 0) || now - (player.lastActAt || 0) < 500) return;
+    player.lastActAt = now;
     const line = interactionLines[target.avatar] || 'Ủa, gì vậy?';
-    const event = {
-      from: player.id,
-      fromName: player.name,
-      to: target.id,
-      targetName: target.name,
-      action: data.action,
-      item: data.action === 'throw' ? data.item : '',
-      line,
-      at: Date.now()
-    };
-    target.bubble = line;
-    target.bubbleUntil = Date.now() + 4500;
-    player.lastActivity = Date.now();
-    target.lastActivity = Date.now();
-    scheduleIdleLine(code, player);
-    scheduleIdleLine(code, target);
-    target.pose = data.action;
-    target.poseUntil = Date.now() + 1400;
+    const event = { from: player.id, fromName: player.name, to: target.id, targetName: target.name, action: data.action, item: data.action === 'throw' ? data.item : '', line, at: now, approach: 0, duration: data.action === 'bow' ? 3000 : data.action === 'throw' ? 2000 : 2500 };
+    if (['punch', 'bonk', 'bow'].includes(data.action)) {
+      releaseWorkSeat(code, player);
+      const x = Math.max(-maxX, Math.min(maxX, target.x - Math.sin(target.yaw) * 1.4));
+      const z = Math.max(-maxZ, Math.min(maxZ, target.z - Math.cos(target.yaw) * 1.4));
+      event.approach = Math.min(5000, Math.max(200, Math.hypot(x - player.x, z - player.z) / 7 * 1000));
+      event.x = x; event.z = z;
+      event.yaw = Math.atan2(-(target.x - x), -(target.z - z));
+      player.x = x; player.z = z; player.yaw = event.yaw;
+      player.lockedUntil = now + event.approach + event.duration;
+      target.lockedUntil = player.lockedUntil;
+      rooms.get(code).pendingMoves.delete(player.id);
+    }
+    player.lastActivity = now;
+    target.lastActivity = now;
     io.to(code).emit('act', event);
+    const delay = event.approach + (data.action === 'throw' ? 2000 : ['punch', 'bonk'].includes(data.action) ? 350 : 0);
+    setTimeout(() => {
+      if (rooms.get(code)?.get(player.id) !== player || rooms.get(code)?.get(target.id) !== target) return;
+      if (['punch', 'bonk'].includes(data.action)) releaseWorkSeat(code, target);
+      target.bubble = line; target.bubbleUntil = Date.now() + 4500;
+      io.to(code).emit('act-impact', event);
+      scheduleIdleLine(code, player); scheduleIdleLine(code, target);
+    }, delay);
+  });
+
+  socket.on('room-check', (reply) => {
+    const room = rooms.get(socket.data.room);
+    if (typeof reply === 'function') reply({ ok: Boolean(room?.has(socket.id)), players: room ? [...room.values()].map(publicPlayer) : [] });
+  });
+
+  socket.on('music', (data, reply = () => {}) => {
+    const room = rooms.get(socket.data.room);
+    const player = room?.get(socket.id);
+    if (!player) return reply({ error: 'Bạn chưa vào phòng.' });
+    if (Date.now() - (player.lastMusicAt || 0) < 800) return reply({ error: 'Đợi một chút trước khi đổi nhạc.' });
+    player.lastMusicAt = Date.now();
+    const old = room.music;
+    const position = old.position + (old.playing ? (Date.now() - old.changedAt) / 1000 : 0);
+    let videoId = old.videoId;
+    if (data?.url) {
+      try {
+        const url = new URL(String(data.url));
+        const host = url.hostname.replace(/^www\./, '');
+        if (host === 'youtu.be') videoId = url.pathname.slice(1);
+        else if (['youtube.com', 'm.youtube.com'].includes(host)) videoId = url.searchParams.get('v') || url.pathname.split('/').filter(Boolean).at(-1);
+        else throw new Error();
+        if (!/^[a-zA-Z0-9_-]{11}$/.test(videoId)) throw new Error();
+      } catch { return reply({ error: 'Link YouTube chưa hợp lệ.' }); }
+    }
+    if (!videoId) return reply({ error: 'Hãy nhập link bài hát trước.' });
+    room.music = { videoId, playing: data?.action !== 'pause', position: data?.url ? 0 : position, changedAt: Date.now() };
+    io.to(socket.data.room).emit('music-state', room.music);
+    reply({ ok: true });
   });
 
   socket.on('disconnect', () => {
