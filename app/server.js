@@ -20,6 +20,13 @@ const defaultLines = {
 };
 const actions = new Set(['punch', 'bonk', 'smirk', 'bow', 'run', 'meditate', 'sleep', 'throw']);
 const items = new Set(['❤️', '🧋', '💸', '📋', '⏰', '💩']);
+const interactionLines = {
+  snake: 'chị hứa chị chừa',
+  fish: 'bệ hạ tha tội',
+  sloth: 't méc sếp m',
+  cow: 'em đã làm gì đâu',
+  leopard: 'em bị tổn thưn'
+};
 
 app.use(express.static(path.join(root, 'public')));
 app.get('/three.module.js', (_req, res) => res.sendFile(path.join(root, 'node_modules/three/build/three.module.js')));
@@ -62,8 +69,9 @@ io.on('connection', socket => {
   socket.on('join', (data, reply = () => {}) => {
     const name = cleanText(data?.name, 18) || 'Bạn mới';
     const avatar = avatars.has(data?.avatar) ? data.avatar : 'snake';
-    const requested = cleanText(data?.room, 8).toUpperCase();
-    const code = requested && rooms.has(requested) ? requested : roomCode();
+    const requested = cleanText(data?.room, 10).toUpperCase();
+    if (requested && !/^[A-Z0-9]{3,10}$/.test(requested)) return reply({ error: 'Mã phòng chỉ dùng 3–10 chữ cái hoặc chữ số.' });
+    const code = requested || roomCode();
     if (!rooms.has(code)) rooms.set(code, new Map());
     const room = rooms.get(code);
     if (room.size >= 50) return reply({ error: 'Phòng đã đủ 50 người.' });
@@ -130,17 +138,7 @@ io.on('connection', socket => {
     if (data.action === 'throw' && !items.has(data?.item)) return;
     const target = rooms.get(code)?.get(cleanText(data?.target, 40));
     if (!target || target.id === player.id) return;
-    const lines = {
-      punch: ['Ối, ai vừa bấm KPI vậy?', 'Báo HR nha!', 'Cú này tính là teamwork nhé.'],
-      bonk: ['Cho tỉnh ngủ nè!', 'Đã ghi biên bản.', 'Gõ nhẹ thôi, còn họp.'],
-      smirk: ['Deadline gọi tên bạn kìa.', 'Tự tin dữ ha!', 'Ủa tưởng hay lắm?'],
-      bow: ['Em xin nhận task ạ.', 'Sếp nói gì cũng đúng!', 'Dạ vâng, em hiểu rồi ạ.'],
-      run: ['Deadline tới rồi, chạy!', 'Tôi chưa thấy gì hết!', 'Xin phép out meeting.'],
-      meditate: ['Hít vào… thở ra…', 'Bình tĩnh, còn 8 tiếng nữa.', 'Tâm bất biến giữa dòng task.'],
-      sleep: ['Ngủ 5 phút thôi nha.', 'Đang cập nhật năng lượng…', 'Zzz…'],
-      throw: ['Ném quà qua nè!', 'Bắt lấy!', 'Gửi chút động lực!']
-    };
-    const line = lines[data.action][randomInt(lines[data.action].length)];
+    const line = interactionLines[target.avatar] || 'Ủa, gì vậy?';
     const event = {
       from: player.id,
       fromName: player.name,
