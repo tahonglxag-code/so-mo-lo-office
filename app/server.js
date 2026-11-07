@@ -13,7 +13,7 @@ const rooms = new Map();
 const maxX = 18.4;
 const maxZ = 11.5;
 const workSeats = [
-  { id: 'desk-1', x: -15.45, z: -1.8 },
+  { id: 'desk-1', x: -15.45, z: 11.4 },
   { id: 'desk-2', x: -15.45, z: .4 },
   { id: 'desk-3', x: -15.45, z: 2.6 },
   { id: 'desk-4', x: -15.45, z: 4.8 },
@@ -80,6 +80,8 @@ function scheduleIdleLine(code, player) {
 
 function releaseWorkSeat(code, player) {
   if (!player?.workSeatId) return;
+  clearInterval(player.workInterval);
+  player.workInterval = null;
   for (const timer of player.workTimers || []) clearTimeout(timer);
   player.workTimers = [];
   player.workSeatId = '';
@@ -93,6 +95,15 @@ function releaseWorkSeat(code, player) {
 
 function startWorkTimer(code, player) {
   player.workStartedAt = Date.now();
+  player.workInterval = setInterval(() => {
+    if (!rooms.get(code)?.has(player.id) || !player.working || !player.workSeatId) return;
+    io.to(code).emit('work-tick', {
+      id: player.id,
+      seatId: player.workSeatId,
+      startedAt: player.workStartedAt,
+      seconds: Math.min(999, Math.floor((Date.now() - player.workStartedAt) / 1000))
+    });
+  }, 1000);
   player.workTimers = workMilestones.map(seconds => setTimeout(() => {
     if (!rooms.get(code)?.has(player.id) || !player.working || !player.workSeatId) return;
     io.to(code).emit('work-milestone', { id: player.id, name: player.name, seconds, final: false });
@@ -134,6 +145,7 @@ io.on('connection', socket => {
       workSeatId: '',
       working: false,
       workStartedAt: 0,
+      workInterval: null,
       workTimers: [],
       auraUntil: 0,
       lastActivity: Date.now()
@@ -298,6 +310,7 @@ io.on('connection', socket => {
     if (!room) return;
     const name = room.get(socket.id)?.name || 'Người chơi';
     clearTimeout(room.get(socket.id)?.idleTimer);
+    clearInterval(room.get(socket.id)?.workInterval);
     for (const timer of room.get(socket.id)?.workTimers || []) clearTimeout(timer);
     room.delete(socket.id);
     socket.to(code).emit('player-left', socket.id);
