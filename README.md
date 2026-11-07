@@ -1,4 +1,4 @@
-# SỜ MỜ LỜ
+# VP SỜ MỜ LỜ
 
 Game văn phòng 3D nhiều người chơi trên trình duyệt, chạy bằng Node.js, Express, Socket.IO và Three.js.
 
@@ -9,18 +9,26 @@ npm install
 npm start
 ```
 
-Mở `http://localhost:3000`. Nhập tên, chọn một trong bốn nhân vật, rồi để trống mã phòng để tạo phòng mới. Nút Mời bạn sao chép link có kèm mã phòng.
+Mở `http://localhost:3000`. Nhập tên, chọn XÀ, CÁ 2 MANG, LƯỜI, BẦN ĐÒ hoặc BÁO THỦ. Để trống mã phòng để tạo mã tự động hoặc nhập mã riêng để tạo hay tham gia phòng đó. Nút Mời bạn sao chép link mời.
 
 ## Điều khiển
 
-- WASD hoặc phím mũi tên: di chuyển
-- Chạm hoặc click sàn: đi đến điểm đó
-- Chạm người chơi khác: chọn để tương tác
-- Chat tự do, tin nhắn hiển thị trong bong bóng
-- Nút hành động phía dưới hoặc phím tắt Z, X, C, B, V, M, N
+- WASD hoặc phím mũi tên: di chuyển.
+- Click hoặc chạm sàn: đi đến vị trí.
+- Click hoặc chạm người chơi khác: chọn để tương tác.
+- Khung chat: nhắn tự do, hiển thị bong bóng thoại.
+- Nút hành động phía dưới hoặc phím Z, X, C, B, V, M, N.
+- LÀM VIỆC: nhận một trong 10 chỗ; đồng hồ bắt đầu khi nhân vật tới bàn, báo các mốc thời gian và tự kết thúc ở 999 giây.
+- HỌP GẤP gọi người chơi trong phòng vào phòng họp B; LÚA VỀ rải tiền giấy trong 5 giây.
 
 ## Render Free
 
-Đặt thư mục gốc dịch vụ là `app`, lệnh build là `npm install`, lệnh chạy là `npm start`. Dịch vụ dùng Socket.IO trên cùng cổng HTTP. Máy chủ giữ phòng trong RAM; khi Render khởi động lại hoặc tạm dừng, người chơi sẽ phải vào lại phòng.
+Đặt thư mục gốc dịch vụ là `app`, lệnh build là `npm install`, lệnh chạy là `npm start`. Dịch vụ dùng Socket.IO trên cùng cổng HTTP. Phòng được lưu trong RAM; khi Render khởi động lại hoặc tạm dừng, người chơi phải vào lại phòng.
 
-Phòng giới hạn 50 người trong mã, nhưng mới kiểm tra đồng bộ với hai kết nối. Chưa có bài kiểm thử tải 20–50 kết nối đồng thời.
+Phòng giới hạn 50 người trong mã. Smoke test kiểm tra đồng bộ hai người chơi và mốc làm việc 9 giây; chưa có kiểm thử tải 20–50 kết nối hoặc chờ đủ 999 giây.
+
+## Kiểm tra
+
+```sh
+npm run test:smoke
+```
