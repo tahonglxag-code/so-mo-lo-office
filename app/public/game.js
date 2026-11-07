@@ -28,8 +28,8 @@ const keys = new Set();
 const scene = new THREE.Scene();
 scene.background = new THREE.Color('#c5b0c1');
 scene.fog = new THREE.Fog('#c5b0c1', 32, 65);
-const camera = new THREE.PerspectiveCamera(43, 1, 0.1, 100);
-camera.position.set(0, 19, 19);
+const camera = new THREE.PerspectiveCamera(38, 1, 0.1, 100);
+camera.position.set(0, 18, 18);
 camera.lookAt(0, 0, 0);
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false, powerPreference: 'low-power' });
 renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 1.5));
@@ -86,7 +86,7 @@ function label(text, color = '#493650') {
   ctx.roundRect(8, 8, 496, 112, 30);
   ctx.fill();
   ctx.stroke();
-  ctx.font = '900 43px Nunito, sans-serif';
+  ctx.font = '900 52px Nunito, sans-serif';
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   ctx.fillStyle = color;
@@ -94,16 +94,35 @@ function label(text, color = '#493650') {
   const texture = new THREE.CanvasTexture(c);
   texture.colorSpace = THREE.SRGBColorSpace;
   const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: texture, transparent: true, depthTest: false }));
-  sprite.scale.set(2.1, .52, 1);
+  sprite.scale.set(2.8, .7, 1);
   return sprite;
 }
 
 function makeRoomLabel(text, x, z) {
   const sprite = label(text, '#fffaf0');
-  sprite.position.set(x, .14, z);
-  sprite.scale.set(1.9, .46, 1);
-  sprite.rotation.x = -Math.PI / 2;
+  sprite.position.set(x, 2.35, z);
+  sprite.scale.set(3.15, .78, 1);
   scene.add(sprite);
+}
+
+function enclosedRoom(xMin, xMax, zMin, zMax, title, doorX) {
+  const wallHeight = 2.6;
+  const wallY = wallHeight / 2;
+  const wallWidth = .26;
+  const doorWidth = 1.55;
+  box(scene, wallWidth, wallHeight, zMax - zMin, mats.wall, xMin, wallY, (zMin + zMax) / 2);
+  box(scene, wallWidth, wallHeight, zMax - zMin, mats.wall, xMax, wallY, (zMin + zMax) / 2);
+  box(scene, xMax - xMin, wallHeight, wallWidth, mats.wall, (xMin + xMax) / 2, wallY, zMin);
+  const leftWidth = doorX - doorWidth / 2 - xMin;
+  const rightWidth = xMax - (doorX + doorWidth / 2);
+  if (leftWidth > 0) box(scene, leftWidth, wallHeight, wallWidth, mats.wall, xMin + leftWidth / 2, wallY, zMax);
+  if (rightWidth > 0) box(scene, rightWidth, wallHeight, wallWidth, mats.wall, doorX + doorWidth / 2 + rightWidth / 2, wallY, zMax);
+  box(scene, .14, wallHeight, .16, mats.wood, doorX - doorWidth / 2, wallY, zMax);
+  box(scene, .14, wallHeight, .16, mats.wood, doorX + doorWidth / 2, wallY, zMax);
+  box(scene, doorWidth + .14, .16, .16, mats.wood, doorX, wallHeight - .08, zMax);
+  box(scene, doorWidth - .16, 2.28, .12, mats.woodLight, doorX, 1.14, zMax + .03);
+  box(scene, .06, .13, .06, mats.dark, doorX + doorWidth * .34, 1.12, zMax - .05);
+  makeRoomLabel(title, (xMin + xMax) / 2, (zMin + zMax) / 2);
 }
 
 function office() {
@@ -128,20 +147,12 @@ function office() {
     box(scene, .16, .12, .16, mats.wallLight, -15, -.01, z, false);
     box(scene, .16, .12, .16, mats.wallLight, 15, -.01, z, false);
   }
-  box(scene, 3.9, 2.1, .28, mats.wall, 7.8, .77, -6.1);
-  box(scene, 3.9, 2.1, .28, mats.wall, 11.9, .77, -6.1);
-  box(scene, .28, 2.1, 5.0, mats.wall, 13.9, .77, -3.5);
-  box(scene, 3.8, 2.1, .28, mats.wall, 7.5, .77, 1.5);
-  box(scene, 4.2, 2.1, .28, mats.wall, 11.8, .77, 1.5);
-  box(scene, .28, 2.1, 5.0, mats.wall, 13.9, .77, 4.1);
-  box(scene, 3.5, 1.9, .28, mats.wall, -13.2, .7, -6.2);
-  box(scene, .28, 1.9, 3.8, mats.wall, -11.5, .7, -4.2);
+  enclosedRoom(7.1, 14.7, -10.7, -4.7, 'PHÒNG HỌP A', 10.9);
+  enclosedRoom(7.1, 14.7, 1.2, 8.6, 'PHÒNG HỌP B', 10.9);
+  enclosedRoom(-14.9, -11.5, -10.7, -6.1, 'WC', -13.2);
   box(scene, 1.0, .78, .54, mats.dark, -14.4, .16, -4.3);
   box(scene, .42, .2, .35, mats.white, -14.2, .66, -4.26);
-  makeRoomLabel('KHU WC', -13.2, -7.2);
   makeRoomLabel('QUẦY CÀ PHÊ', -10.2, -9.1);
-  makeRoomLabel('PHÒNG HỌP A', 10.5, -7.2);
-  makeRoomLabel('PHÒNG HỌP B', 10.5, 2.2);
   makeRoomLabel('SẢNH CHUNG', 0, 7.9);
   box(scene, 4.6, .72, 1.1, mats.wood, -9.8, .22, -8.6);
   box(scene, 4.7, .13, 1.2, mats.woodLight, -9.8, .65, -8.6);
@@ -162,7 +173,7 @@ function office() {
   for (let x=-3.5;x<=3.5;x+=2.3) stool(x, 6.3);
   const sign=box(scene,3,.85,.14,mats.purple,0,1.7,-11.03);
   sign.material=mat('#665379');
-  makeRoomLabel('SỜ MỜ LỜ · TỰ DO ĐI LẠI', 0, -10.5);
+  makeRoomLabel('VP SỜ MỜ LỜ', 0, -10.5);
 }
 
 function conferenceRoom(x,z) {
@@ -197,6 +208,51 @@ function plant(x,z) {
   for(let i=0;i<5;i++) sphere(scene,x+Math.sin(i*2.4)*.24,.69+(i%2)*.14,z+Math.cos(i*2.4)*.24,.22,.42,.2,mats.plant,10);
 }
 
+function taperedTube(parent, points, radiusStart, radiusEnd, material) {
+  const curve = new THREE.CatmullRomCurve3(points.map(point => new THREE.Vector3(...point)));
+  const segments = 36;
+  const sides = 12;
+  const frames = curve.computeFrenetFrames(segments, false);
+  const vertices = [];
+  const indices = [];
+  for (let i = 0; i <= segments; i++) {
+    const t = i / segments;
+    const smooth = t * t * (3 - 2 * t);
+    const radius = radiusStart + (radiusEnd - radiusStart) * smooth;
+    const center = curve.getPointAt(t);
+    for (let j = 0; j <= sides; j++) {
+      const angle = j / sides * Math.PI * 2;
+      const normal = frames.normals[i].clone().multiplyScalar(Math.cos(angle)).addScaledVector(frames.binormals[i], Math.sin(angle));
+      vertices.push(center.x + normal.x * radius, center.y + normal.y * radius, center.z + normal.z * radius);
+      if (i < segments && j < sides) {
+        const a = i * (sides + 1) + j;
+        const b = a + sides + 1;
+        indices.push(a, b, a + 1, b, b + 1, a + 1);
+      }
+    }
+  }
+  const geometry = new THREE.BufferGeometry();
+  geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
+  geometry.setIndex(indices);
+  geometry.computeVertexNormals();
+  const mesh = new THREE.Mesh(geometry, material);
+  mesh.castShadow = true;
+  mesh.receiveShadow = true;
+  parent.add(mesh);
+  return mesh;
+}
+
+function triangleFin(parent, points, material) {
+  const geometry = new THREE.BufferGeometry();
+  geometry.setAttribute('position', new THREE.Float32BufferAttribute(points.flat(), 3));
+  geometry.setIndex([0, 1, 2]);
+  geometry.computeVertexNormals();
+  const mesh = new THREE.Mesh(geometry, material);
+  mesh.castShadow = true;
+  parent.add(mesh);
+  return mesh;
+}
+
 function animal(type, tint = null) {
   const root = new THREE.Group();
   const fur = tint ? mat(tint) : ({ snake: mat('#64bc83'), fish: mat('#57a9d8'), sloth: mat('#92745b'), cow: mat('#fffaf0'), leopard: mat('#d7a353') }[type]);
@@ -204,23 +260,34 @@ function animal(type, tint = null) {
   const eye = mat('#24212b');
   const dark = mat('#34303a');
   if (type === 'snake') {
-    for(let i=0;i<4;i++) sphere(root, 0,.12+i*.1,.35+i*.22,.25,.22,.36-i*.035,fur,14);
-    sphere(root,0,.67,-.12,.51,.48,.45,fur,18);
-    sphere(root,0,.78,-.46,.48,.25,.25,fur,16);
-    sphere(root,-.2,.86,-.62,.065,.08,.05,eye,10); sphere(root,.2,.86,-.62,.065,.08,.05,eye,10);
-    sphere(root,0,.68,-.7,.16,.035,.08,mat('#e56773'),10);
-    for(const x of [-.28,.28]) sphere(root,x,1.05,-.15,.095,.21,.1,fur,10);
-  } else if (type === 'fish') {
-    sphere(root,0,.55,0,.57,.7,.43,fur,18);
-    for(const x of [-.4,.4]) {
-      sphere(root,x,.57,-.02,.2,.32,.16,mat('#e58a7c'),12);
-      for(let i=0;i<3;i++) box(root,.025,.34,.03,mat('#b86f72'),x+(x<0?.1:-.1)+i*.07,.55,-.18);
+    taperedTube(root,[[0,.1,1.62],[-.3,.1,1.35],[-.48,.1,1.04],[-.42,.1,.72],[-.15,.1,.54],[.2,.1,.55],[.43,.1,.79],[.38,.1,1.05],[.14,.1,1.18],[-.14,.1,1.08],[-.2,.12,.83],[-.1,.2,.58],[0,.48,.32],[0,.77,.12]],.012,.3,fur);
+    sphere(root,0,1.05,-.13,.52,.48,.43,fur,20);
+    sphere(root,0,.92,-.48,.38,.24,.16,fur,16);
+    for(const x of [-.2,.2]) {
+      sphere(root,x,1.13,-.53,.13,.17,.09,mat('#53664a'),12);
+      sphere(root,x,1.12,-.605,.06,.095,.045,eye,10);
+      sphere(root,x*1.65,.88,-.56,.11,.07,.045,blush,10);
     }
-    sphere(root,0,.58,-.43,.2,.1,.08,blush,12);
-    sphere(root,-.27,.88,-.29,.16,.19,.12,mats.white,14); sphere(root,.27,.88,-.29,.16,.19,.12,mats.white,14);
-    sphere(root,-.29,.87,-.39,.07,.09,.05,eye,10); sphere(root,.29,.87,-.39,.07,.09,.05,eye,10);
-    const fin=new THREE.Mesh(new THREE.ConeGeometry(.25,.55,8),mat('#e99683'));
-    fin.position.set(0,.58,.55); fin.rotation.x=Math.PI/2; root.add(fin);
+    const snakeSmile=new THREE.Mesh(new THREE.TorusGeometry(.1,.018,6,16,Math.PI),dark);
+    snakeSmile.position.set(0,.84,-.62);snakeSmile.rotation.z=Math.PI;root.add(snakeSmile);
+  } else if (type === 'fish') {
+    const finMat = new THREE.MeshStandardMaterial({color:'#3297c7',side:THREE.DoubleSide,roughness:.8});
+    const gillMat = mat('#e78388');
+    sphere(root,0,.57,.04,.7,.43,.68,fur,20);
+    sphere(root,0,.58,-.49,.38,.33,.25,fur,18);
+    triangleFin(root,[[0,.59,.72],[-.37,.82,1.03],[0,.58,1.08]],finMat);
+    triangleFin(root,[[0,.58,1.08],[.37,.82,1.03],[0,.59,.72]],finMat);
+    triangleFin(root,[[0,.9,.1],[-.28,1.19,.35],[.25,.91,.43]],finMat);
+    triangleFin(root,[[0,.26,-.05],[-.22,-.02,.18],[.2,.25,.35]],finMat);
+    triangleFin(root,[[-.5,.48,-.12],[-.86,.32,.08],[-.58,.75,.15]],finMat);
+    triangleFin(root,[[.5,.48,-.12],[.86,.32,.08],[.58,.75,.15]],finMat);
+    for(const x of [-.52,.52]) {
+      sphere(root,x,.56,-.13,.095,.25,.11,gillMat,12);
+      sphere(root,x*1.2,.73,-.42,.115,.13,.105,mats.white,12);
+      sphere(root,x*1.23,.73,-.51,.052,.075,.045,eye,10);
+    }
+    sphere(root,0,.52,-.72,.16,.07,.06,blush,12);
+    sphere(root,0,.48,-.77,.1,.035,.025,dark,8);
   } else if (type === 'sloth') {
     sphere(root,0,.56,.02,.55,.53,.48,fur,18);
     sphere(root,0,1.02,-.16,.48,.47,.42,fur,18);
@@ -241,28 +308,42 @@ function animal(type, tint = null) {
     }
   } else if (type === 'leopard') {
     const spots = mat('#593d2e');
-    sphere(root,0,.68,.02,.51,.63,.43,fur,18);
-    sphere(root,0,1.38,-.15,.46,.44,.4,fur,18);
+    const rosetteMat = new THREE.MeshStandardMaterial({color:'#593d2e',side:THREE.DoubleSide,roughness:.85});
+    const rosette = (x,y,z,r) => {
+      const ring = new THREE.Mesh(new THREE.TorusGeometry(r*.68,r*.2,6,14),rosetteMat);
+      ring.position.set(x,y,z);
+      ring.scale.set(1,1,.55);
+      root.add(ring);
+      sphere(root,x,y,z-.012,r*.2,r*.2,.018,fur,8);
+    };
+    sphere(root,0,.68,.02,.52,.66,.44,fur,18);
+    sphere(root,0,1.38,-.15,.48,.46,.4,fur,18);
+    sphere(root,0,.64,-.385,.28,.39,.075,mat('#f2d8a5'),14);
     for(const x of [-.36,.36]) {
-      sphere(root,x,1.66,-.08,.16,.19,.1,fur,12);
-      sphere(root,x,1.67,-.16,.08,.11,.04,spots,10);
+      sphere(root,x,1.67,-.08,.16,.18,.1,fur,12);
+      sphere(root,x,1.68,-.145,.09,.105,.035,spots,10);
     }
-    sphere(root,0,1.33,-.51,.34,.27,.13,mat('#f0d4a4'),16);
-    for(const [x,y,z,s] of [[-.23,1.24,-.52,.08],[.23,1.24,-.52,.08],[-.17,1.52,-.45,.07],[.17,1.52,-.45,.07],[-.4,.75,-.36,.09],[.4,.75,-.36,.09],[-.42,.48,.04,.1],[.42,.48,.04,.1],[-.23,.34,.35,.08],[.24,.85,.35,.09]]) sphere(root,x,y,z,s,s*.8,s*.45,spots,10);
+    for(const [x,y,z,r] of [[-.3,1.2,-.45,.1],[.3,1.2,-.45,.1],[-.2,1.58,-.42,.09],[.2,1.58,-.42,.09],[-.34,.57,-.28,.12],[.34,.57,-.28,.12],[-.31,.91,-.3,.11],[.31,.91,-.3,.11],[-.17,.34,-.36,.1],[.17,.34,-.36,.1],[-.47,.72,-.06,.1],[.47,.72,-.06,.1]]) rosette(x,y,z,r);
+    sphere(root,0,1.32,-.53,.34,.28,.15,mat('#f2d8a5'),16);
     for(const x of [-.18,.18]) {
-      sphere(root,x,1.39,-.625,.12,.14,.04,mats.white,12);
-      sphere(root,x,1.39,-.66,.047,.07,.025,eye,10);
+      sphere(root,x,1.41,-.615,.13,.15,.045,mat('#7b5133'),12);
+      sphere(root,x,1.41,-.651,.066,.1,.032,mats.white,12);
+      sphere(root,x,1.405,-.68,.03,.072,.02,eye,10);
     }
-    sphere(root,0,1.24,-.66,.1,.07,.045,dark,10);
+    const leopardNose = new THREE.Mesh(new THREE.ConeGeometry(.105,.13,3),dark);
+    leopardNose.position.set(0,1.25,-.695);
+    leopardNose.rotation.x=-Math.PI/2;
+    root.add(leopardNose);
+    sphere(root,0,1.15,-.625,.035,.045,.025,dark,8);
     for(const x of [-1,1]) {
       const arm=new THREE.Mesh(new THREE.CylinderGeometry(.095,.11,.55,10),fur);
       arm.position.set(x*.53,.73,-.03); arm.rotation.z=x*.14; root.add(arm);
       sphere(root,x*.61,.43,-.08,.13,.12,.13,fur,10);
       for(let i=0;i<2;i++) sphere(root,x*(.56+i*.1),.45,-.17,.035,.055,.025,spots,8);
     }
-    const tail=new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3([new THREE.Vector3(.42,.38,.25),new THREE.Vector3(.75,.35,.5),new THREE.Vector3(.82,.55,.72)]),16,.055,8,false),spots);
+    const tail=new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3([new THREE.Vector3(.42,.38,.25),new THREE.Vector3(.75,.35,.5),new THREE.Vector3(.82,.55,.72)]),16,.075,8,false),fur);
     root.add(tail);
-    sphere(root,.82,.55,.72,.1,.1,.1,spots,10);
+    sphere(root,.82,.55,.72,.12,.12,.12,spots,10);
   } else {
     sphere(root,0,.68,0,.55,.62,.44,fur,18);
     sphere(root,0,1.36,-.16,.49,.47,.42,fur,18);
@@ -294,8 +375,9 @@ const raycaster = new THREE.Raycaster();
 const pointer = new THREE.Vector2();
 let targetWorld = null;
 canvas.addEventListener('pointerdown', event => {
-  pointer.x = event.clientX / innerWidth * 2 - 1;
-  pointer.y = -(event.clientY - 68) / Math.max(1, canvas.clientHeight) * 2 + 1;
+  const rect = canvas.getBoundingClientRect();
+  pointer.x = (event.clientX - rect.left) / rect.width * 2 - 1;
+  pointer.y = -((event.clientY - rect.top) / rect.height * 2 - 1);
   raycaster.setFromCamera(pointer, camera);
   const hits = raycaster.intersectObjects([...players.values()].map(p=>p.group), true);
   const hit = hits.find(h=>h.object.userData.playerId);
@@ -317,7 +399,7 @@ function createPlayer(data) {
   group.userData.playerId=data.id;
   group.traverse(o=>{o.userData.playerId=data.id;});
   const name=label(`${avatarIcons[data.avatar]||'🙂'} ${data.name}`);
-  name.position.set(0,2.08,0); group.add(name);
+  name.position.set(0,2.2,0); name.scale.set(2.8,.7,1); group.add(name);
   const bubble=label(data.bubble||'', '#37293e');
   bubble.position.set(0,2.68,0); bubble.visible=Boolean(data.bubble); group.add(bubble);
   scene.add(group);
@@ -419,9 +501,10 @@ document.querySelectorAll('#mobile-pad [data-key]').forEach(button=>{
   for(const type of ['pointerup','pointercancel','lostpointercapture'])button.addEventListener(type,()=>keys.delete(key));
 });
 canvas.addEventListener('pointermove',event=>{
-  if(event.buttons!==1||event.clientX>innerWidth*.46)return;
-  pointer.x=event.clientX/innerWidth*2-1;
-  pointer.y=-(event.clientY-68)/Math.max(1,canvas.clientHeight)*2+1;
+  if(event.buttons!==1)return;
+  const rect=canvas.getBoundingClientRect();
+  pointer.x=(event.clientX-rect.left)/rect.width*2-1;
+  pointer.y=-((event.clientY-rect.top)/rect.height*2-1);
   raycaster.setFromCamera(pointer,camera);
   const hit=raycaster.intersectObject(ground,false)[0]; if(hit)targetWorld=hit.point.clone();
 });
@@ -480,13 +563,14 @@ function frame(now) {
     if(dx||dz){const mag=Math.hypot(dx,dz);dx/=mag;dz/=mag;me.group.position.x=THREE.MathUtils.clamp(me.group.position.x+dx*5.2*dt,-13.4,13.4);me.group.position.z=THREE.MathUtils.clamp(me.group.position.z+dz*5.2*dt,-9.7,9.7);me.group.rotation.y=Math.atan2(-dx,-dz);}
     if(now-lastMove>55){socket.volatile.emit('move',{x:me.group.position.x,z:me.group.position.z,yaw:me.group.rotation.y});lastMove=now;}
     const look=new THREE.Vector3(me.group.position.x,0,me.group.position.z);
-    camera.position.lerp(new THREE.Vector3(look.x,19,look.z+19),.06);camera.lookAt(look);
+    const distance=innerWidth<760?25:18;
+    camera.position.lerp(new THREE.Vector3(look.x,distance,look.z+distance),.06);camera.lookAt(look);
   }
   for(const p of players.values())if(p.id!==selfId){p.group.position.lerp(p.target,Math.min(1,dt*11));if(Number.isFinite(p.yaw))p.group.rotation.y=THREE.MathUtils.lerp(p.group.rotation.y,p.yaw,.15);}
   renderer.render(scene,camera);
 }
 
-function resize(){const w=canvas.clientWidth,h=canvas.clientHeight;renderer.setSize(w,h,false);camera.aspect=w/Math.max(1,h);camera.updateProjectionMatrix();}
+function resize(){const w=canvas.clientWidth,h=canvas.clientHeight;renderer.setSize(w,h,false);camera.aspect=w/Math.max(1,h);camera.fov=innerWidth<760?54:38;camera.updateProjectionMatrix();}
 new ResizeObserver(resize).observe(canvas);resize();requestAnimationFrame(frame);
 
 const query=new URLSearchParams(location.search);
