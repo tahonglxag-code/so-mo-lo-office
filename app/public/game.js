@@ -33,6 +33,8 @@ camera.lookAt(0, 0, 0);
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false, powerPreference: 'low-power' });
 renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 1.5));
 renderer.shadowMap.enabled = true;
+renderer.shadowMap.autoUpdate = false;
+renderer.shadowMap.needsUpdate = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
@@ -1007,7 +1009,7 @@ function frame(now) {
     bill.material.opacity=Math.min(1,(bill.userData.expires-now)/650);
     if(now>=bill.userData.expires||bill.position.y<-.5){scene.remove(bill);bill.geometry.dispose();bill.material.dispose();moneyBills.splice(index,1);}
   }
-  renderer.render(scene,camera);
+  if(!document.hidden)renderer.render(scene,camera);
 }
 
 function resize(){const w=canvas.clientWidth,h=canvas.clientHeight;renderer.setSize(w,h,false);camera.aspect=w/Math.max(1,h);camera.fov=innerWidth<760?54:40;camera.updateProjectionMatrix();}
