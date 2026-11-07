@@ -119,6 +119,28 @@ io.on('connection', socket => {
     socket.to(code).volatile.emit('move', { id: socket.id, x: player.x, z: player.z, yaw: player.yaw });
   });
 
+  socket.on('self-action', action => {
+    const code = socket.data.room;
+    const player = rooms.get(code)?.get(socket.id);
+    if (!player || !['run', 'meditate'].includes(action)) return;
+    const duration = action === 'run' ? 650 : 4000;
+    let line = '';
+    if (action === 'run') {
+      const distance = 2.8;
+      player.x = Math.max(-12, Math.min(12, player.x - Math.sin(player.yaw) * distance));
+      player.z = Math.max(-9, Math.min(9, player.z - Math.cos(player.yaw) * distance));
+    } else {
+      line = 'lương bất biến giữa dòng deadline vạn biến';
+      player.bubble = line;
+      player.bubbleUntil = Date.now() + 6500;
+    }
+    player.pose = action;
+    player.poseUntil = Date.now() + duration;
+    player.lastActivity = Date.now();
+    scheduleIdleLine(code, player);
+    io.to(code).emit('self-action', { id: player.id, action, x: player.x, z: player.z, yaw: player.yaw, line, duration, at: Date.now() });
+  });
+
   socket.on('chat', value => {
     const code = socket.data.room;
     const player = rooms.get(code)?.get(socket.id);
