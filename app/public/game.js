@@ -334,16 +334,16 @@ function workTable(z, seatIds) {
     box(scene, .48, .045, .32, mats.dark, x - .12, .98, seatZ);
     box(scene, .06, .3, .32, mats.dark, x - .34, 1.14, seatZ);
     box(scene, .025, .24, .26, mats.metal, x - .375, 1.14, seatZ);
-    createWorkDisplay(seatIds[index],x-.4,1.14,seatZ);
+    createWorkDisplay(seatIds[index],x-.29,1.22,seatZ);
   }
 }
 
 function createWorkDisplay(seatId,x,y,z){
-  const canvas=document.createElement('canvas');canvas.width=320;canvas.height=128;
+  const canvas=document.createElement('canvas');canvas.width=256;canvas.height=128;
   const context=canvas.getContext('2d');
   const texture=new THREE.CanvasTexture(canvas);texture.colorSpace=THREE.SRGBColorSpace;
   const sprite=new THREE.Sprite(new THREE.SpriteMaterial({map:texture,transparent:true,depthTest:false}));
-  sprite.position.set(x,y,z);sprite.scale.set(.48,.2,1);sprite.renderOrder=4;scene.add(sprite);
+  sprite.position.set(x,y,z);sprite.scale.set(.76,.34,1);sprite.renderOrder=100;scene.add(sprite);
   const display={canvas,context,texture,sprite,seconds:-1};
   workDisplays.set(seatId,display);paintWorkDisplay(display,null);
 }
@@ -356,8 +356,8 @@ function paintWorkDisplay(display,seconds){
   context.fillStyle='#172a34';context.fillRect(0,0,canvas.width,canvas.height);
   if(seconds!==null){
     const text=`${seconds}s`;
-    let fontSize=94;context.font=`900 ${fontSize}px Nunito, sans-serif`;
-    while(context.measureText(text).width>canvas.width-24&&fontSize>30){fontSize-=4;context.font=`900 ${fontSize}px Nunito, sans-serif`;}
+    let fontSize=seconds<100?126:92;context.font=`900 ${fontSize}px Nunito, sans-serif`;
+    while(context.measureText(text).width>canvas.width-20&&fontSize>34){fontSize-=3;context.font=`900 ${fontSize}px Nunito, sans-serif`;}
     context.fillStyle='#8ef2c1';context.textAlign='center';context.textBaseline='middle';context.fillText(text,canvas.width/2,canvas.height/2);
   }
   display.texture.needsUpdate=true;
