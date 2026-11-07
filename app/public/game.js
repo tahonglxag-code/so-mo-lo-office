@@ -327,7 +327,6 @@ function workTable(z, seatIds) {
   for (let index = 0; index < seatIds.length; index++) {
     const seatZ = z + (seatIds.length === 2 ? (index === 0 ? -.32 : .32) : 0);
     stool(-15.55, seatZ);
-    box(scene, .1, .42, .68, mats.purple, -15.85, .75, seatZ);
     box(scene, .7, .055, .48, mats.dark, x - .12, .98, seatZ);
     box(scene, .1, .54, .5, mats.dark, x - .38, 1.25, seatZ);
     box(scene, .025, .46, .42, mats.metal, x - .435, 1.25, seatZ);
