@@ -18,6 +18,7 @@ try{
   if(step%6===0)clients.forEach((s,i)=>s.emit('chat',`Test ${i} ${step}s`));
   if(step%4===0){clients[6].emit('act',{target:clients[7].id,action:['punch','bonk','bow','throw'][Math.floor(step/4)%4],item:'❤️'});clients[8].emit('self-action',['money','meditate','run','toilet'][Math.floor(step/4)%4]);}
   if(step===2){const r=await ack(clients[9],'music',{url:'https://www.youtube.com/watch?v=jfKfPfyJRdk',action:'play'});if(!r.ok)throw new Error('Music failed');}
+  if(step===20){const state=once(clients[0],'music-state',r=>!r.videoId&&!r.playing);const r=await ack(clients[9],'music',{action:'stop'});if(!r.ok)throw new Error('Stop failed');await state;}
   if(step===30)clients[9].emit('urgent-meeting');if(step===40)for(let i=0;i<6;i++)await work(clients[i]);
   if(step%20===0)console.log(`Progress ${Math.floor((Date.now()-start)/1000)}s, 10 clients`);step++;await wait(1000);
  }
