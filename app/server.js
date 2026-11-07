@@ -23,6 +23,7 @@ const items = new Set(['❤️', '🧋', '💸', '📋', '⏰', '💩']);
 
 app.use(express.static(path.join(root, 'public')));
 app.get('/three.module.js', (_req, res) => res.sendFile(path.join(root, 'node_modules/three/build/three.module.js')));
+app.get('/three.core.js', (_req, res) => res.sendFile(path.join(root, 'node_modules/three/build/three.core.js')));
 app.get('*', (_req, res) => res.sendFile(path.join(root, 'public/index.html')));
 
 function roomCode() {
