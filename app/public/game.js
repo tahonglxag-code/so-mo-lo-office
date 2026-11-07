@@ -5,20 +5,9 @@ const canvas = document.querySelector('#world');
 const modal = document.querySelector('#join-modal');
 const feed = document.querySelector('#feed');
 const messages = document.querySelector('#messages');
-const names = { snake: 'XÀ', fish: 'CÁ 2 MANG', sloth: 'LƯỜI', cow: 'BẦN ĐÒ', leopard: 'BÁO THỦ' };
 const avatarIcons = { snake: '🐍', fish: '🐟', sloth: '🦥', cow: '🐮', leopard: '🐆' };
 const avatarColors = { snake: '#399466', fish: '#247da9', sloth: '#73523d', cow: '#39343a', leopard: '#9e5b21' };
 const selectionLines = { snake: 'tôi khổ quá mà', fish: 'thần thiếp không làm được', sloth: 'hả?', cow: 'là sao nữa...', leopard: 'cú bé' };
-const lines = {
-  punch: ['Ối, ai vừa bấm KPI vậy?', 'Báo HR nha!', 'Cú này tính là teamwork nhé.'],
-  bonk: ['Cho tỉnh ngủ nè!', 'Đã ghi biên bản.', 'Gõ nhẹ thôi, còn họp.'],
-  smirk: ['Deadline gọi tên bạn kìa.', 'Tự tin dữ ha!', 'Ủa tưởng hay lắm?'],
-  bow: ['Em xin nhận task ạ.', 'Sếp nói gì cũng đúng!', 'Dạ vâng, em hiểu rồi ạ.'],
-  run: ['Deadline tới rồi, chạy!', 'Tôi chưa thấy gì hết!', 'Xin phép out meeting.'],
-  meditate: ['Hít vào… thở ra…', 'Bình tĩnh, còn 8 tiếng nữa.', 'Tâm bất biến giữa dòng task.'],
-  toilet: ['Xin phép đi toilet!', 'Đi toilet một chút nha.', 'WC đang gọi…'],
-  throw: ['Ném quà qua nè!', 'Bắt lấy!', 'Gửi chút động lực!']
-};
 let selfId = '';
 let roomCode = '';
 let myName = '';
@@ -56,7 +45,7 @@ scene.add(sun);
 
 const mat = (color, roughness = .86) => new THREE.MeshStandardMaterial({ color, roughness });
 const mats = {
-  floor: mat('#73767b'), tile: mat('#73767b'), wall: mat('#ffffff'), wallLight: mat('#e4e5e7'), trim: mat('#555a60'), door: mat('#b8bbc0'),
+  floor: mat('#808389'), tile: mat('#808389'), wall: new THREE.MeshBasicMaterial({ color: '#ffffff' }), wallLight: mat('#e4e5e7'), trim: mat('#555a60'), door: mat('#b8bbc0'),
   wood: mat('#d6a84f'), woodLight: mat('#f2cf75'), purple: mat('#716184'), cream: mat('#fff0d0'), plant: mat('#5f9c6e'),
   pink: mat('#ed8fa0'), white: mat('#fffaf0'), black: mat('#29242c'), dark: mat('#413348'), gray: mat('#a3a1a4'), metal: mat('#758993')
 };
@@ -310,7 +299,7 @@ function office() {
   }
   conferenceRoom(14.5, -8.5);
   conferenceRoom(14.5, 5.1);
-  for (const [index, z] of [-1.8,.4,2.6,4.8,7,9.2].entries()) workTable(z,[`desk-${index+1}`]);
+  for (const [index, z] of [11.4,.4,2.6,4.8,7,9.2].entries()) workTable(z,`desk-${index+1}`);
   for (const [x,z] of [[-18.8,-5.7],[-16.8,-5.7],[12.2,-4.2],[18.8,-4.2],[12.2,8.9],[18.8,8.9],[-18.5,11.8],[18.5,11.8]]) plant(x,z);
   box(scene, .12, .85, 5.2, mats.wallLight, -6.8, .17, -8.3);
   box(scene, .12, .85, 5.2, mats.wallLight, 6.8, .17, -8.3);
@@ -320,18 +309,15 @@ function office() {
   makeRoomLabel('VP SỜ MỜ LỜ', 0, -12.2);
 }
 
-function workTable(z, seatIds) {
+function workTable(z, seatId) {
   const x = -17.35;
   box(scene, 2.55, .14, .92, mats.woodLight, x, .88, z);
   for (const dx of [-1.1, 1.1]) for (const dz of [-.34, .34]) box(scene, .12, .84, .12, mats.wood, x + dx, .4, z + dz);
-  for (let index = 0; index < seatIds.length; index++) {
-    const seatZ = z + (seatIds.length === 2 ? (index === 0 ? -.32 : .32) : 0);
-    stool(-15.55, seatZ);
-    box(scene, .7, .055, .48, mats.dark, x - .12, .98, seatZ);
-    box(scene, .1, .54, .5, mats.dark, x - .38, 1.25, seatZ);
-    box(scene, .025, .46, .42, mats.metal, x - .435, 1.25, seatZ);
-    createWorkDisplay(seatIds[index],x-.38,1.3,seatZ);
-  }
+  stool(-15.55, z);
+  box(scene, .7, .055, .48, mats.dark, x - .12, .98, z);
+  box(scene, .1, .54, .5, mats.dark, x - .38, 1.25, z);
+  box(scene, .025, .46, .42, mats.metal, x - .435, 1.25, z);
+  createWorkDisplay(seatId,x-.38,1.3,z);
 }
 
 function createWorkDisplay(seatId,x,y,z){
@@ -389,17 +375,6 @@ function conferenceRoom(x,z) {
     stool(x+dx,z-1.2); stool(x+dx,z+1.2);
   }
   for (const dx of [-1.8,1.8]) for (const dz of [-.35,.35]) box(scene,.1,.26,.1,mats.wood,x+dx,.04,z+dz);
-}
-
-function sofa(x,z) {
-  box(scene, 3.4, .45, .92, mats.purple, x, .25, z);
-  box(scene, 3.45, .8, .18, mats.purple, x, .64, z+.38);
-  for (const dx of [-1.45,1.45]) box(scene,.32,.66,.95,mats.purple,x+dx,.28,z);
-}
-
-function coffeeTable(x,z) {
-  box(scene, 2.5, .18, 1.2, mats.woodLight, x, .42, z);
-  for(const dx of [-1,1]) for(const dz of [-.4,.4]) box(scene,.12,.4,.12,mats.wood,x+dx,.1,z+dz);
 }
 
 function stool(x,z) {
@@ -488,19 +463,25 @@ function animal(type, tint = null) {
       body.add(coil);
     }
     taperedTube(body,[[.66,.17,.08],[.84,.17,.18],[1.06,.23,.3]],.13,.012,fur);
-    const connection = new THREE.Mesh(new THREE.CylinderGeometry(.15,.4,1.05,20),fur);
-    connection.position.set(0,.675,-.02);
+    const middleHeight = .77;
+    const shortenedHeight = middleHeight * 2 / 3;
+    const headShift = middleHeight - shortenedHeight;
+    const connection = new THREE.Mesh(new THREE.CylinderGeometry(.14,.44,.8,20),fur);
+    connection.position.set(0,.55,-.02);
     connection.castShadow = true;
     body.add(connection);
-    sphere(body,0,1.11,-.02,.145,.77,.15,fur,20);
-    sphere(body,0,1.91,-.08,.43,.39,.39,fur,20);
+    sphere(body,0,1.11-headShift/2,-.02,.145,shortenedHeight,.15,fur,20);
+    const snakeHead = new THREE.Group();
+    snakeHead.position.y = -headShift;
+    body.add(snakeHead);
+    sphere(snakeHead,0,1.91,-.08,.43,.39,.39,fur,20);
     for(const x of [-.17,.17]) {
-      sphere(body,x,1.98,-.405,.064,.085,.035,eye,12);
-      sphere(body,x-.014,2.01,-.434,.016,.022,.01,mats.white,8);
+      sphere(snakeHead,x,1.98,-.405,.064,.085,.035,eye,12);
+      sphere(snakeHead,x-.014,2.01,-.434,.016,.022,.01,mats.white,8);
     }
-    sphere(body,-.04,1.83,-.45,.018,.022,.012,dark,8);
-    sphere(body,.04,1.83,-.45,.018,.022,.012,dark,8);
-    faceLine(body,[[-.09,1.76,-.435],[0,1.73,-.45],[.09,1.76,-.435]],dark,.014);
+    sphere(snakeHead,-.04,1.83,-.45,.018,.022,.012,dark,8);
+    sphere(snakeHead,.04,1.83,-.45,.018,.022,.012,dark,8);
+    faceLine(snakeHead,[[-.09,1.76,-.435],[0,1.73,-.45],[.09,1.76,-.435]],dark,.014);
   } else if (type === 'fish') {
     const finMat = new THREE.MeshStandardMaterial({color:'#3297c7',side:THREE.DoubleSide,roughness:.8});
     const gillMat = mat('#e78388');
@@ -697,11 +678,22 @@ function addMessage(name,text,self=false) {
 
 function startGame(event) {
   event.preventDefault();
+  const joinButton=document.querySelector('#join-form .primary');
+  const joinError=document.querySelector('#join-error');
+  joinError.textContent='';
+  if(!socket.connected){joinError.textContent='Chưa kết nối được máy chủ. Vui lòng thử lại sau vài giây.';return;}
   myName=document.querySelector('#name').value.trim().slice(0,18)||'Bạn mới';
   myAvatar=document.querySelector('.avatar.selected')?.dataset.avatar||'snake';
   const requested=document.querySelector('#room').value.trim().toUpperCase()||new URLSearchParams(location.search).get('room')||'';
-  socket.emit('join',{name:myName,avatar:myAvatar,room:requested},result=>{
-    if(result?.error){document.querySelector('#join-error').textContent=result.error;return;}
+  joinButton.disabled=true;
+  joinButton.textContent='Đang kết nối…';
+  socket.timeout(8000).emit('join',{name:myName,avatar:myAvatar,room:requested},(error,result)=>{
+    joinButton.disabled=false;
+    joinButton.textContent='Vào phòng thôi →';
+    if(error){joinError.textContent='Máy chủ chưa phản hồi. Hãy bấm vào phòng lại; nếu vẫn lỗi, tải lại trang.';return;}
+    if(result?.error){joinError.textContent=result.error;return;}
+    if(!result?.ok){joinError.textContent='Không vào được phòng. Vui lòng thử lại.';return;}
+    joinError.textContent='';
     modal.classList.add('hidden');
   });
 }
@@ -793,8 +785,14 @@ socket.on('work-state',event=>{
   const p=players.get(event.id);if(!p)return;
   p.working=event.working;p.workSeatId=event.working?event.seatId||p.workSeatId:'';
   p.workStartedAt=event.working?event.startedAt||Date.now():0;
+  p.workElapsed=event.working?0:null;
   if(event.working){p.meditating=false;p.pose='';p.body.scale.set(1,1,1);p.body.position.y=0;setBubble(event.id,event.text||'kiếp trâu ngựa',true);}
   else setBubble(event.id,'');
+});
+socket.on('work-tick',event=>{
+  const p=players.get(event.id);if(!p||!p.working||p.workSeatId!==event.seatId)return;
+  p.workStartedAt=event.startedAt;
+  p.workElapsed=event.seconds;
 });
 socket.on('work-milestone',event=>{
   if(!event.final)addFeed(`${event.name} đã làm việc được ${event.seconds}s`,'work');
@@ -855,7 +853,10 @@ socket.on('self-action',event=>{
   const actionLabel={run:'tốc biến',meditate:'ngồi thiền',toilet:'đi toilet',money:'lúa về'}[event.action]||event.action;
   addFeed(`${avatarIcons[p.avatar]||'🙂'} ${p.name} ${actionLabel}`);
 });
-socket.on('connect_error',()=>toast('Đang thử kết nối lại…'));
+socket.on('connect_error',()=>{
+  if(!modal.classList.contains('hidden'))document.querySelector('#join-error').textContent='Không kết nối được máy chủ. Kiểm tra mạng rồi thử lại.';
+  toast('Đang thử kết nối lại…');
+});
 
 let lastMove=0;
 let lastFrame=performance.now();
@@ -922,7 +923,7 @@ function frame(now) {
   const nowEpoch=Date.now();
   for(const [seatId,display] of workDisplays){
     const worker=[...players.values()].find(player=>player.working&&player.workSeatId===seatId);
-    paintWorkDisplay(display,worker?Math.min(999,Math.floor(Math.max(0,nowEpoch-worker.workStartedAt)/1000)):null);
+    paintWorkDisplay(display,worker?Math.min(999,worker.workElapsed??Math.floor(Math.max(0,nowEpoch-worker.workStartedAt)/1000)):null);
   }
   for(const p of players.values())if(p.auraUntil){
     if(nowEpoch<p.auraUntil){const pulse=.72+Math.sin(now*.004)*.12;if(p.auraSprite)p.auraSprite.material.opacity=pulse;if(p.auraRing)p.auraRing.rotation.z+=dt*.8;}
