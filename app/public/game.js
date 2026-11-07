@@ -105,6 +105,9 @@ function makeRoomLabel(text, x, z) {
   scene.add(sprite);
 }
 
+let wcDoor = null;
+let wcDoorTimer = null;
+
 function enclosedRoom(xMin, xMax, zMin, zMax, title, doorX) {
   const wallHeight = 2.6;
   const wallY = wallHeight / 2;
@@ -120,8 +123,12 @@ function enclosedRoom(xMin, xMax, zMin, zMax, title, doorX) {
   box(scene, .14, wallHeight, .16, mats.wood, doorX - doorWidth / 2, wallY, zMax);
   box(scene, .14, wallHeight, .16, mats.wood, doorX + doorWidth / 2, wallY, zMax);
   box(scene, doorWidth + .14, .16, .16, mats.wood, doorX, wallHeight - .08, zMax);
-  box(scene, doorWidth - .16, 2.28, .12, mats.woodLight, doorX, 1.14, zMax + .03);
-  box(scene, .06, .13, .06, mats.dark, doorX + doorWidth * .34, 1.12, zMax - .05);
+  const door = new THREE.Group();
+  door.position.set(doorX - doorWidth / 2 + .08, 0, zMax + .03);
+  scene.add(door);
+  box(door, doorWidth - .16, 2.28, .12, mats.woodLight, (doorWidth - .16) / 2, 1.14, 0);
+  box(door, .06, .13, .06, mats.dark, doorWidth * .34, 1.12, -.08);
+  if (title === 'WC') wcDoor = door;
   makeRoomLabel(title, (xMin + xMax) / 2, (zMin + zMax) / 2);
 }
 
@@ -561,6 +568,7 @@ socket.on('self-action',event=>{
     const path=(event.path?.length?event.path:[{x:event.x,z:event.z}]).map(point=>new THREE.Vector3(point.x,0,point.z));
     p.runMotion={points:[from,...path],started:performance.now(),duration:event.duration,jump:event.action==='run'};
     if(event.line)setBubble(p.id,event.line);
+    if(event.action==='toilet'&&wcDoor){wcDoor.rotation.y=Math.PI/2;clearTimeout(wcDoorTimer);wcDoorTimer=setTimeout(()=>{wcDoor.rotation.y=0;},event.duration);}
   }
   if(event.action==='meditate'){
     p.pose='meditate';p.poseUntil=performance.now()+event.duration;
