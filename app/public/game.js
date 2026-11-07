@@ -15,7 +15,7 @@ const lines = {
   bow: ['Em xin nhận task ạ.', 'Sếp nói gì cũng đúng!', 'Dạ vâng, em hiểu rồi ạ.'],
   run: ['Deadline tới rồi, chạy!', 'Tôi chưa thấy gì hết!', 'Xin phép out meeting.'],
   meditate: ['Hít vào… thở ra…', 'Bình tĩnh, còn 8 tiếng nữa.', 'Tâm bất biến giữa dòng task.'],
-  sleep: ['Ngủ 5 phút thôi nha.', 'Đang cập nhật năng lượng…', 'Zzz…'],
+  toilet: ['Xin phép đi toilet!', 'Đi toilet một chút nha.', 'WC đang gọi…'],
   throw: ['Ném quà qua nè!', 'Bắt lấy!', 'Gửi chút động lực!']
 };
 let selfId = '';
@@ -253,6 +253,14 @@ function triangleFin(parent, points, material) {
   return mesh;
 }
 
+function faceLine(parent, points, material, radius = .018) {
+  const curve = new THREE.CatmullRomCurve3(points.map(point => new THREE.Vector3(...point)));
+  const mesh = new THREE.Mesh(new THREE.TubeGeometry(curve, 12, radius, 6, false), material);
+  mesh.castShadow = true;
+  parent.add(mesh);
+  return mesh;
+}
+
 function animal(type, tint = null) {
   const root = new THREE.Group();
   const fur = tint ? mat(tint) : ({ snake: mat('#64bc83'), fish: mat('#57a9d8'), sloth: mat('#92745b'), cow: mat('#fffaf0'), leopard: mat('#d7a353') }[type]);
@@ -262,19 +270,18 @@ function animal(type, tint = null) {
   if (type === 'snake') {
     taperedTube(root,[[0,.1,1.62],[-.3,.1,1.35],[-.48,.1,1.04],[-.42,.1,.72],[-.15,.1,.54],[.2,.1,.55],[.43,.1,.79],[.38,.1,1.05],[.14,.1,1.18],[-.14,.1,1.08],[-.2,.12,.83],[-.1,.2,.58],[0,.48,.32],[0,.77,.12]],.012,.3,fur);
     sphere(root,0,1.05,-.13,.52,.48,.43,fur,20);
-    sphere(root,0,.92,-.48,.38,.24,.16,fur,16);
     for(const x of [-.2,.2]) {
-      sphere(root,x,1.13,-.53,.13,.17,.09,mat('#53664a'),12);
-      sphere(root,x,1.12,-.605,.06,.095,.045,eye,10);
-      sphere(root,x*1.65,.88,-.56,.11,.07,.045,blush,10);
+      sphere(root,x,1.16,-.505,.075,.095,.04,eye,12);
+      sphere(root,x-.018,1.19,-.539,.018,.025,.012,mats.white,8);
+      faceLine(root,[[x-.075,.88,-.54],[x,.84,-.565],[x+.075,.88,-.54]],blush,.025);
     }
-    const snakeSmile=new THREE.Mesh(new THREE.TorusGeometry(.1,.018,6,16,Math.PI),dark);
-    snakeSmile.position.set(0,.84,-.62);snakeSmile.rotation.z=Math.PI;root.add(snakeSmile);
+    sphere(root,-.045,.98,-.558,.018,.022,.012,dark,8);
+    sphere(root,.045,.98,-.558,.018,.022,.012,dark,8);
+    faceLine(root,[[-.105,.91,-.555],[0,.875,-.571],[.105,.91,-.555]],dark,.014);
   } else if (type === 'fish') {
     const finMat = new THREE.MeshStandardMaterial({color:'#3297c7',side:THREE.DoubleSide,roughness:.8});
     const gillMat = mat('#e78388');
     sphere(root,0,.57,.04,.7,.43,.68,fur,20);
-    sphere(root,0,.58,-.49,.38,.33,.25,fur,18);
     triangleFin(root,[[0,.59,.72],[-.37,.82,1.03],[0,.58,1.08]],finMat);
     triangleFin(root,[[0,.58,1.08],[.37,.82,1.03],[0,.59,.72]],finMat);
     triangleFin(root,[[0,.9,.1],[-.28,1.19,.35],[.25,.91,.43]],finMat);
@@ -283,11 +290,10 @@ function animal(type, tint = null) {
     triangleFin(root,[[.5,.48,-.12],[.86,.32,.08],[.58,.75,.15]],finMat);
     for(const x of [-.52,.52]) {
       sphere(root,x,.56,-.13,.095,.25,.11,gillMat,12);
-      sphere(root,x*1.2,.73,-.42,.115,.13,.105,mats.white,12);
-      sphere(root,x*1.23,.73,-.51,.052,.075,.045,eye,10);
+      sphere(root,x*.73,.69,-.49,.07,.09,.035,mats.white,12);
+      sphere(root,x*.73,.69,-.52,.032,.054,.018,eye,10);
     }
-    sphere(root,0,.52,-.72,.16,.07,.06,blush,12);
-    sphere(root,0,.48,-.77,.1,.035,.025,dark,8);
+    faceLine(root,[[-.11,.47,-.65],[0,.44,-.675],[.11,.47,-.65]],dark,.018);
   } else if (type === 'sloth') {
     sphere(root,0,.56,.02,.55,.53,.48,fur,18);
     sphere(root,0,1.02,-.16,.48,.47,.42,fur,18);
@@ -324,17 +330,15 @@ function animal(type, tint = null) {
       sphere(root,x,1.68,-.145,.09,.105,.035,spots,10);
     }
     for(const [x,y,z,r] of [[-.3,1.2,-.45,.1],[.3,1.2,-.45,.1],[-.2,1.58,-.42,.09],[.2,1.58,-.42,.09],[-.34,.57,-.28,.12],[.34,.57,-.28,.12],[-.31,.91,-.3,.11],[.31,.91,-.3,.11],[-.17,.34,-.36,.1],[.17,.34,-.36,.1],[-.47,.72,-.06,.1],[.47,.72,-.06,.1]]) rosette(x,y,z,r);
-    sphere(root,0,1.32,-.53,.34,.28,.15,mat('#f2d8a5'),16);
     for(const x of [-.18,.18]) {
-      sphere(root,x,1.41,-.615,.13,.15,.045,mat('#7b5133'),12);
-      sphere(root,x,1.41,-.651,.066,.1,.032,mats.white,12);
-      sphere(root,x,1.405,-.68,.03,.072,.02,eye,10);
+      sphere(root,x,1.43,-.525,.062,.085,.028,eye,12);
+      sphere(root,x-.012,1.46,-.548,.016,.022,.01,mats.white,8);
     }
     const leopardNose = new THREE.Mesh(new THREE.ConeGeometry(.105,.13,3),dark);
-    leopardNose.position.set(0,1.25,-.695);
+    leopardNose.position.set(0,1.27,-.562);
     leopardNose.rotation.x=-Math.PI/2;
     root.add(leopardNose);
-    sphere(root,0,1.15,-.625,.035,.045,.025,dark,8);
+    faceLine(root,[[0,1.21,-.557],[0,1.16,-.555],[-.075,1.13,-.545],[0,1.105,-.55],[.075,1.13,-.545]],dark,.014);
     for(const x of [-1,1]) {
       const arm=new THREE.Mesh(new THREE.CylinderGeometry(.095,.11,.55,10),fur);
       arm.position.set(x*.53,.73,-.03); arm.rotation.z=x*.14; root.add(arm);
@@ -482,11 +486,12 @@ document.querySelector('#invite').addEventListener('click',async()=>{
   setTimeout(()=>document.querySelector('#copy-state').textContent='',2200);
 });
 document.querySelectorAll('[data-action]').forEach(button=>button.addEventListener('click',()=>{
-  if(!selectedId)return toast('Chạm vào một người chơi khác để chọn họ nhé.');
   const action=button.dataset.action; const item=document.querySelector('#item').value;
+  if(action==='run'||action==='meditate'||action==='toilet'){socket.emit('self-action',action);return;}
+  if(!selectedId)return toast('Chạm vào một người chơi khác để chọn họ nhé.');
   socket.emit('act',{target:selectedId,action,item});
 }));
-const actionKeys={KeyZ:'bonk',KeyX:'punch',KeyC:'smirk',KeyB:'bow',KeyV:'run',KeyM:'meditate',KeyN:'sleep'};
+const actionKeys={KeyZ:'bonk',KeyX:'punch',KeyC:'smirk',KeyB:'bow',KeyV:'run',KeyM:'meditate',KeyN:'toilet'};
 document.addEventListener('keydown',event=>{
   if(['INPUT','TEXTAREA','SELECT'].includes(document.activeElement?.tagName))return;
   if(['KeyW','KeyA','KeyS','KeyD','ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(event.code)){
@@ -548,10 +553,42 @@ socket.on('act',event=>{
     const fly=()=>{const t=Math.min(1,(performance.now()-start)/500);orb.position.lerpVectors(a,b,t);orb.position.y+=Math.sin(t*Math.PI)*1.3;if(t<1)requestAnimationFrame(fly);else scene.remove(orb);};fly();
   }
 });
+socket.on('self-action',event=>{
+  const p=players.get(event.id);if(!p)return;
+  p.yaw=event.yaw;
+  if(event.action==='run'||event.action==='toilet'){
+    const from=p.group.position.clone();
+    const path=(event.path?.length?event.path:[{x:event.x,z:event.z}]).map(point=>new THREE.Vector3(point.x,0,point.z));
+    p.runMotion={points:[from,...path],started:performance.now(),duration:event.duration,jump:event.action==='run'};
+    if(event.line)setBubble(p.id,event.line);
+  }
+  if(event.action==='meditate'){
+    p.pose='meditate';p.poseUntil=performance.now()+event.duration;
+    setBubble(p.id,event.line);
+  }
+  addFeed(`${avatarIcons[p.avatar]||'🙂'} ${p.name} ${event.action==='run'?'bỏ chạy':'ngồi thiền'}`);
+});
 socket.on('connect_error',()=>toast('Đang thử kết nối lại…'));
 
 let lastMove=0;
 let lastFrame=performance.now();
+function animateRun(player,now){
+  const motion=player.runMotion;if(!motion)return false;
+  const t=Math.min(1,(now-motion.started)/motion.duration);
+  const eased=t*t*(3-2*t);
+  const lengths=[];let total=0;
+  for(let i=0;i<motion.points.length-1;i++){const length=motion.points[i].distanceTo(motion.points[i+1]);lengths.push(length);total+=length;}
+  let distance=total*eased,index=0;
+  while(index<lengths.length-1&&distance>lengths[index]){distance-=lengths[index];index++;}
+  const segmentLength=lengths[index]||1;
+  const from=motion.points[index],to=motion.points[index+1];
+  const progress=THREE.MathUtils.clamp(distance/segmentLength,0,1);
+  player.group.position.lerpVectors(from,to,progress);
+  player.group.rotation.y=Math.atan2(-(to.x-from.x),-(to.z-from.z));
+  player.group.position.y=motion.jump?Math.sin(t*Math.PI)*.32:Math.sin(t*Math.PI*8)*.035;
+  if(t>=1){player.group.position.copy(motion.points.at(-1));player.group.position.y=0;player.target.copy(motion.points.at(-1));player.runMotion=null;}
+  return true;
+}
 function frame(now) {
   requestAnimationFrame(frame);
   const dt=Math.min(.05,(now-lastFrame)/1000);lastFrame=now;
@@ -559,14 +596,21 @@ function frame(now) {
   if(me) {
     let dx=(keys.has('KeyD')?1:0)-(keys.has('KeyA')?1:0);
     let dz=(keys.has('KeyS')?1:0)-(keys.has('KeyW')?1:0);
-    if(targetWorld){const tx=targetWorld.x-me.group.position.x,tz=targetWorld.z-me.group.position.z;const d=Math.hypot(tx,tz);if(d>.35){dx=tx/d;dz=tz/d;}else targetWorld=null;}
-    if(dx||dz){const mag=Math.hypot(dx,dz);dx/=mag;dz/=mag;me.group.position.x=THREE.MathUtils.clamp(me.group.position.x+dx*5.2*dt,-13.4,13.4);me.group.position.z=THREE.MathUtils.clamp(me.group.position.z+dz*5.2*dt,-9.7,9.7);me.group.rotation.y=Math.atan2(-dx,-dz);}
+    const running=animateRun(me,now);
+    if(!running&&targetWorld){const tx=targetWorld.x-me.group.position.x,tz=targetWorld.z-me.group.position.z;const d=Math.hypot(tx,tz);if(d>.35){dx=tx/d;dz=tz/d;}else targetWorld=null;}
+    if(!running&&(dx||dz)){const mag=Math.hypot(dx,dz);dx/=mag;dz/=mag;me.group.position.x=THREE.MathUtils.clamp(me.group.position.x+dx*5.2*dt,-13.4,13.4);me.group.position.z=THREE.MathUtils.clamp(me.group.position.z+dz*5.2*dt,-9.7,9.7);me.group.rotation.y=Math.atan2(-dx,-dz);}
     if(now-lastMove>55){socket.volatile.emit('move',{x:me.group.position.x,z:me.group.position.z,yaw:me.group.rotation.y});lastMove=now;}
     const look=new THREE.Vector3(me.group.position.x,0,me.group.position.z);
     const distance=innerWidth<760?25:19;
     camera.position.lerp(new THREE.Vector3(look.x,distance,look.z+distance),.06);camera.lookAt(look);
   }
-  for(const p of players.values())if(p.id!==selfId){p.group.position.lerp(p.target,Math.min(1,dt*11));if(Number.isFinite(p.yaw))p.group.rotation.y=THREE.MathUtils.lerp(p.group.rotation.y,p.yaw,.15);}
+  for(const p of players.values()){
+    if(p.pose==='meditate'){
+      if(now<p.poseUntil){const base=p.id===selfId?1.08:1;p.group.scale.set(base,.76*base,base);p.group.position.y=-.12;}
+      else{p.pose='';p.group.scale.setScalar(p.id===selfId?1.08:1);p.group.position.y=0;}
+    }
+    if(p.id!==selfId){const running=animateRun(p,now);if(!running)p.group.position.lerp(p.target,Math.min(1,dt*11));if(Number.isFinite(p.yaw))p.group.rotation.y=THREE.MathUtils.lerp(p.group.rotation.y,p.yaw,.15);}
+  }
   renderer.render(scene,camera);
 }
 
