@@ -313,8 +313,8 @@ function office() {
   for (let x=-3.5;x<=3.5;x+=2.3) stool(x, 8.2);
   const sign=box(scene,3,.85,.14,mats.purple,0,1.7,-12.83);
   sign.material=mat('#665379');
-  box(scene,5.4,3.2,.14,mats.dark,0,2.7,-12.5);
-  makeRoomLabel('VP SỜ MỜ LỜ · RADIO', 0, -12.2);
+  box(scene,5.4,3.2,.14,mats.dark,-13.5,3.4,-12.5);
+  makeRoomLabel('VP SỜ MỜ LỜ', 0, -12.2);
 }
 
 function workTable(z, seatId) {
@@ -1024,7 +1024,7 @@ function capNhatNhac(state){
   if(!state)return;trangThaiNhac=state;
   document.querySelector('#radio-panel').classList.toggle('has-music',Boolean(state.videoId));
   document.querySelector('#music-status').textContent=state.videoId?(state.playing?'Đang phát chung trong phòng':'Nhạc đang tạm dừng'):'Chưa có nhạc • mọi người cùng nghe';
-  if(!state.videoId)return;
+  if(!state.videoId){if(sanSangNhac)trinhPhat.stopVideo();return;}
   if(!window.YT?.Player){if(!document.querySelector('#youtube-api')){const script=document.createElement('script');script.id='youtube-api';script.src='https://www.youtube.com/iframe_api';document.head.append(script);}return;}
   if(!trinhPhat){trinhPhat=new YT.Player('youtube-player',{width:300,height:200,videoId:state.videoId,playerVars:{playsinline:1,origin:location.origin},events:{onReady:()=>{sanSangNhac=true;dongBoNhac();},onAutoplayBlocked:()=>document.querySelector('#music-status').textContent='Bấm Bật âm thanh để nghe nhạc chung',onError:()=>document.querySelector('#music-status').textContent='Video không cho phép phát nhúng. Hãy chọn bài khác.'}});return;}
   dongBoNhac();
@@ -1045,11 +1045,12 @@ document.querySelector('#music-resume').onclick=()=>guiNhac({action:'play'});
 document.querySelector('#music-sound').onclick=()=>{if(trinhPhat&&sanSangNhac){trinhPhat.unMute();trinhPhat.setVolume(60);dongBoNhac();}};
 setInterval(()=>{if(!document.hidden)dongBoNhac();},10000);
 function dinhViRadio(){
-  const diem=new THREE.Vector3(0,3,-12.4).project(camera),khung=document.querySelector('.world-wrap'),panel=document.querySelector('#radio-panel');
+  const diem=new THREE.Vector3(-13.5,3.4,-12.4).project(camera),khung=document.querySelector('.world-wrap'),panel=document.querySelector('#radio-panel');
   const w=khung.clientWidth,h=khung.clientHeight;
-  if(diem.z>1||diem.y>.65||diem.y<-.65||Math.abs(diem.x)>.7){diem.x=-1+330/w;diem.y=1-300/h;}
-  panel.style.left=`${Math.max(165,Math.min(w-165,(diem.x+1)/2*w))}px`;
-  panel.style.top=`${Math.max(150,Math.min(h-150,(-diem.y+1)/2*h))}px`;
+  panel.style.left=`${(diem.x+1)/2*w}px`;
+  panel.style.top=`${(-diem.y+1)/2*h}px`;
 }
 
 document.querySelector('#target-select').addEventListener('change',e=>{if(e.target.value)selectPlayer(e.target.value);else{selectedId='';document.querySelector('#target-name').textContent='chưa chọn ai';}});
+
+document.querySelector('#music-stop').onclick=()=>guiNhac({action:'stop'});
