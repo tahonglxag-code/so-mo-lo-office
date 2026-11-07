@@ -316,7 +316,7 @@ function office() {
   for (let x=-3.5;x<=3.5;x+=2.3) stool(x, 8.2);
   const sign=box(scene,3,.85,.14,mats.purple,0,1.7,-12.83);
   sign.material=mat('#665379');
-  box(scene,5.4,3.2,.14,mats.dark,-13.5,3.4,-12.5);
+  box(scene,5.4,1.5,.14,mats.dark,-13.5,1.1,-12.5);
   makeRoomLabel('VP SỜ MỜ LỜ', 0, -12.2);
 }
 
@@ -1048,10 +1048,10 @@ document.querySelector('#music-resume').onclick=()=>guiNhac({action:'play'});
 document.querySelector('#music-sound').onclick=()=>{if(trinhPhat&&sanSangNhac){trinhPhat.unMute();trinhPhat.setVolume(60);dongBoNhac();}};
 setInterval(()=>{if(!document.hidden)dongBoNhac();},10000);
 function dinhViRadio(){
-  const diem=new THREE.Vector3(-13.5,3.4,-12.4).project(camera),khung=document.querySelector('.world-wrap'),panel=document.querySelector('#radio-panel');
+  const diem=new THREE.Vector3(-13.5,1.9,-12.4).project(camera),khung=document.querySelector('.world-wrap'),panel=document.querySelector('#radio-panel');
   const w=khung.clientWidth,h=khung.clientHeight;
   panel.style.left=`${(diem.x+1)/2*w}px`;
-  panel.style.top=`${(-diem.y+1)/2*h}px`;
+  panel.style.top=`${Math.max(panel.offsetHeight/2+8,Math.min(h-panel.offsetHeight/2-8,(-diem.y+1)/2*h))}px`;
 }
 
 document.querySelector('#target-select').addEventListener('change',e=>{if(e.target.value)selectPlayer(e.target.value);else{selectedId='';document.querySelector('#target-name').textContent='chưa chọn ai';}});
