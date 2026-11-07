@@ -44,6 +44,18 @@ try {
   first.emit('move', { x: 2, z: -1, yaw: 0.8 });
   const movement = await moved;
   if (movement.id !== firstInfo.id || movement.x !== 2 || movement.z !== -1) throw new Error('Player movement did not sync');
+  const ran = expectEvent(second, 'self-action');
+  first.emit('self-action', 'run');
+  const runAction = await ran;
+  if (runAction.id !== firstInfo.id || runAction.action !== 'run' || runAction.duration !== 650) throw new Error('Self-run action did not sync');
+  const meditated = expectEvent(second, 'self-action');
+  first.emit('self-action', 'meditate');
+  const meditation = await meditated;
+  if (meditation.id !== firstInfo.id || meditation.action !== 'meditate' || meditation.line !== 'lương bất biến giữa dòng deadline vạn biến') throw new Error('Meditation action or phrase did not sync');
+  const toileted = expectEvent(second, 'self-action');
+  first.emit('self-action', 'toilet');
+  const toiletAction = await toileted;
+  if (toiletAction.action !== 'toilet' || toiletAction.x !== -13.2 || toiletAction.z !== -8.15 || toiletAction.path.length !== 2) throw new Error('Toilet action did not move the character into the WC');
   const chatted = expectEvent(second, 'chat');
   first.emit('chat', 'Xin chào phòng!');
   if ((await chatted).text !== 'Xin chào phòng!') throw new Error('Chat did not sync');
@@ -53,7 +65,7 @@ try {
   if (action.item !== '🧋' || action.to !== secondInfo.id || action.line !== 'em bị tổn thưn') throw new Error('Targeted action phrase did not sync');
   first.disconnect();
   second.disconnect();
-  console.log(JSON.stringify({ page: 'ok', assets: 'ok', customRoom: firstInfo.room, players: 2, movement: 'synced', chat: 'synced', defaultPhrases: 'synced', interactionPhrase: action.line }, null, 2));
+  console.log(JSON.stringify({ page: 'ok', assets: 'ok', customRoom: firstInfo.room, players: 2, movement: 'synced', selfRun: 'synced', meditation: meditation.line, toilet: 'moved into WC', chat: 'synced', defaultPhrases: 'synced', interactionPhrase: action.line }, null, 2));
 } finally {
   server.kill('SIGTERM');
 }
