@@ -13,11 +13,12 @@ const rooms = new Map();
 const maxX = 18.4;
 const maxZ = 11.5;
 const workSeats = [
-  { id: 'desk-1', x: -15.45, z: -4.82 }, { id: 'desk-2', x: -15.45, z: -4.18 },
-  { id: 'desk-3', x: -15.45, z: -2.62 }, { id: 'desk-4', x: -15.45, z: -1.98 },
-  { id: 'desk-5', x: -15.45, z: -.42 }, { id: 'desk-6', x: -15.45, z: .22 },
-  { id: 'desk-7', x: -15.45, z: 1.78 }, { id: 'desk-8', x: -15.45, z: 2.42 },
-  { id: 'desk-9', x: -15.45, z: 4.3 }, { id: 'desk-10', x: -15.45, z: 6.5 }
+  { id: 'desk-1', x: -15.45, z: -1.8 },
+  { id: 'desk-2', x: -15.45, z: .4 },
+  { id: 'desk-3', x: -15.45, z: 2.6 },
+  { id: 'desk-4', x: -15.45, z: 4.8 },
+  { id: 'desk-5', x: -15.45, z: 7 },
+  { id: 'desk-6', x: -15.45, z: 9.2 }
 ];
 const workMilestones = [9, 69, 99, 199, 299, 399, 499, 599, 699, 799, 899];
 const avatars = new Set(['snake', 'fish', 'sloth', 'cow', 'leopard']);
