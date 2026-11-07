@@ -244,6 +244,7 @@ function patternMaterial(baseColor, pattern, region) {
 
 function makeRoomLabel(text, x, z) {
   const sprite = label(text, '#493650');
+  sprite.material.depthTest = true;
   sprite.position.set(x, 2.35, z);
   sprite.scale.set(3.8, .92, 1);
   scene.add(sprite);
