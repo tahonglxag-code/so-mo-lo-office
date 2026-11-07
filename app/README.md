@@ -1,26 +1,34 @@
 # SỜ MỜ LỜ
 
-Game văn phòng 3D nhiều người chơi trên trình duyệt, chạy bằng Node.js, Express, Socket.IO và Three.js.
+Game văn phòng 3D nhiều người chơi chạy trên trình duyệt bằng Three.js, Express và Socket.IO.
 
-## Chạy
+## Chạy cục bộ
 
 ```sh
 npm install
 npm start
 ```
 
-Mở `http://localhost:3000`. Nhập tên, chọn một trong bốn nhân vật, rồi để trống mã phòng để tạo phòng mới. Nút Mời bạn sao chép link có kèm mã phòng.
+Mở `http://localhost:3000`, nhập tên và chọn nhân vật. Để trống mã phòng để tạo phòng mới; nút Mời bạn sao chép link phòng.
+
+## Nhân vật
+
+XÀ, CÁ 2 MANG, LƯỜI, BẦN ĐÒ và BÁO THỦ. Bò sữa và báo được nhân hoá đứng hai chân.
 
 ## Điều khiển
 
-- WASD hoặc phím mũi tên: di chuyển
-- Chạm hoặc click sàn: đi đến điểm đó
-- Chạm người chơi khác: chọn để tương tác
-- Chat tự do, tin nhắn hiển thị trong bong bóng
-- Nút hành động phía dưới hoặc phím tắt Z, X, C, B, V, M, N
+- WASD hoặc phím mũi tên: di chuyển.
+- Click hoặc chạm sàn: đi đến vị trí.
+- Click hoặc chạm người chơi khác: chọn để tương tác.
+- Khung chat: nhắn tự do, hiển thị bong bóng thoại.
+- Các nút hành động hoặc phím Z, X, C, B, V, M, N.
 
-## Render Free
+## Render
 
-Đặt thư mục gốc dịch vụ là `app`, lệnh build là `npm install`, lệnh chạy là `npm start`. Dịch vụ dùng Socket.IO trên cùng cổng HTTP. Máy chủ giữ phòng trong RAM; khi Render khởi động lại hoặc tạm dừng, người chơi sẽ phải vào lại phòng.
+Dùng root directory `app`, build command `npm install`, start command `npm start`. Máy chủ hỗ trợ Socket.IO/WebSocket và lưu phòng trong RAM. Giới hạn phòng là 50 người; smoke test kiểm tra hai kết nối, chưa có load test 20–50 người.
 
-Phòng giới hạn 50 người trong mã, nhưng mới kiểm tra đồng bộ với hai kết nối. Chưa có bài kiểm thử tải 20–50 kết nối đồng thời.
+## Kiểm tra
+
+```sh
+npm run test:smoke
+```
