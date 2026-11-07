@@ -566,7 +566,8 @@ socket.on('self-action',event=>{
     p.pose='meditate';p.poseUntil=performance.now()+event.duration;
     setBubble(p.id,event.line);
   }
-  addFeed(`${avatarIcons[p.avatar]||'🙂'} ${p.name} ${event.action==='run'?'bỏ chạy':'ngồi thiền'}`);
+  const actionLabel={run:'bỏ chạy',meditate:'ngồi thiền',toilet:'đi toilet'}[event.action]||event.action;
+  addFeed(`${avatarIcons[p.avatar]||'🙂'} ${p.name} ${actionLabel}`);
 });
 socket.on('connect_error',()=>toast('Đang thử kết nối lại…'));
 
