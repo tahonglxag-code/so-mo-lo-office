@@ -48,6 +48,7 @@ const interactionLines = {
 };
 
 app.use(express.static(path.join(root, 'public')));
+app.get('/css3d.js', (_req, res) => res.sendFile(path.join(root, 'node_modules/three/examples/jsm/renderers/CSS3DRenderer.js')));
 app.get('/three.module.js', (_req, res) => res.sendFile(path.join(root, 'node_modules/three/build/three.module.js')));
 app.get('/three.core.js', (_req, res) => res.sendFile(path.join(root, 'node_modules/three/build/three.core.js')));
 app.get('/healthz', (_req, res) => res.json({ ok: true, rooms: rooms.size, players: [...rooms.values()].reduce((n, room) => n + room.size, 0), uptime: Math.floor(process.uptime()) }));
@@ -282,19 +283,32 @@ io.on('connection', socket => {
     const code = socket.data.room;
     const room = rooms.get(code);
     if (!room?.has(socket.id)) return;
+    if(Date.now()<(room.meetingUntil||0))return socket.emit('feed',{text:'Mọi người đang di chuyển vào phòng họp B.'});
     const players = [...room.values()].map((player, index) => {
       releaseWorkSeat(code, player);
-      const column = index % 8;
-      const row = Math.floor(index / 8);
-      player.x = 11.2 + column * .8;
-      player.z = 2 + row * .8;
-      player.lastActivity = Date.now();
-      player.bubble = '';
-      player.bubbleUntil = 0;
-      scheduleIdleLine(code, player);
-      return { id: player.id, x: player.x, z: player.z, yaw: player.yaw };
+      const x=11.2+(index%8)*.8,z=2+Math.floor(index/8)*.8;
+      const path=[];
+      if(!(player.x>10.4&&player.x<18.6&&player.z>1.2&&player.z<8.6)){
+        if(player.x>10.4&&player.z<-4.7){path.push({x:14.5,z:-5.6},{x:14.5,z:-3.7});}
+        if(player.x<-16.1&&player.z<-6.1){path.push({x:-17.8,z:-6.8},{x:-17.8,z:-5.1});}
+        const last=path.at(-1)||player;
+        if(last.z<8.6)path.push({x:8.9,z:last.z},{x:8.9,z:9.8});
+        path.push({x:14.5,z:9.8},{x:14.5,z:7.7});
+      }
+      path.push({x,z});
+      let distance=0,previous=player;
+      for(const point of path){distance+=Math.hypot(point.x-previous.x,point.z-previous.z);previous=point;}
+      const duration=Math.max(700,distance/7*1000);
+      player.x=x;player.z=z;player.yaw=0;
+      player.lockedUntil=Date.now()+duration;
+      player.lastActivity=Date.now();player.bubble='';player.bubbleUntil=0;
+      room.pendingMoves.delete(player.id);
+      scheduleIdleLine(code,player);
+      return {id:player.id,x,z,yaw:0,path,duration};
     });
-    io.to(code).emit('urgent-meeting', { players, duration: 1800 });
+    const duration=Math.max(...players.map(p=>p.duration));
+    room.meetingUntil=Date.now()+duration;
+    io.to(code).emit('urgent-meeting', { players, duration });
     io.to(code).emit('feed', { text: '🚨 HỌP GẤP: cả phòng đã được gọi vào phòng họp B' });
   });
 
