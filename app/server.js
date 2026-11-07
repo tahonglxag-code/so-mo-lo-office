@@ -18,7 +18,7 @@ const defaultLines = {
   cow: ['a di đà lạt - Bần Đò có biết gì đâu', 'lào gì cũng tôn', 'là sao nữa', 'nếu người khác làm được - thì để họ làm', 'cái gì đổ tại người khác được thì không phải tại mình', 'a di đà lạt - không biết không có tội'],
   leopard: ['em xin lỗi', 'chị ơi...', 'anh ơi...', 'cú bé', 'ta thà báo cả thiên hạ chứ không báo sếp', 'em mới pass thử việc ạ', 'e thề e chưa làm gì cả', 'công ty là gia đình 🎼🎼']
 };
-const actions = new Set(['punch', 'bonk', 'smirk', 'bow', 'run', 'meditate', 'sleep', 'throw']);
+const actions = new Set(['punch', 'bonk', 'smirk', 'bow', 'run', 'meditate', 'toilet', 'throw']);
 const items = new Set(['❤️', '🧋', '💸', '📋', '⏰', '💩']);
 const interactionLines = {
   snake: 'chị hứa chị chừa',
@@ -107,8 +107,8 @@ io.on('connection', socket => {
     const code = socket.data.room;
     const player = rooms.get(code)?.get(socket.id);
     if (!player || !data) return;
-    const nextX = Math.max(-12, Math.min(12, Number(data.x) || 0));
-    const nextZ = Math.max(-9, Math.min(9, Number(data.z) || 0));
+    const nextX = Math.max(-13.4, Math.min(13.4, Number(data.x) || 0));
+    const nextZ = Math.max(-10.2, Math.min(10.2, Number(data.z) || 0));
     if (Math.hypot(nextX - player.x, nextZ - player.z) > .12) {
       player.lastActivity = Date.now();
       scheduleIdleLine(code, player);
@@ -122,13 +122,22 @@ io.on('connection', socket => {
   socket.on('self-action', action => {
     const code = socket.data.room;
     const player = rooms.get(code)?.get(socket.id);
-    if (!player || !['run', 'meditate'].includes(action)) return;
-    const duration = action === 'run' ? 650 : 4000;
+    if (!player || !['run', 'meditate', 'toilet'].includes(action)) return;
+    const duration = action === 'run' ? 650 : action === 'toilet' ? 2600 : 4000;
     let line = '';
+    let path = [];
     if (action === 'run') {
       const distance = 2.8;
-      player.x = Math.max(-12, Math.min(12, player.x - Math.sin(player.yaw) * distance));
-      player.z = Math.max(-9, Math.min(9, player.z - Math.cos(player.yaw) * distance));
+      player.x = Math.max(-13.4, Math.min(13.4, player.x - Math.sin(player.yaw) * distance));
+      player.z = Math.max(-10.2, Math.min(10.2, player.z - Math.cos(player.yaw) * distance));
+      path = [{ x: player.x, z: player.z }];
+    } else if (action === 'toilet') {
+      path = [{ x: -13.2, z: -5.15 }, { x: -13.2, z: -8.15 }];
+      player.x = -13.2;
+      player.z = -8.15;
+      line = 'đang đi toilet...';
+      player.bubble = line;
+      player.bubbleUntil = Date.now() + 6500;
     } else {
       line = 'lương bất biến giữa dòng deadline vạn biến';
       player.bubble = line;
@@ -138,7 +147,7 @@ io.on('connection', socket => {
     player.poseUntil = Date.now() + duration;
     player.lastActivity = Date.now();
     scheduleIdleLine(code, player);
-    io.to(code).emit('self-action', { id: player.id, action, x: player.x, z: player.z, yaw: player.yaw, line, duration, at: Date.now() });
+    io.to(code).emit('self-action', { id: player.id, action, x: player.x, z: player.z, yaw: player.yaw, path, line, duration, at: Date.now() });
   });
 
   socket.on('chat', value => {
