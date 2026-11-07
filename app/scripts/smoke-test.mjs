@@ -40,10 +40,10 @@ try {
   const secondInfo = await joinedSecond;
   if (!(await secondLine).text) throw new Error('New player default phrase did not sync to the room');
   if (!firstAck.ok || !secondAck.ok || firstInfo.room !== 'VPTEST26' || firstInfo.room !== secondInfo.room || secondInfo.players.length !== 2 || !secondInfo.players.some(player => player.avatar === 'leopard')) throw new Error('Custom room join or two-player snapshot failed');
-  const moved = expectEvent(second, 'move');
+  const moved = expectEvent(second, 'moves');
   first.emit('move', { x: 2, z: -1, yaw: 0.8 });
-  const movement = await moved;
-  if (movement.id !== firstInfo.id || movement.x !== 2 || movement.z !== -1) throw new Error('Player movement did not sync');
+  const movement = (await moved).find(item => item.id === firstInfo.id);
+  if (!movement || movement.x !== 2 || movement.z !== -1) throw new Error('Player movement did not sync');
   const ran = expectEvent(second, 'self-action');
   first.emit('self-action', 'run');
   const runAction = await ran;
@@ -59,6 +59,7 @@ try {
   const workAssignment = await workMove;
   if (!assignedSeat.ok || assignedSeat.seat.id !== workAssignment.seat.id) throw new Error('Work desk assignment did not sync');
   const startedWorking = expectEvent(second, 'work-state');
+  await wait(100);
   first.emit('move', { x: assignedSeat.seat.x, z: assignedSeat.seat.z, yaw: 0 });
   const workingState = await startedWorking;
   if (!workingState.working || workingState.text !== 'kiếp trâu ngựa' || !workingState.startedAt) throw new Error('Working status, start time or persistent phrase did not sync');
