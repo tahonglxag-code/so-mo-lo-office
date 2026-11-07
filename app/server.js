@@ -356,9 +356,9 @@ io.on('connection', socket => {
     const room = rooms.get(socket.data.room);
     const player = room?.get(socket.id);
     if (!player) return reply({ error: 'Bạn chưa vào phòng.' });
+    if(data?.action==='stop'){room.music={videoId:'',playing:false,position:0,changedAt:Date.now()};io.to(socket.data.room).emit('music-state',room.music);return reply({ok:true});}
     if (Date.now() - (player.lastMusicAt || 0) < 800) return reply({ error: 'Đợi một chút trước khi đổi nhạc.' });
     player.lastMusicAt = Date.now();
-    if(data?.action==='stop'){room.music={videoId:'',playing:false,position:0,changedAt:Date.now()};io.to(socket.data.room).emit('music-state',room.music);return reply({ok:true});}
     const old = room.music;
     const position = old.position + (old.playing ? (Date.now() - old.changedAt) / 1000 : 0);
     let videoId = old.videoId;
