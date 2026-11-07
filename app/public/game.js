@@ -28,8 +28,8 @@ const keys = new Set();
 const scene = new THREE.Scene();
 scene.background = new THREE.Color('#c5b0c1');
 scene.fog = new THREE.Fog('#c5b0c1', 32, 65);
-const camera = new THREE.PerspectiveCamera(38, 1, 0.1, 100);
-camera.position.set(0, 18, 18);
+const camera = new THREE.PerspectiveCamera(40, 1, 0.1, 100);
+camera.position.set(0, 19, 19);
 camera.lookAt(0, 0, 0);
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false, powerPreference: 'low-power' });
 renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 1.5));
@@ -99,9 +99,9 @@ function label(text, color = '#493650') {
 }
 
 function makeRoomLabel(text, x, z) {
-  const sprite = label(text, '#fffaf0');
+  const sprite = label(text, '#493650');
   sprite.position.set(x, 2.35, z);
-  sprite.scale.set(3.15, .78, 1);
+  sprite.scale.set(3.8, .92, 1);
   scene.add(sprite);
 }
 
@@ -401,7 +401,7 @@ function createPlayer(data) {
   const name=label(`${avatarIcons[data.avatar]||'🙂'} ${data.name}`);
   name.position.set(0,2.2,0); name.scale.set(2.8,.7,1); group.add(name);
   const bubble=label(data.bubble||'', '#37293e');
-  bubble.position.set(0,2.68,0); bubble.visible=Boolean(data.bubble); group.add(bubble);
+  bubble.position.set(0,2.76,0); bubble.scale.set(3.2,.8,1); bubble.visible=Boolean(data.bubble); group.add(bubble);
   scene.add(group);
   const entry={...data,group,nameSprite:name,bubbleSprite:bubble,target:new THREE.Vector3(data.x||0,0,data.z||0),poseUntil:0};
   players.set(data.id,entry);
@@ -563,14 +563,14 @@ function frame(now) {
     if(dx||dz){const mag=Math.hypot(dx,dz);dx/=mag;dz/=mag;me.group.position.x=THREE.MathUtils.clamp(me.group.position.x+dx*5.2*dt,-13.4,13.4);me.group.position.z=THREE.MathUtils.clamp(me.group.position.z+dz*5.2*dt,-9.7,9.7);me.group.rotation.y=Math.atan2(-dx,-dz);}
     if(now-lastMove>55){socket.volatile.emit('move',{x:me.group.position.x,z:me.group.position.z,yaw:me.group.rotation.y});lastMove=now;}
     const look=new THREE.Vector3(me.group.position.x,0,me.group.position.z);
-    const distance=innerWidth<760?25:18;
+    const distance=innerWidth<760?25:19;
     camera.position.lerp(new THREE.Vector3(look.x,distance,look.z+distance),.06);camera.lookAt(look);
   }
   for(const p of players.values())if(p.id!==selfId){p.group.position.lerp(p.target,Math.min(1,dt*11));if(Number.isFinite(p.yaw))p.group.rotation.y=THREE.MathUtils.lerp(p.group.rotation.y,p.yaw,.15);}
   renderer.render(scene,camera);
 }
 
-function resize(){const w=canvas.clientWidth,h=canvas.clientHeight;renderer.setSize(w,h,false);camera.aspect=w/Math.max(1,h);camera.fov=innerWidth<760?54:38;camera.updateProjectionMatrix();}
+function resize(){const w=canvas.clientWidth,h=canvas.clientHeight;renderer.setSize(w,h,false);camera.aspect=w/Math.max(1,h);camera.fov=innerWidth<760?54:40;camera.updateProjectionMatrix();}
 new ResizeObserver(resize).observe(canvas);resize();requestAnimationFrame(frame);
 
 const query=new URLSearchParams(location.search);
