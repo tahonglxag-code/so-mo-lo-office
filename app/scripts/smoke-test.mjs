@@ -21,20 +21,25 @@ try {
   }
   if (!response?.ok) throw new Error('HTTP server did not start');
   const page = await response.text();
-  if (!page.includes('SỜ MỜ LỜ') || !page.includes('world')) throw new Error('Game page did not load expected app markup');
+  if (!page.includes('SỜ MỜ LỜ') || !page.includes('world') || !page.includes('avatar-quote') || !page.includes('data-avatar="sloth"') || !page.includes('data-avatar="leopard"') || !page.includes('BÁO THỦ')) throw new Error('Game page did not load expected app markup');
   const jsResponse = await fetch(`${origin}/game.js`);
   const threeResponse = await fetch(`${origin}/three.module.js`);
-  if (!jsResponse.ok || !threeResponse.ok) throw new Error('Game assets did not load');
+  const threeCoreResponse = await fetch(`${origin}/three.core.js`);
+  if (!jsResponse.ok || !threeResponse.ok || !threeCoreResponse.ok) throw new Error('Game assets did not load');
   const first = io(origin, { transports: ['websocket'] });
   const second = io(origin, { transports: ['websocket'] });
   await Promise.all([expectEvent(first, 'connect'), expectEvent(second, 'connect')]);
   const joinedFirst = expectEvent(first, 'joined');
-  const firstAck = await emitAck(first, 'join', { name: 'Rắn thử', avatar: 'snake' });
+  const firstLine = expectEvent(first, 'default-line');
+  const firstAck = await emitAck(first, 'join', { name: 'Rắn thử', avatar: 'snake', room: 'VPTEST26' });
   const firstInfo = await joinedFirst;
+  if (!(await firstLine).text) throw new Error('Character default phrase did not sync on room entry');
   const joinedSecond = expectEvent(second, 'joined');
-  const secondAck = await emitAck(second, 'join', { name: 'Bò thử', avatar: 'cow', room: firstInfo.room });
+  const secondLine = expectEvent(first, 'default-line');
+  const secondAck = await emitAck(second, 'join', { name: 'Báo thử', avatar: 'leopard', room: firstInfo.room });
   const secondInfo = await joinedSecond;
-  if (!firstAck.ok || !secondAck.ok || firstInfo.room !== secondInfo.room || secondInfo.players.length !== 2) throw new Error('Room join or two-player snapshot failed');
+  if (!(await secondLine).text) throw new Error('New player default phrase did not sync to the room');
+  if (!firstAck.ok || !secondAck.ok || firstInfo.room !== 'VPTEST26' || firstInfo.room !== secondInfo.room || secondInfo.players.length !== 2 || !secondInfo.players.some(player => player.avatar === 'leopard')) throw new Error('Custom room join or two-player snapshot failed');
   const moved = expectEvent(second, 'move');
   first.emit('move', { x: 2, z: -1, yaw: 0.8 });
   const movement = await moved;
@@ -45,10 +50,10 @@ try {
   const acted = expectEvent(second, 'act');
   first.emit('act', { action: 'throw', item: '🧋', target: secondInfo.id });
   const action = await acted;
-  if (action.item !== '🧋' || action.to !== secondInfo.id || !action.line) throw new Error('Targeted action did not sync');
+  if (action.item !== '🧋' || action.to !== secondInfo.id || action.line !== 'em bị tổn thưn') throw new Error('Targeted action phrase did not sync');
   first.disconnect();
   second.disconnect();
-  console.log(JSON.stringify({ page: 'ok', assets: 'ok', room: firstInfo.room, players: 2, movement: 'synced', chat: 'synced', action: 'synced' }, null, 2));
+  console.log(JSON.stringify({ page: 'ok', assets: 'ok', customRoom: firstInfo.room, players: 2, movement: 'synced', chat: 'synced', defaultPhrases: 'synced', interactionPhrase: action.line }, null, 2));
 } finally {
   server.kill('SIGTERM');
 }
