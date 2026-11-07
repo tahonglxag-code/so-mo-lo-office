@@ -18,7 +18,7 @@ const defaultLines = {
   cow: ['a di đà lạt - Bần Đò có biết gì đâu', 'lào gì cũng tôn', 'là sao nữa', 'nếu người khác làm được - thì để họ làm', 'cái gì đổ tại người khác được thì không phải tại mình', 'a di đà lạt - không biết không có tội'],
   leopard: ['em xin lỗi', 'chị ơi...', 'anh ơi...', 'cú bé', 'ta thà báo cả thiên hạ chứ không báo sếp', 'em mới pass thử việc ạ', 'e thề e chưa làm gì cả', 'công ty là gia đình 🎼🎼']
 };
-const actions = new Set(['punch', 'bonk', 'smirk', 'bow', 'run', 'meditate', 'toilet', 'throw']);
+const actions = new Set(['punch', 'bonk', 'smirk', 'bow', 'throw']);
 const items = new Set(['❤️', '🧋', '💸', '📋', '⏰', '💩']);
 const interactionLines = {
   snake: 'chị hứa chị chừa',
