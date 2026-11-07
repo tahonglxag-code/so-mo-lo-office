@@ -56,7 +56,7 @@ scene.add(sun);
 
 const mat = (color, roughness = .86) => new THREE.MeshStandardMaterial({ color, roughness });
 const mats = {
-  floor: mat('#edcf9e'), tile: mat('#f2dcb7'), wall: mat('#73767b'), wallLight: mat('#c3c6cb'), trim: mat('#555a60'), door: mat('#b8bbc0'),
+  floor: mat('#73767b'), tile: mat('#73767b'), wall: mat('#ffffff'), wallLight: mat('#e4e5e7'), trim: mat('#555a60'), door: mat('#b8bbc0'),
   wood: mat('#d6a84f'), woodLight: mat('#f2cf75'), purple: mat('#716184'), cream: mat('#fff0d0'), plant: mat('#5f9c6e'),
   pink: mat('#ed8fa0'), white: mat('#fffaf0'), black: mat('#29242c'), dark: mat('#413348'), gray: mat('#a3a1a4'), metal: mat('#758993')
 };
@@ -310,10 +310,7 @@ function office() {
   }
   conferenceRoom(14.5, -8.5);
   conferenceRoom(14.5, 5.1);
-  for (const [index, z] of [-4.5,-2.3,-.1,2.1,4.3,6.5].entries()) {
-    const seatIds=index<4?[`desk-${index*2+1}`,`desk-${index*2+2}`]:[`desk-${index+5}`];
-    workTable(z,seatIds);
-  }
+  for (const [index, z] of [-1.8,.4,2.6,4.8,7,9.2].entries()) workTable(z,[`desk-${index+1}`]);
   for (const [x,z] of [[-18.8,-5.7],[-16.8,-5.7],[12.2,-4.2],[18.8,-4.2],[12.2,8.9],[18.8,8.9],[-18.5,11.8],[18.5,11.8]]) plant(x,z);
   box(scene, .12, .85, 5.2, mats.wallLight, -6.8, .17, -8.3);
   box(scene, .12, .85, 5.2, mats.wallLight, 6.8, .17, -8.3);
@@ -330,11 +327,11 @@ function workTable(z, seatIds) {
   for (let index = 0; index < seatIds.length; index++) {
     const seatZ = z + (seatIds.length === 2 ? (index === 0 ? -.32 : .32) : 0);
     stool(-15.55, seatZ);
-    box(scene, .1, .42, .62, mats.purple, -15.85, .75, seatZ);
-    box(scene, .48, .045, .32, mats.dark, x - .12, .98, seatZ);
-    box(scene, .06, .3, .32, mats.dark, x - .34, 1.14, seatZ);
-    box(scene, .025, .24, .26, mats.metal, x - .375, 1.14, seatZ);
-    createWorkDisplay(seatIds[index],x-.29,1.22,seatZ);
+    box(scene, .1, .42, .68, mats.purple, -15.85, .75, seatZ);
+    box(scene, .7, .055, .48, mats.dark, x - .12, .98, seatZ);
+    box(scene, .1, .54, .5, mats.dark, x - .38, 1.25, seatZ);
+    box(scene, .025, .46, .42, mats.metal, x - .435, 1.25, seatZ);
+    createWorkDisplay(seatIds[index],x-.38,1.3,seatZ);
   }
 }
 
@@ -343,7 +340,7 @@ function createWorkDisplay(seatId,x,y,z){
   const context=canvas.getContext('2d');
   const texture=new THREE.CanvasTexture(canvas);texture.colorSpace=THREE.SRGBColorSpace;
   const sprite=new THREE.Sprite(new THREE.SpriteMaterial({map:texture,transparent:true,depthTest:false}));
-  sprite.position.set(x,y,z);sprite.scale.set(.76,.34,1);sprite.renderOrder=100;scene.add(sprite);
+  sprite.position.set(x,y,z);sprite.scale.set(.98,.48,1);sprite.renderOrder=100;scene.add(sprite);
   const display={canvas,context,texture,sprite,seconds:-1};
   workDisplays.set(seatId,display);paintWorkDisplay(display,null);
 }
@@ -407,9 +404,9 @@ function coffeeTable(x,z) {
 }
 
 function stool(x,z) {
-  const seat = new THREE.Mesh(new THREE.CylinderGeometry(.28,.3,.16,12),mats.purple);
+  const seat = new THREE.Mesh(new THREE.CylinderGeometry(.29,.29,.16,24),mats.gray);
   seat.position.set(x,.48,z); seat.castShadow=true; scene.add(seat);
-  const leg=new THREE.Mesh(new THREE.CylinderGeometry(.07,.09,.43,8),mats.dark);
+  const leg=new THREE.Mesh(new THREE.CylinderGeometry(.07,.09,.43,12),mats.trim);
   leg.position.set(x,.2,z); leg.castShadow=true; scene.add(leg);
 }
 
@@ -492,7 +489,11 @@ function animal(type, tint = null) {
       body.add(coil);
     }
     taperedTube(body,[[.66,.17,.08],[.84,.17,.18],[1.06,.23,.3]],.13,.012,fur);
-    sphere(body,0,1.11,-.02,.29,.77,.3,fur,20);
+    const connection = new THREE.Mesh(new THREE.CylinderGeometry(.15,.4,1.05,20),fur);
+    connection.position.set(0,.675,-.02);
+    connection.castShadow = true;
+    body.add(connection);
+    sphere(body,0,1.11,-.02,.145,.77,.15,fur,20);
     sphere(body,0,1.91,-.08,.43,.39,.39,fur,20);
     for(const x of [-.17,.17]) {
       sphere(body,x,1.98,-.405,.064,.085,.035,eye,12);
@@ -797,8 +798,7 @@ socket.on('work-state',event=>{
   else setBubble(event.id,'');
 });
 socket.on('work-milestone',event=>{
-  const text=event.final?`${event.name} đã làm việc được 999s, hãy chiêm ngưỡng hào quang của ${event.name}`:`${event.name} đã làm việc được ${event.seconds}s`;
-  toast(text);
+  if(!event.final)addFeed(`${event.name} đã làm việc được ${event.seconds}s`,'work');
 });
 socket.on('work-complete',event=>{
   const p=players.get(event.id);if(!p)return;
