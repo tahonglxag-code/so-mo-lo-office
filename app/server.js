@@ -80,6 +80,7 @@ function publicPlayer(player) {
     bubbleUntil: player.bubbleUntil,
     pose: player.pose,
     poseUntil: player.poseUntil,
+    dieuNhay: player.pose === 'dance' ? player.dieuNhay : undefined,
     workSeatId: player.workSeatId,
     working: player.working,
     workStartedAt: player.workStartedAt,
@@ -248,7 +249,24 @@ io.on('connection', socket => {
     const code = socket.data.room;
     const player = rooms.get(code)?.get(socket.id);
     if (player && Date.now() < (player.lockedUntil || 0)) return;
-    if (!player || !['run', 'meditate', 'toilet', 'money'].includes(action)) return;
+    if (!player || !['run', 'meditate', 'toilet', 'money', 'dance'].includes(action)) return;
+    if (action === 'dance') {
+      releaseWorkSeat(code, player);
+      const at = Date.now();
+      const duration = 3000;
+      player.lockedUntil = at + duration;
+      player.lastActivity = at;
+      if (player.pose === 'meditate') {
+        player.bubble = '';
+        player.bubbleUntil = 0;
+      }
+      player.pose = action;
+      player.poseUntil = player.lockedUntil;
+      player.dieuNhay = randomInt(5);
+      scheduleIdleLine(code, player);
+      io.to(code).emit('self-action', { id: player.id, action, x: player.x, z: player.z, yaw: player.yaw, duration, at, dieuNhay: player.dieuNhay });
+      return;
+    }
     if (action === 'money' || action === 'run' || action === 'toilet') releaseWorkSeat(code, player);
     const duration = action === 'run' ? 900 : action === 'toilet' ? 2600 : action === 'money' ? 5000 : 4000;
     let line = '';
