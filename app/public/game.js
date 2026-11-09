@@ -914,7 +914,7 @@ socket.on('act',event=>{
   const from=players.get(event.from),to=players.get(event.to);
   if(!from||(!to&&!event.altar))return;
   const cau={punch:'vừa đấm vào',bonk:'vừa kí đầu',smirk:'vừa cười khinh vào',bow:'vừa quỳ lạy trước'};
-  addFeed(event.action==='throw'?`${event.fromName} vừa ném ${event.item} cho ${event.targetName}`:`${event.fromName} ${cau[event.action]} ${event.altar?"bàn thờ":event.targetName}`);
+  addFeed(event.action==='throw'?`${event.fromName} vừa ném ${event.item} cho ${event.targetName}`:`${event.fromName} ${cau[event.action]} ${event.altar?"bàn thần tài":event.targetName}`);
   const now=performance.now();
   if(event.approach){
     from.khoaDen=now+event.approach+event.duration;
@@ -950,14 +950,33 @@ function taoVatNem(nguoi, dich, icon, now){
   vatNem.push({vat:sprite,dich:dich.id,tu:nguoi.group.position.clone().add(new THREE.Vector3(0,1.1,0)),batDau:now,thoiGian:2000,doCao:1.1,doVom:2});
 }
 function taoThoiVang(nguoi,batDau){
-  if(vatNem.length>=24)return;
-  const hinh=new THREE.CylinderGeometry(.21,.33,.16,4);
-  hinh.rotateY(Math.PI/4);
-  hinh.scale(1.45,1,1);
-  const vat=new THREE.Mesh(hinh,new THREE.MeshStandardMaterial({color:0xffcb36,emissive:0x8e4b00,emissiveIntensity:.45,roughness:.28}));
-  vat.visible=false;
-  scene.add(vat);
-  vatNem.push({vat,dich:nguoi.id,tu:new THREE.Vector3(banTho.x,1.43,banTho.z+.66),batDau,thoiGian:900,doCao:2.15,doVom:1.15});
+  if(vatNem.length>24)return;
+  const cacDich=[
+    {doCao:.24,doLui:0,vaoDau:true},
+    {doCao:.82,doLui:.26,vaoDau:false},
+    {doCao:.2,doLui:1.38,vaoDau:false}
+  ];
+  for(const [thuTu,dich] of cacDich.entries()){
+    const vat=new THREE.Group();
+    const chatVang=new THREE.MeshStandardMaterial({color:0xffb51c,emissive:0xb96300,emissiveIntensity:.4,roughness:.26});
+    const vo=new THREE.SphereGeometry(1,28,14,0,Math.PI*2,Math.PI/2,Math.PI/2);
+    const diem=vo.attributes.position;
+    for(let i=0;i<diem.count;i++){
+      const x=diem.getX(i);
+      diem.setXYZ(i,x*.55,diem.getY(i)*.23+.31*x*x,diem.getZ(i)*.29);
+    }
+    vo.computeVertexNormals();
+    const longThuyen=new THREE.Mesh(vo,chatVang);
+    longThuyen.material.side=THREE.DoubleSide;
+    vat.add(longThuyen);
+    const num=new THREE.Mesh(new THREE.SphereGeometry(1,24,16),chatVang);
+    num.scale.set(.34,.28,.24);
+    vat.add(num);
+    vat.rotation.set(.33,-.42,0);
+    vat.visible=false;
+    scene.add(vat);
+    vatNem.push({vat,dich:nguoi.id,tu:new THREE.Vector3(banTho.x,1.46,banTho.z+.66),batDau:batDau+thuTu*280,thoiGian:820,doVom:1.15,...dich});
+  }
 }
 function hoatAnh(p,now){
   const hd=p.hanhDong;if(!hd||now<hd.batDau)return;
@@ -1097,17 +1116,32 @@ function frame(now) {
     const v=vatNem[i],dich=players.get(v.dich),t=(now-v.batDau)/v.thoiGian;
     if(!dich||t>=1){
       scene.remove(v.vat);
-      if(v.vat.isMesh)v.vat.geometry.dispose();
-      v.vat.material.map?.dispose();
-      v.vat.material.dispose();
+      if(v.vat.isGroup){
+        for(const phan of v.vat.children)phan.geometry.dispose();
+        v.vat.children[0].material.dispose();
+      }else{
+        v.vat.material.map.dispose();
+        v.vat.material.dispose();
+      }
       vatNem.splice(i,1);
       continue;
     }
     if(t<0)continue;
     v.vat.visible=true;
-    v.vat.position.lerpVectors(v.tu,dich.group.position,t);
-    v.vat.position.y+=t*v.doCao+Math.sin(t*Math.PI)*v.doVom;
-    if(v.vat.isMesh)v.vat.rotation.set(t*Math.PI*2,t*Math.PI*3,0);
+    const den=dich.group.position.clone();
+    if(v.vaoDau){
+      const dau=dich.group.userData.dau;
+      if(dau)dau.getWorldPosition(den);
+      else den.y+=1.8;
+    }else if(v.doLui){
+      const huong=dich.group.rotation.y;
+      den.x+=Math.sin(huong)*v.doLui;
+      den.z+=Math.cos(huong)*v.doLui;
+    }
+    den.y+=v.doCao;
+    v.vat.position.lerpVectors(v.tu,den,t);
+    v.vat.position.y+=Math.sin(t*Math.PI)*v.doVom;
+    if(v.vat.isGroup)v.vat.rotation.set(.33+t*.65,-.42+t*Math.PI*2,Math.sin(t*Math.PI)*.35);
   }
   const nowEpoch=Date.now();
   for(const [seatId,display] of workDisplays){
