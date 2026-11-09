@@ -667,6 +667,10 @@ function createPlayer(data) {
   if(entry.working)setBubble(data.id,'kiếp trâu ngựa',true);
   if(data.auraUntil>Date.now())setAura(entry,data.auraUntil,2);
   else if(data.workGlow&&data.working)setAura(entry,Infinity);
+  if(data.pose==='dance'&&data.poseUntil>Date.now()){
+    const ketThuc=performance.now()+data.poseUntil-Date.now();
+    batDauNhay(entry,data.dieuNhay,ketThuc-3000,ketThuc);
+  }
   return entry;
 }
 
@@ -785,7 +789,7 @@ document.querySelector('#invite').addEventListener('click',async()=>{
 });
 document.querySelectorAll('[data-action]').forEach(button=>button.addEventListener('click',()=>{
   const action=button.dataset.action; const item=document.querySelector('#item').value;
-  if(action==='run'||action==='meditate'||action==='toilet'||action==='money'){socket.emit('self-action',action);return;}
+  if(action==='run'||action==='meditate'||action==='toilet'||action==='money'||action==='dance'){socket.emit('self-action',action);return;}
   if(action==='meeting'){socket.emit('urgent-meeting');return;}
   if(action==='work'){socket.emit('work');return;}
   if(!selectedId&&action!=='bow')return toast('Chạm vào một người chơi khác để chọn họ nhé.');
@@ -905,6 +909,7 @@ socket.on('urgent-meeting',event=>{
   for(const data of event.players||[]){
     const p=players.get(data.id);if(!p)continue;
     p.workSeatId='';p.working=false;p.meditating=false;p.pose='';setBubble(p.id,'');
+    if(p.nhay)p.nhay.ketThuc=0;
     p.khoaDen=performance.now()+(data.duration||event.duration);
     p.runMotion={points:[p.group.position.clone(),...(data.path||[{x:data.x,z:data.z}]).map(v=>new THREE.Vector3(v.x,0,v.z))],started:performance.now(),duration:data.duration||event.duration,jump:false};
     p.target.set(data.x,0,data.z);
@@ -995,9 +1000,75 @@ function hoatAnh(p,now){
     const tay=p.group.userData.tay?.[0];if(tay)tay.rotation.x=-Math.PI/2*danh;
   }
 }
+const dieuNhayNhanVat={
+  snake:[['Ba lê cuộn đuôi',2,1],['Ke đầu xoắn đuôi',1,1],['Lắc cổ theo nhịp',4,1.2],['Bật lò xo',3,1.2],['Uốn sóng',2,1.1]],
+  fish:[['Ba lê quẫy vây',3,.8],['Ke đầu đuôi dựng',2,.85],['Quẫy đuôi kiểu shuffle',5,1.1],['Cá bật khỏi nước',4,1.3],['Lướt sóng tại chỗ',3,.95]],
+  sloth:[['Ba lê tay dài',1,.7],['Ke đầu chậm rãi',1,.9],['Lắc vai chậm',3,.7],['Bật nhún tay dài',2,.75],['Múa sóng bằng tay',2,1.3]],
+  cow:[['Ba lê xoay móng',2,.9],['Ke đầu giơ móng',1,1.1],['Dậm móng shuffle',5,1.2],['Bò bật hai nhịp',2,1.05],['Lắc hông vẫy tay',3,1.25]],
+  leopard:[['Ba lê xoay nhanh',3,1.1],['Ke đầu hip-hop',2,1.2],['Shuffle vỗ móng',6,1.3],['Bật vồ tại chỗ',3,1.45],['Múa sóng đuôi báo',4,1.2]]
+};
+function batDauNhay(p,kieu,batDau,ketThuc){
+  if(!Number.isInteger(kieu)||kieu<0||kieu>4)return;
+  p.khoaDen=ketThuc;
+  p.runMotion=null;
+  p.moneyUntil=0;
+  p.moneyAgainAt=0;
+  p.pose='';
+  p.meditating=false;
+  p.group.position.y=0;
+  const co=p.id===selfId?1.08:1;
+  p.body.scale.setScalar(co);
+  p.nhay={kieu,batDau,ketThuc};
+  if(p.id===selfId)targetWorld=null;
+}
+function hoatAnhNhay(p,now){
+  const {kieu,batDau,ketThuc}=p.nhay;
+  const tay=p.group.userData.tay;
+  if(now>=ketThuc){
+    p.body.rotation.set(0,0,0);
+    p.body.position.y=0;
+    for(const canh of tay)canh.rotation.x=0;
+    p.nhay=null;
+    return;
+  }
+  const [,soNhip,bienDo]=dieuNhayNhanVat[p.avatar][kieu];
+  const t=THREE.MathUtils.clamp((now-batDau)/(ketThuc-batDau),0,1);
+  const pha=t*Math.PI*2*soNhip;
+  const vaoRa=Math.min(1,t*8,(1-t)*8);
+  const lac=Math.sin(pha)*bienDo*vaoRa;
+  const bat=Math.abs(Math.sin(pha/2))*bienDo*vaoRa;
+  if(kieu===0){
+    p.body.rotation.set(0,t*Math.PI*2*soNhip,lac*.15);
+    p.body.position.y=.22*bat;
+  }else if(kieu===1){
+    const doc=Math.min(1,t*5,(1-t)*5);
+    const cao={snake:1.94,fish:1.68,sloth:1.89,cow:2.03,leopard:1.91}[p.avatar];
+    p.body.rotation.set(Math.PI*doc,t*Math.PI*2*soNhip,.13*lac);
+    p.body.position.y=cao*Math.sin(doc*Math.PI/2);
+  }else if(kieu===2){
+    p.body.rotation.set(.1*bat,.23*lac,.29*lac);
+    p.body.position.y=.19*bat;
+  }else if(kieu===3){
+    p.body.rotation.set(-.36*bat,.12*lac,.15*lac);
+    p.body.position.y=.53*bat;
+  }else{
+    p.body.rotation.set(.34*lac,.38*lac,.25*Math.cos(pha)*vaoRa);
+    p.body.position.y=.13*bat;
+  }
+  for(const [i,canh] of tay.entries())canh.rotation.x=kieu===1?-1.12*vaoRa:(i%2?-1:1)*lac*(kieu===4?1.3:.72);
+}
 socket.on('self-action',event=>{
   const p=players.get(event.id);if(!p)return;
   p.yaw=event.yaw;
+  if(event.action==='dance'){
+    if(p.meditating)setBubble(p.id,'');
+    p.group.position.set(event.x,0,event.z);
+    p.target.copy(p.group.position);
+    const now=performance.now();
+    batDauNhay(p,event.dieuNhay,now,now+event.duration);
+    addFeed(`💃 ${p.name} · ${dieuNhayNhanVat[p.avatar][event.dieuNhay][0]}`);
+    return;
+  }
   if(event.action==='run'||event.action==='toilet'){
     const from=p.group.position.clone();
     const path=(event.path?.length?event.path:[{x:event.x,z:event.z}]).map(point=>new THREE.Vector3(point.x,0,point.z));
@@ -1111,7 +1182,10 @@ function frame(now) {
     }
     if(p.id!==selfId){const running=animateRun(p,now);if(!running)p.group.position.lerp(p.target,Math.min(1,dt*11));if(!running&&Number.isFinite(p.yaw))p.group.rotation.y=THREE.MathUtils.lerp(p.group.rotation.y,p.yaw,.15);}
   }
-  for(const p of players.values())hoatAnh(p,now);
+  for(const p of players.values()){
+    hoatAnh(p,now);
+    if(p.nhay)hoatAnhNhay(p,now);
+  }
   for(let i=vatNem.length-1;i>=0;i--){
     const v=vatNem[i],dich=players.get(v.dich),t=(now-v.batDau)/v.thoiGian;
     if(!dich||t>=1){
