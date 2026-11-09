@@ -1,4 +1,5 @@
 import express from 'express';
+import { banTho } from './public/ban-tho.js';
 import { createServer } from 'node:http';
 import { randomInt } from 'node:crypto';
 import { Server } from 'socket.io';
@@ -83,6 +84,7 @@ function publicPlayer(player) {
     working: player.working,
     workStartedAt: player.workStartedAt,
     auraUntil: player.auraUntil,
+    workGlow: Boolean(player.workGlow),
     lockedUntil: player.lockedUntil || 0
   };
 }
@@ -117,6 +119,7 @@ function releaseWorkSeat(code, player) {
   player.workStartedAt = 0;
   player.bubble = '';
   player.bubbleUntil = 0;
+  player.workGlow = false;
   io.to(code).emit('work-state', { id: player.id, working: false });
   scheduleIdleLine(code, player);
 }
@@ -129,15 +132,29 @@ function startWorkTimer(code, player) {
   }, seconds * 1000));
   player.workTimers.push(setTimeout(() => {
     if (!rooms.get(code)?.has(player.id) || !player.working || !player.workSeatId) return;
+    player.workGlow = true;
+    io.to(code).emit('work-milestone', { id: player.id, name: player.name, seconds: 999, final: false });
+  }, 999000));
+  player.workTimers.push(setTimeout(() => {
+    const room = rooms.get(code);
+    if (!room?.has(player.id) || !player.working || !player.workSeatId) return;
     releaseWorkSeat(code, player);
     player.x = 0;
     player.z = 0;
     player.lastActivity = Date.now();
-    player.auraUntil = Date.now() + 300000;
+    player.lockedUntil = player.lastActivity + 1800;
+    player.auraUntil = player.lastActivity + 300000;
+    room.pendingMoves.delete(player.id);
+    const hero = { id: player.id, name: player.name, until: player.auraUntil };
+    room.heroes = [...activeHeroes(room), hero];
     io.to(code).emit('work-complete', { id: player.id, x: player.x, z: player.z, duration: 1800, auraUntil: player.auraUntil });
-    io.to(code).emit('work-milestone', { id: player.id, name: player.name, seconds: 999, final: true });
-    io.to(code).emit('feed', { text: `${player.name} đã làm việc được 999s, hãy chiêm ngưỡng hào quang của ${player.name}` });
-  }, 999000));
+    io.to(code).emit('work-hero', hero);
+  }, 9999000));
+}
+
+function activeHeroes(room) {
+  room.heroes = (room.heroes || []).filter(hero => hero.until > Date.now());
+  return room.heroes;
 }
 
 io.on('connection', socket => {
@@ -155,7 +172,7 @@ io.on('connection', socket => {
     }
     const room = rooms.get(code);
     if (room.has(socket.id)) {
-      socket.emit('joined', { room: code, id: socket.id, players: [...room.values()].map(publicPlayer), music: room.music });
+      socket.emit('joined', { room: code, id: socket.id, players: [...room.values()].map(publicPlayer), music: room.music, heroes: activeHeroes(room) });
       return reply({ ok: true, room: code });
     }
     if (room.size >= 50) return reply({ error: 'Phòng đã đủ 50 người.' });
@@ -187,7 +204,7 @@ io.on('connection', socket => {
     socket.data.name = name;
     socket.join(code);
     room.set(socket.id, player);
-    socket.emit('joined', { room: code, id: socket.id, players: [...room.values()].map(publicPlayer), music: room.music });
+    socket.emit('joined', { room: code, id: socket.id, players: [...room.values()].map(publicPlayer), music: room.music, heroes: activeHeroes(room) });
     socket.to(code).emit('player-joined', publicPlayer(player));
     io.to(code).emit('feed', { text: `${name} vừa vào văn phòng`, kind: 'join' });
     io.to(code).emit('default-line', { id: player.id, text: player.bubble });
@@ -329,28 +346,34 @@ io.on('connection', socket => {
     const player = rooms.get(code)?.get(socket.id);
     if (!player || !actions.has(data?.action)) return;
     if (data.action === 'throw' && !items.has(data?.item)) return;
-    const target = rooms.get(code)?.get(cleanText(data?.target, 40));
+    const targetId = cleanText(data?.target, 40);
+    const layBanTho = data.action === 'bow' && !targetId;
+    const target = layBanTho ? { ...banTho, yaw: Math.PI, name: banTho.ten } : rooms.get(code)?.get(targetId);
     if (!target || target.id === player.id) return;
     const now = Date.now();
     if (now < (player.lockedUntil || 0) || now < (target.lockedUntil || 0) || now - (player.lastActAt || 0) < 500) return;
     player.lastActAt = now;
     const line = interactionLines[target.avatar] || 'Ủa, gì vậy?';
-    const event = { from: player.id, fromName: player.name, to: target.id, targetName: target.name, action: data.action, item: data.action === 'throw' ? data.item : '', line, at: now, approach: 0, duration: data.action === 'bow' ? 3000 : data.action === 'throw' ? 2000 : 2500 };
+    const event = { from: player.id, fromName: player.name, to: target.id, targetName: target.name, altar: layBanTho, action: data.action, item: data.action === 'throw' ? data.item : '', line, at: now, approach: 0, duration: data.action === 'bow' ? 3000 : data.action === 'throw' ? 2000 : 2500 };
     if (['punch', 'bonk', 'bow'].includes(data.action)) {
       releaseWorkSeat(code, player);
-      const x = Math.max(-maxX, Math.min(maxX, target.x - Math.sin(target.yaw) * 1.4));
-      const z = Math.max(-maxZ, Math.min(maxZ, target.z - Math.cos(target.yaw) * 1.4));
+      const x = Math.max(-maxX, Math.min(maxX, target.x - Math.sin(target.yaw) * (layBanTho ? 2 : 1.4)));
+      const z = Math.max(-maxZ, Math.min(maxZ, target.z - Math.cos(target.yaw) * (layBanTho ? 2 : 1.4)));
       event.approach = Math.min(5000, Math.max(200, Math.hypot(x - player.x, z - player.z) / 7 * 1000));
       event.x = x; event.z = z;
       event.yaw = Math.atan2(-(target.x - x), -(target.z - z));
       player.x = x; player.z = z; player.yaw = event.yaw;
       player.lockedUntil = now + event.approach + event.duration;
-      target.lockedUntil = player.lockedUntil;
+      if (!layBanTho) target.lockedUntil = player.lockedUntil;
       rooms.get(code).pendingMoves.delete(player.id);
     }
     player.lastActivity = now;
-    target.lastActivity = now;
+    if (!layBanTho) target.lastActivity = now;
     io.to(code).emit('act', event);
+    if (layBanTho) {
+      scheduleIdleLine(code, player);
+      return;
+    }
     const delay = event.approach + (data.action === 'throw' ? 2000 : ['punch', 'bonk'].includes(data.action) ? 350 : 0);
     setTimeout(() => {
       if (rooms.get(code)?.get(player.id) !== player || rooms.get(code)?.get(target.id) !== target) return;
