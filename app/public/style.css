@@ -9,3 +9,8 @@
 .topbar{height:52px;padding:0 14px;gap:16px}.world-wrap{top:52px}.brand{min-width:180px}.brand strong{font-size:20px}.brand .sun{font-size:25px}.room-info{font-size:14px}.ticker{font-size:16px}.invite{padding:7px 14px;font-size:12px}@media(max-width:760px){.topbar{height:43px;padding:0 8px;gap:7px}.world-wrap{top:43px}.brand{min-width:0}.brand strong{font-size:16px}.brand .sun{font-size:20px}.room-info{font-size:11px}.invite{font-size:10px;padding:6px 9px}}
 
 #radio-panel{left:0;top:0;pointer-events:auto;transform:none}
+
+.bang-anh-hung{position:absolute;z-index:5;top:10px;left:50%;transform:translateX(-50%);width:min(90%,720px);max-height:35%;overflow:auto;text-align:center;pointer-events:none}
+.bang-anh-hung>div{margin:0 0 6px;padding:8px 14px;border:1px solid #ddb254;border-radius:12px;background:#fff0b9;color:#653812;box-shadow:0 4px 18px #e8ad5780;font-size:clamp(14px,2.2vw,26px);font-weight:900;animation:anh-hung-no .45s ease-out}
+@keyframes anh-hung-no{from{transform:scale(.65);opacity:0}to{transform:scale(1);opacity:1}}
+@media(prefers-reduced-motion:reduce){.bang-anh-hung>div{animation:none}}
