@@ -499,6 +499,17 @@ function faceLine(parent, points, material, radius = .018) {
   return mesh;
 }
 
+function taoCanhTay(than, chatLieu, ben, ngang, cao, sau, dai, rong, doXoe) {
+  const tyLe = [[0,-1.12],[.58,-1.1],[.94,-1.03],[1,-.94],[.93,-.85],[.74,-.72],[.73,-.53],[.8,-.31],[.87,-.12],[.79,.04],[.53,.12],[0,.16]];
+  const matCat = tyLe.map(([banKinh, viTri])=>new THREE.Vector2(banKinh*rong,viTri*dai));
+  const tay = new THREE.Mesh(new THREE.LatheGeometry(matCat,16),chatLieu);
+  tay.position.set(ben*ngang,cao,sau);
+  tay.rotation.z=ben*doXoe;
+  tay.userData.tay=true;
+  than.add(tay);
+  return tay;
+}
+
 function animal(type, tint = null) {
   const root = new THREE.Group();
   const body = new THREE.Group();
@@ -564,12 +575,13 @@ function animal(type, tint = null) {
     }
     sphere(body,0,.91,-.635,.09,.06,.045,dark,10);
     const smile=new THREE.Mesh(new THREE.TorusGeometry(.075,.012,6,12,Math.PI),dark); smile.position.set(0,.85,-.66); smile.rotation.z=Math.PI; body.add(smile);
-    for(const x of [-.43,.43]) {
-      const arm=new THREE.Mesh(new THREE.CylinderGeometry(.105,.12,.86,10),fur);
-      arm.userData.tay=true; arm.position.set(x*1.12,.48,.02); arm.rotation.z=x<0?-.08:.08; body.add(arm);
+    for(const ben of [-1,1]) {
+      const tay=taoCanhTay(body,fur,ben,.41,.87,.02,.72,.126,.13);
       for(let i=0;i<3;i++) {
-        const claw=new THREE.Mesh(new THREE.ConeGeometry(.035,.16,7),mat('#e8ddbd'));
-        claw.position.set(x*1.12+(i-1)*.07,.055,.02); claw.rotation.x=Math.PI; body.add(claw);
+        const mong=new THREE.Mesh(new THREE.ConeGeometry(.029,.13,7),mat('#e8ddbd'));
+        mong.position.set((i-1)*.055,-.79,-.025);
+        mong.rotation.x=Math.PI;
+        tay.add(mong);
       }
     }
   } else if (type === 'leopard') {
@@ -588,11 +600,7 @@ function animal(type, tint = null) {
     leopardNose.rotation.x=-Math.PI/2;
     body.add(leopardNose);
     faceLine(body,[[0,1.21,-.557],[0,1.16,-.555],[-.075,1.13,-.545],[0,1.105,-.55],[.075,1.13,-.545]],dark,.014);
-    for(const x of [-1,1]) {
-      const arm=new THREE.Mesh(new THREE.CylinderGeometry(.095,.11,.55,10),fur);
-      arm.userData.tay=true; arm.position.set(x*.53,.73,-.03); arm.rotation.z=x*.14; body.add(arm);
-      sphere(body,x*.61,.43,-.08,.13,.12,.13,fur,10);
-    }
+    for(const ben of [-1,1])taoCanhTay(body,fur,ben,.425,.99,-.035,.54,.14,.31);
     const tail=new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3([new THREE.Vector3(.42,.38,.25),new THREE.Vector3(.75,.35,.5),new THREE.Vector3(.82,.55,.72)]),16,.075,8,false),fur);
     body.add(tail);
     sphere(body,.82,.55,.72,.12,.12,.12,mat('#593d2e'),10);
@@ -606,11 +614,7 @@ function animal(type, tint = null) {
     sphere(body,-.2,1.42,-.52,.07,.09,.05,eye,10); sphere(body,.2,1.42,-.52,.07,.09,.05,eye,10);
     sphere(body,0,1.17,-.6,.28,.19,.12,blush,14);
     sphere(body,-.09,1.17,-.7,.035,.055,.025,dark,8); sphere(body,.09,1.17,-.7,.035,.055,.025,dark,8);
-    for(const x of [-1,1]) {
-      const arm=new THREE.Mesh(new THREE.CylinderGeometry(.11,.13,.57,10),fur);
-      arm.userData.tay=true; arm.position.set(x*.61,.78,-.04); arm.rotation.z=x*.15; body.add(arm);
-      sphere(body,x*.68,.48,-.08,.14,.12,.13,fur,10);
-    }
+    for(const ben of [-1,1])taoCanhTay(body,fur,ben,.455,.99,-.045,.53,.15,.35);
   }
   if(type!=='snake') for(const x of [-.3,.3]) {
     const tall=type==='cow'||type==='leopard';
@@ -1021,11 +1025,11 @@ function hoatAnh(p,now){
   }
 }
 const dieuNhayNhanVat={
-  snake:[['Ba lê cuộn đuôi',2,1],['Ke đầu xoắn đuôi',1,1],['Lắc cổ theo nhịp',4,1.2],['Bật lò xo',3,1.2],['Uốn sóng',2,1.1]],
-  fish:[['Ba lê quẫy vây',3,.8],['Ke đầu đuôi dựng',2,.85],['Quẫy đuôi kiểu shuffle',5,1.1],['Cá bật khỏi nước',4,1.3],['Lướt sóng tại chỗ',3,.95]],
-  sloth:[['Ba lê tay dài',1,.7],['Ke đầu chậm rãi',1,.9],['Lắc vai chậm',3,.7],['Bật nhún tay dài',2,.75],['Múa sóng bằng tay',2,1.3]],
-  cow:[['Ba lê xoay móng',2,.9],['Ke đầu giơ móng',1,1.1],['Dậm móng shuffle',5,1.2],['Bò bật hai nhịp',2,1.05],['Lắc hông vẫy tay',3,1.25]],
-  leopard:[['Ba lê xoay nhanh',3,1.1],['Ke đầu hip-hop',2,1.2],['Shuffle vỗ móng',6,1.3],['Bật vồ tại chỗ',3,1.45],['Múa sóng đuôi báo',4,1.2]]
+  snake:[[2,1],[1,1],[4,1.2],[3,1.2],[2,1.1]],
+  fish:[[3,.8],[2,.85],[5,1.1],[4,1.3],[3,.95]],
+  sloth:[[1,.7],[1,.9],[3,.7],[2,.75],[2,1.3]],
+  cow:[[2,.9],[1,1.1],[5,1.2],[2,1.05],[3,1.25]],
+  leopard:[[3,1.1],[2,1.2],[6,1.3],[3,1.45],[4,1.2]]
 };
 function batDauNhay(p,kieu,batDau,ketThuc){
   if(!Number.isInteger(kieu)||kieu<0||kieu>4)return;
@@ -1051,7 +1055,7 @@ function hoatAnhNhay(p,now){
     p.nhay=null;
     return;
   }
-  const [,soNhip,bienDo]=dieuNhayNhanVat[p.avatar][kieu];
+  const [soNhip,bienDo]=dieuNhayNhanVat[p.avatar][kieu];
   const t=THREE.MathUtils.clamp((now-batDau)/(ketThuc-batDau),0,1);
   const pha=t*Math.PI*2*soNhip;
   const vaoRa=Math.min(1,t*8,(1-t)*8);
@@ -1086,7 +1090,7 @@ socket.on('self-action',event=>{
     p.target.copy(p.group.position);
     const now=performance.now();
     batDauNhay(p,event.dieuNhay,now,now+event.duration);
-    addFeed(`💃 ${p.name} · ${dieuNhayNhanVat[p.avatar][event.dieuNhay][0]}`);
+    addFeed(`💃 ${p.name} đang nhảy múa`);
     return;
   }
   if(event.action==='run'||event.action==='toilet'){
