@@ -38,6 +38,14 @@ const defaultLines = {
   cow: ['a di đà lạt - Bần Đò có biết gì đâu', 'lào gì cũng tôn', 'là sao nữa', 'nếu người khác làm được - thì để họ làm', 'cái gì đổ tại người khác được thì không phải tại mình', 'a di đà lạt - không biết không có tội'],
   leopard: ['em xin lỗi', 'chị ơi...', 'anh ơi...', 'cú bé', 'ta thà báo cả thiên hạ chứ không báo sếp', 'em mới pass thử việc ạ', 'e thề e chưa làm gì cả', 'công ty là gia đình 🎼🎼']
 };
+const loiBanThanTai = [
+  'Ta ban cho con tiền đầy túi',
+  'Ta sẽ giúp con ngừng nhận deadline',
+  'Tháng này con sẽ hoàn thành kpi',
+  'Mua trà sữa ún cho tỉnh đi con',
+  'Có lạy nữa cũng không hết task đâu con',
+  'Có phúc thì hưởng có họa mới kiếm ta'
+];
 const actions = new Set(['punch', 'bonk', 'smirk', 'bow', 'throw']);
 const items = new Set(['❤️', '🧋', '💸', '📋', '⏰', '💩']);
 const interactionLines = {
@@ -371,7 +379,7 @@ io.on('connection', socket => {
     const now = Date.now();
     if (now < (player.lockedUntil || 0) || now < (target.lockedUntil || 0) || now - (player.lastActAt || 0) < 500) return;
     player.lastActAt = now;
-    const line = interactionLines[target.avatar] || 'Ủa, gì vậy?';
+    const line = layBanTho ? loiBanThanTai[randomInt(loiBanThanTai.length)] : interactionLines[target.avatar] || 'Ủa, gì vậy?';
     const event = { from: player.id, fromName: player.name, to: target.id, targetName: target.name, altar: layBanTho, action: data.action, item: data.action === 'throw' ? data.item : '', line, at: now, approach: 0, duration: data.action === 'bow' ? 3000 : data.action === 'throw' ? 2000 : 2500 };
     if (['punch', 'bonk', 'bow'].includes(data.action)) {
       releaseWorkSeat(code, player);
