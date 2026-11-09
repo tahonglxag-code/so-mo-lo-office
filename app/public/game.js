@@ -929,7 +929,12 @@ socket.on('act',event=>{
     from.hanhDong={loai:event.action,batDau:now+event.approach,ketThuc:now+event.approach+event.duration,yaw:event.yaw};
     from.yaw=event.yaw;
   }
-  if(event.altar)taoThoiVang(from,now+event.approach);
+  if(event.altar){
+    taoThoiVang(from,now+event.approach);
+    setTimeout(()=>{
+      if(players.get(from.id)===from&&event.line)hienLoiBanThanTai(event.line);
+    },event.approach);
+  }
   if(event.action==='throw')taoVatNem(from,to,event.item,now);
 });
 socket.on('act-impact',event=>{
@@ -942,6 +947,21 @@ socket.on('act-impact',event=>{
     to.choang=taoIcon('💫');to.choang.position.set(0,1.3,0);to.group.add(to.choang);
   }
 });
+let bongBongThanTai;
+let henAnLoiThanTai;
+function hienLoiBanThanTai(loi){
+  clearTimeout(henAnLoiThanTai);
+  if(bongBongThanTai){
+    scene.remove(bongBongThanTai);
+    bongBongThanTai.material.map.dispose();
+    bongBongThanTai.material.dispose();
+  }
+  const bongBong=speechBubble(loi,'#6b3b15');
+  bongBong.position.set(banTho.x,2.85+bongBong.scale.y/2,banTho.z+.62);
+  scene.add(bongBong);
+  bongBongThanTai=bongBong;
+  henAnLoiThanTai=setTimeout(()=>{bongBong.visible=false;},5500);
+}
 function taoIcon(icon){
   const c=document.createElement('canvas');c.width=c.height=96;
   const ctx=c.getContext('2d');ctx.font='64px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(icon,48,48);
