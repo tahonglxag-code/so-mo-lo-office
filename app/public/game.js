@@ -361,7 +361,6 @@ function taoBanTho() {
   ke.add(batHuong);
   for (const x of [-.07, 0, .07]) box(ke,.02,.29,.02,son,x,1.62,.53);
   for (const x of [-.68,.68]) sphere(ke,x,1.43,.57,.13,.13,.13,vang,10);
-  makeRoomLabel('ÔNG ĐỊA · THẦN TÀI', banTho.x, banTho.z + .8);
 }
 
 function workTable(z, seatId) {
@@ -915,7 +914,7 @@ socket.on('act',event=>{
   const from=players.get(event.from),to=players.get(event.to);
   if(!from||(!to&&!event.altar))return;
   const cau={punch:'vừa đấm vào',bonk:'vừa kí đầu',smirk:'vừa cười khinh vào',bow:'vừa quỳ lạy trước'};
-  addFeed(event.action==='throw'?`${event.fromName} vừa ném ${event.item} cho ${event.targetName}`:`${event.fromName} ${cau[event.action]} ${event.targetName}`);
+  addFeed(event.action==='throw'?`${event.fromName} vừa ném ${event.item} cho ${event.targetName}`:`${event.fromName} ${cau[event.action]} ${event.altar?"bàn thờ":event.targetName}`);
   const now=performance.now();
   if(event.approach){
     from.khoaDen=now+event.approach+event.duration;
@@ -925,6 +924,7 @@ socket.on('act',event=>{
     from.hanhDong={loai:event.action,batDau:now+event.approach,ketThuc:now+event.approach+event.duration,yaw:event.yaw};
     from.yaw=event.yaw;
   }
+  if(event.altar)taoThoiVang(from,now+event.approach);
   if(event.action==='throw')taoVatNem(from,to,event.item,now);
 });
 socket.on('act-impact',event=>{
@@ -947,7 +947,17 @@ function taoIcon(icon){
 function taoVatNem(nguoi, dich, icon, now){
   if(vatNem.length>=24)return;
   const sprite=taoIcon(icon);scene.add(sprite);
-  vatNem.push({sprite,dich:dich.id,tu:nguoi.group.position.clone().add(new THREE.Vector3(0,1.1,0)),batDau:now});
+  vatNem.push({vat:sprite,dich:dich.id,tu:nguoi.group.position.clone().add(new THREE.Vector3(0,1.1,0)),batDau:now,thoiGian:2000,doCao:1.1,doVom:2});
+}
+function taoThoiVang(nguoi,batDau){
+  if(vatNem.length>=24)return;
+  const hinh=new THREE.CylinderGeometry(.21,.33,.16,4);
+  hinh.rotateY(Math.PI/4);
+  hinh.scale(1.45,1,1);
+  const vat=new THREE.Mesh(hinh,new THREE.MeshStandardMaterial({color:0xffcb36,emissive:0x8e4b00,emissiveIntensity:.45,roughness:.28}));
+  vat.visible=false;
+  scene.add(vat);
+  vatNem.push({vat,dich:nguoi.id,tu:new THREE.Vector3(banTho.x,1.43,banTho.z+.66),batDau,thoiGian:900,doCao:2.15,doVom:1.15});
 }
 function hoatAnh(p,now){
   const hd=p.hanhDong;if(!hd||now<hd.batDau)return;
@@ -1084,9 +1094,20 @@ function frame(now) {
   }
   for(const p of players.values())hoatAnh(p,now);
   for(let i=vatNem.length-1;i>=0;i--){
-    const v=vatNem[i],dich=players.get(v.dich),t=Math.min(1,(now-v.batDau)/2000);
-    if(!dich||t>=1){scene.remove(v.sprite);v.sprite.material.map.dispose();v.sprite.material.dispose();vatNem.splice(i,1);continue;}
-    const den=dich.group.position.clone().add(new THREE.Vector3(0,1.1,0));v.sprite.position.lerpVectors(v.tu,den,t);v.sprite.position.y+=Math.sin(t*Math.PI)*2;
+    const v=vatNem[i],dich=players.get(v.dich),t=(now-v.batDau)/v.thoiGian;
+    if(!dich||t>=1){
+      scene.remove(v.vat);
+      if(v.vat.isMesh)v.vat.geometry.dispose();
+      v.vat.material.map?.dispose();
+      v.vat.material.dispose();
+      vatNem.splice(i,1);
+      continue;
+    }
+    if(t<0)continue;
+    v.vat.visible=true;
+    v.vat.position.lerpVectors(v.tu,dich.group.position,t);
+    v.vat.position.y+=t*v.doCao+Math.sin(t*Math.PI)*v.doVom;
+    if(v.vat.isMesh)v.vat.rotation.set(t*Math.PI*2,t*Math.PI*3,0);
   }
   const nowEpoch=Date.now();
   for(const [seatId,display] of workDisplays){
