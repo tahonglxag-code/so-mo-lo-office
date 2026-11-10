@@ -668,10 +668,10 @@ function createPlayer(data) {
   const name=nameLabel(data.name,avatarColors[data.avatar]||'#493650');
   name.position.set(0,2.45,0); group.add(name);
   scene.add(group);
-  const entry={...data,group,body:group.userData.body,nameSprite:name,bubbleSprite:null,bubbleSticky:Boolean(data.working),target:new THREE.Vector3(data.x||0,0,data.z||0),poseUntil:0,working:Boolean(data.working),workSeatId:data.workSeatId||'',workStartedAt:data.workStartedAt||0,meditating:false,auraUntil:0,auraSprite:null,auraRing:null};
+  const entry={...data,group,body:group.userData.body,nameSprite:name,bubbleSprite:null,target:new THREE.Vector3(data.x||0,0,data.z||0),poseUntil:0,working:Boolean(data.working),workSeatId:data.workSeatId||'',workStartedAt:data.workStartedAt||0,meditating:false,auraUntil:0,auraSprite:null,auraRing:null};
   players.set(data.id,entry);
   if(data.id!==selfId){const opt=document.createElement('option');opt.value=data.id;opt.textContent=data.name;document.querySelector('#target-select').append(opt);}
-  if(entry.working)setBubble(data.id,'kiếp trâu ngựa',true);
+  if(entry.working&&data.bubbleUntil>Date.now())setBubble(data.id,data.bubble,data.bubbleUntil-Date.now());
   if(data.auraUntil>Date.now())setAura(entry,data.auraUntil,2);
   else if(data.workGlow&&data.working)setAura(entry,Infinity);
   if(data.pose==='dance'&&data.poseUntil>Date.now()){
@@ -681,13 +681,11 @@ function createPlayer(data) {
   return entry;
 }
 
-function setBubble(id,text,sticky=false) {
+function setBubble(id,text,thoiGian=6500) {
   const p=players.get(id); if(!p)return;
-  if(p.working&&!sticky)return;
   clearTimeout(p.bubbleTimer);
   if(!text){
     if(p.bubbleSprite){p.bubbleSprite.visible=false;p.bubbleSprite.material.map?.dispose();p.bubbleSprite.material.dispose();p.group.remove(p.bubbleSprite);p.bubbleSprite=null;}
-    p.bubbleSticky=false;
     return;
   }
   if(!p.bubbleSprite){p.bubbleSprite=speechBubble(text,'#37293e');p.group.add(p.bubbleSprite);}
@@ -701,8 +699,7 @@ function setBubble(id,text,sticky=false) {
   p.bubbleSprite.position.set(0,2.62+p.bubbleSprite.scale.y/2,0);
   p.bubbleSprite.material.needsUpdate=true;
   p.bubbleSprite.visible=true;
-  p.bubbleSticky=sticky;
-  if(!sticky)p.bubbleTimer=setTimeout(()=>{if(!p.bubbleSticky&&p.bubbleSprite)p.bubbleSprite.visible=false;},6500);
+  p.bubbleTimer=setTimeout(()=>{p.bubbleSprite.visible=false;},thoiGian);
 }
 
 function removePlayer(id) {
@@ -886,7 +883,7 @@ socket.on('work-state',event=>{
   const p=players.get(event.id);if(!p)return;
   p.working=event.working;p.workSeatId=event.working?event.seatId||p.workSeatId:'';
   p.workStartedAt=event.working?event.startedAt||Date.now():0;
-  if(event.working){p.meditating=false;p.pose='';p.body.scale.set(1,1,1);p.body.position.y=0;setBubble(event.id,event.text||'kiếp trâu ngựa',true);}
+  if(event.working){p.meditating=false;p.pose='';p.body.scale.set(1,1,1);p.body.position.y=0;setBubble(event.id,event.text||'kiếp trâu ngựa',Math.max(0,(event.bubbleUntil||p.workStartedAt+10000)-Date.now()));}
   else{
     setBubble(event.id,'');
     if(p.auraUntil===Infinity)clearAura(p);

@@ -105,11 +105,9 @@ function randomLine(avatar) {
 
 function scheduleIdleLine(code, player) {
   clearTimeout(player.idleTimer);
-  if (player.workSeatId) return;
   player.idleTimer = setTimeout(() => {
     const room = rooms.get(code);
     if (!room?.has(player.id)) return;
-    if (player.workSeatId) return;
     if (Date.now() - player.lastActivity < 30000) return scheduleIdleLine(code, player);
     const text = randomLine(player.avatar);
     player.bubble = text;
@@ -242,9 +240,11 @@ io.on('connection', socket => {
         else if (!player.working && seat && distance < .55) {
           player.working = true;
           player.bubble = 'kiếp trâu ngựa';
-          player.bubbleUntil = 0;
           startWorkTimer(code, player);
-          io.to(code).emit('work-state', { id: player.id, working: true, seatId: player.workSeatId, startedAt: player.workStartedAt, text: player.bubble });
+          player.lastActivity = player.workStartedAt;
+          player.bubbleUntil = player.workStartedAt + 10000;
+          scheduleIdleLine(code, player);
+          io.to(code).emit('work-state', { id: player.id, working: true, seatId: player.workSeatId, startedAt: player.workStartedAt, text: player.bubble, bubbleUntil: player.bubbleUntil });
         }
     }
     player.x = nextX;
