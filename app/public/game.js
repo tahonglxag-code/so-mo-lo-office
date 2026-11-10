@@ -975,11 +975,10 @@ function taoHinhChichDien(loai, laKhoi=false){
   };
   const trang='#fff9df', den='#171725';
   if(laKhoi){
-    for(const [x,y,r] of [[109,181,41],[130,147,46],[126,108,43],[146,83,39],[94,187,37],[141,159,48],[113,114,44],[158,73,38]]){
+    for(const [x,y,r] of [[94,187,37],[141,159,48],[113,114,44],[158,73,38]]){
       const mau=ve.createRadialGradient(x,y,0,x,y,r);
-      mau.addColorStop(0,'rgba(39,40,52,.96)');
-      mau.addColorStop(.38,'rgba(49,50,63,.75)');
-      mau.addColorStop(1,'rgba(60,61,74,0)');
+      mau.addColorStop(0,'rgba(78,79,93,.84)');
+      mau.addColorStop(1,'rgba(119,120,132,0)');
       oval(x,y,r,r,mau);
     }
   }else{
