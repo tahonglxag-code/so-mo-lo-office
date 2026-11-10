@@ -975,12 +975,24 @@ function taoHinhChichDien(loai, laKhoi=false){
   };
   const trang='#fff9df', den='#171725';
   if(laKhoi){
-    for(const [x,y,r] of [[94,187,37],[141,159,48],[113,114,44],[158,73,38]]){
-      const mau=ve.createRadialGradient(x,y,0,x,y,r);
-      mau.addColorStop(0,'rgba(78,79,93,.84)');
-      mau.addColorStop(1,'rgba(119,120,132,0)');
-      oval(x,y,r,r,mau);
+    const anhKhoi=ve.createImageData(256,256);
+    for(let y=0;y<256;y++){
+      const cao=1-y/255;
+      const tam=128+21*Math.sin(cao*8)-8*Math.sin(cao*17);
+      const rong=9+48*cao;
+      const mo=Math.min(1,cao*14,(1-cao)*3);
+      for(let x=0;x<256;x++){
+        const ngang=(x-tam)/rong;
+        const nhieu=.14*Math.sin(x*.09+y*.12)+.08*Math.sin(x*.23-y*.17);
+        const dam=Math.max(0,1-ngang*ngang+nhieu)*mo;
+        const i=(y*256+x)*4;
+        anhKhoi.data[i]=40+34*cao;
+        anhKhoi.data[i+1]=41+35*cao;
+        anhKhoi.data[i+2]=49+39*cao;
+        anhKhoi.data[i+3]=Math.min(230,235*dam*dam);
+      }
     }
+    ve.putImageData(anhKhoi,0,0);
   }else{
     const ran=loai==='snake', ca=loai==='fish', luoi=loai==='sloth', bo=loai==='cow';
     const y=ca?126:77;
@@ -1048,8 +1060,8 @@ function veChichDien(p,now){
   if(khoi.visible){
     const t=(tuoi-1000)/2000;
     const caoDau=p.avatar==='fish'?1:p.avatar==='snake'?1.86:1.66;
-    khoi.position.set(Math.sin(t*10)*.16,caoDau+.39+t*.63,0);
-    khoi.scale.setScalar(.8+t*.63);
+    khoi.position.set(Math.sin(t*10)*.16,caoDau+.61+t*.51,0);
+    khoi.scale.set(1.22+t*.4,1.65+t*.44,1);
     khoi.material.opacity=Math.min(1,(1-t)*3);
   }
 }
