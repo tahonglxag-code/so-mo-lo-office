@@ -46,7 +46,7 @@ const loiBanThanTai = [
   'Có lạy nữa cũng không hết task đâu con',
   'Có phúc thì hưởng có họa mới kiếm ta'
 ];
-const actions = new Set(['punch', 'bonk', 'smirk', 'bow', 'throw']);
+const actions = new Set(['punch', 'bonk', 'smirk', 'bow', 'throw', 'shock']);
 const items = new Set(['❤️', '🧋', '💸', '📋', '⏰', '💩']);
 const interactionLines = {
   snake: 'chị hứa chị chừa',
@@ -374,17 +374,21 @@ io.on('connection', socket => {
     if (data.action === 'throw' && !items.has(data?.item)) return;
     const targetId = cleanText(data?.target, 40);
     const layBanTho = data.action === 'bow' && !targetId;
-    const target = layBanTho ? { ...banTho, yaw: Math.PI, name: banTho.ten } : rooms.get(code)?.get(targetId);
-    if (!target || target.id === player.id) return;
+    const tuChich = data.action === 'shock' && !targetId;
+    const target = tuChich ? player : layBanTho ? { ...banTho, yaw: Math.PI, name: banTho.ten } : rooms.get(code)?.get(targetId);
+    if (!target || (target.id === player.id && !tuChich)) return;
     const now = Date.now();
     if (now < (player.lockedUntil || 0) || now < (target.lockedUntil || 0) || now - (player.lastActAt || 0) < 500) return;
     player.lastActAt = now;
     const line = layBanTho ? loiBanThanTai[randomInt(loiBanThanTai.length)] : interactionLines[target.avatar] || 'Ủa, gì vậy?';
-    const event = { from: player.id, fromName: player.name, to: target.id, targetName: target.name, altar: layBanTho, action: data.action, item: data.action === 'throw' ? data.item : '', line, at: now, approach: 0, duration: data.action === 'bow' ? 3000 : data.action === 'throw' ? 2000 : 2500 };
-    if (['punch', 'bonk', 'bow'].includes(data.action)) {
+    const event = { from: player.id, fromName: player.name, to: target.id, targetName: target.name, altar: layBanTho, action: data.action, item: data.action === 'throw' ? data.item : '', line, at: now, approach: 0, duration: ['bow', 'shock'].includes(data.action) ? 3000 : data.action === 'throw' ? 2000 : 2500 };
+    if (tuChich) player.lockedUntil = now + event.duration;
+    if (!tuChich && ['punch', 'bonk', 'bow', 'shock'].includes(data.action)) {
       releaseWorkSeat(code, player);
-      const x = Math.max(-maxX, Math.min(maxX, target.x - Math.sin(target.yaw) * (layBanTho ? 2 : 1.4)));
-      const z = Math.max(-maxZ, Math.min(maxZ, target.z - Math.cos(target.yaw) * (layBanTho ? 2 : 1.4)));
+      const huong = data.action === 'shock' ? Math.atan2(target.x - player.x, target.z - player.z) : target.yaw;
+      const cach = data.action === 'shock' ? .98 : layBanTho ? 2 : 1.4;
+      const x = Math.max(-maxX, Math.min(maxX, target.x - Math.sin(huong) * cach));
+      const z = Math.max(-maxZ, Math.min(maxZ, target.z - Math.cos(huong) * cach));
       event.approach = Math.min(5000, Math.max(200, Math.hypot(x - player.x, z - player.z) / 7 * 1000));
       event.x = x; event.z = z;
       event.yaw = Math.atan2(-(target.x - x), -(target.z - z));
@@ -403,7 +407,7 @@ io.on('connection', socket => {
     const delay = event.approach + (data.action === 'throw' ? 2000 : ['punch', 'bonk'].includes(data.action) ? 350 : 0);
     setTimeout(() => {
       if (rooms.get(code)?.get(player.id) !== player || rooms.get(code)?.get(target.id) !== target) return;
-      if (['punch', 'bonk'].includes(data.action)) releaseWorkSeat(code, target);
+      if (['punch', 'bonk', 'shock'].includes(data.action)) releaseWorkSeat(code, target);
       target.bubble = line; target.bubbleUntil = Date.now() + 4500;
       io.to(code).emit('act-impact', event);
       scheduleIdleLine(code, player); scheduleIdleLine(code, target);
