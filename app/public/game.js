@@ -945,7 +945,8 @@ socket.on('act',event=>{
 });
 socket.on('act-impact',event=>{
   const to=players.get(event.to);if(!to)return;
-  setBubble(event.to,event.line);
+  const tuChich=event.action==='shock'&&event.from===event.to;
+  setBubble(event.to,tuChich?'':event.line);
   if(event.action==='shock')batDauChichDien(to,event.duration);
   if(['punch','bonk'].includes(event.action)){
     to.hanhDong={loai:'nga',batDau:performance.now(),ketThuc:performance.now()+2000};
@@ -974,13 +975,23 @@ function taoHinhChichDien(loai, laKhoi=false){
   };
   const trang='#fff9df', den='#171725';
   if(laKhoi){
-    for(const [x,y,r] of [[105,214,31],[145,194,37],[86,169,43],[164,153,48],[113,121,50],[171,99,40],[77,86,34],[133,52,39],[181,47,27]]){
-      const mau=ve.createRadialGradient(x,y,0,x,y,r);
-      mau.addColorStop(0,'rgba(59,16,104,.98)');
-      mau.addColorStop(.58,'rgba(102,38,164,.94)');
-      mau.addColorStop(.79,'rgba(222,183,255,.88)');
-      mau.addColorStop(1,'rgba(241,220,255,0)');
-      oval(x,y,r,r,mau);
+    const mau=ve.createLinearGradient(0,238,0,13);
+    mau.addColorStop(0,'rgba(43,23,63,.95)');
+    mau.addColorStop(.47,'rgba(71,43,101,.94)');
+    mau.addColorStop(.77,'rgba(112,77,150,.85)');
+    mau.addColorStop(1,'rgba(187,149,225,0)');
+    ve.fillStyle=mau;
+    const luongKhoi=[
+      [[123,240],[143,210,85,194,96,162],[104,136,155,137,160,112],[170,76,88,80,97,48],[102,26,148,22,163,9],[152,33,113,35,122,53],[129,69,195,64,193,110],[194,151,127,150,123,169],[116,186,157,208,123,240]],
+      [[107,234],[108,206,62,200,57,167],[51,138,91,127,90,107],[90,88,63,77,70,53],[73,78,108,84,109,106],[113,135,77,149,79,165],[80,189,118,201,107,234]],
+      [[145,233],[157,210,150,193,164,176],[174,162,203,156,202,138],[205,123,190,116,196,97],[200,115,223,120,223,141],[223,170,185,175,177,189],[168,204,163,219,145,233]]
+    ];
+    for(const [dau,...cacDoan] of luongKhoi){
+      ve.beginPath();
+      ve.moveTo(...dau);
+      for(const doan of cacDoan)ve.bezierCurveTo(...doan);
+      ve.closePath();
+      ve.fill();
     }
   }else{
     const ran=loai==='snake', ca=loai==='fish', luoi=loai==='sloth', bo=loai==='cow';
@@ -1049,8 +1060,9 @@ function veChichDien(p,now){
   if(khoi.visible){
     const t=(tuoi-1000)/2000;
     const caoDau=p.avatar==='fish'?1:p.avatar==='snake'?1.86:1.66;
-    khoi.position.set(Math.sin(t*10)*.16,caoDau+.52+t*.78,0);
-    khoi.scale.setScalar(1.2+t*.85);
+    khoi.position.set(Math.sin(t*10)*.16,caoDau+.62+t*.68,0);
+    khoi.scale.set(1.15+t*.55,1.65+t*.85,1);
+    khoi.material.rotation=Math.sin(t*7)*.13;
     khoi.material.opacity=Math.min(1,(1-t)*5);
   }
 }
