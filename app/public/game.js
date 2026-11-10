@@ -705,6 +705,7 @@ function setBubble(id,text,thoiGian=6500) {
 function removePlayer(id) {
   const p=players.get(id); if(!p)return;
   clearAura(p);
+  donChichDien(p);
   scene.remove(p.group);
   p.group.traverse(o=>{
     if(o.geometry)o.geometry.dispose();
@@ -793,13 +794,13 @@ document.querySelector('#invite').addEventListener('click',async()=>{
 });
 document.querySelectorAll('[data-action]').forEach(button=>button.addEventListener('click',()=>{
   const action=button.dataset.action; const item=document.querySelector('#item').value;
-  if(action==='run'||action==='meditate'||action==='toilet'||action==='money'||action==='dance'){socket.emit('self-action',action);return;}
+  if(action==='meditate'||action==='toilet'||action==='money'||action==='dance'){socket.emit('self-action',action);return;}
   if(action==='meeting'){socket.emit('urgent-meeting');return;}
   if(action==='work'){socket.emit('work');return;}
-  if(!selectedId&&action!=='bow')return toast('Chạm vào một người chơi khác để chọn họ nhé.');
+  if(!selectedId&&action!=='bow'&&action!=='shock')return toast('Chạm vào một người chơi khác để chọn họ nhé.');
   socket.emit('act',{target:selectedId,action,item});
 }));
-const actionKeys={KeyZ:'bonk',KeyX:'punch',KeyC:'smirk',KeyB:'bow',KeyV:'run',KeyM:'meditate',KeyN:'toilet'};
+const actionKeys={KeyZ:'bonk',KeyX:'punch',KeyC:'smirk',KeyB:'bow',KeyV:'shock',KeyM:'meditate',KeyN:'toilet'};
 document.addEventListener('keydown',event=>{
   if(['INPUT','TEXTAREA','SELECT'].includes(document.activeElement?.tagName))return;
   if(['KeyW','KeyA','KeyS','KeyD','ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(event.code)){
@@ -922,15 +923,16 @@ socket.on('urgent-meeting',event=>{
 socket.on('act',event=>{
   const from=players.get(event.from),to=players.get(event.to);
   if(!from||(!to&&!event.altar))return;
-  const cau={punch:'vừa đấm vào',bonk:'vừa kí đầu',smirk:'vừa cười khinh vào',bow:'vừa quỳ lạy trước'};
-  addFeed(event.action==='throw'?`${event.fromName} vừa ném ${event.item} cho ${event.targetName}`:`${event.fromName} ${cau[event.action]} ${event.altar?"bàn thần tài":event.targetName}`);
+  const cau={punch:'vừa đấm vào',bonk:'vừa kí đầu',smirk:'vừa cười khinh vào',bow:'vừa quỳ lạy trước',shock:'vừa chích điện'};
+  if(event.action==='shock'&&from===to)addFeed(`⚡ ${from.name} tự chích điện`);
+  else addFeed(event.action==='throw'?`${event.fromName} vừa ném ${event.item} cho ${event.targetName}`:`${event.fromName} ${cau[event.action]} ${event.altar?"bàn thần tài":event.targetName}`);
   const now=performance.now();
   if(event.approach){
     from.khoaDen=now+event.approach+event.duration;
     if(to)to.khoaDen=from.khoaDen;
     if(from.id===selfId||to?.id===selfId)targetWorld=null;
     from.runMotion={points:[from.group.position.clone(),new THREE.Vector3(event.x,0,event.z)],started:now,duration:event.approach,jump:false};
-    from.hanhDong={loai:event.action,batDau:now+event.approach,ketThuc:now+event.approach+event.duration,yaw:event.yaw};
+    from.hanhDong={loai:event.action,batDau:now+event.approach,ketThuc:now+event.approach+(event.action==='shock'?420:event.duration),yaw:event.yaw};
     from.yaw=event.yaw;
   }
   if(event.altar){
@@ -944,6 +946,7 @@ socket.on('act',event=>{
 socket.on('act-impact',event=>{
   const to=players.get(event.to);if(!to)return;
   setBubble(event.to,event.line);
+  if(event.action==='shock')batDauChichDien(to,event.duration);
   if(['punch','bonk'].includes(event.action)){
     to.hanhDong={loai:'nga',batDau:performance.now(),ketThuc:performance.now()+2000};
     to.khoaDen=performance.now()+2000;
@@ -951,6 +954,104 @@ socket.on('act-impact',event=>{
     to.choang=taoIcon('💫');to.choang.position.set(0,1.3,0);to.group.add(to.choang);
   }
 });
+function taoHinhChichDien(loai, laKhoi=false){
+  const anh=document.createElement('canvas');
+  anh.width=anh.height=256;
+  const ve=anh.getContext('2d');
+  const oval=(x,y,rx,ry,mau)=>{
+    ve.fillStyle=mau;
+    ve.beginPath();
+    ve.ellipse(x,y,rx,ry,0,0,Math.PI*2);
+    ve.fill();
+  };
+  const net=(diem,mau,rong)=>{
+    ve.strokeStyle=mau;
+    ve.lineWidth=rong;
+    ve.lineCap=ve.lineJoin='round';
+    ve.beginPath();
+    diem.forEach(([x,y],i)=>i?ve.lineTo(x,y):ve.moveTo(x,y));
+    ve.stroke();
+  };
+  const trang='#fff9df', den='#171725';
+  if(laKhoi){
+    for(const [x,y,r] of [[94,187,37],[141,159,48],[113,114,44],[158,73,38]]){
+      const mau=ve.createRadialGradient(x,y,0,x,y,r);
+      mau.addColorStop(0,'rgba(78,79,93,.84)');
+      mau.addColorStop(1,'rgba(119,120,132,0)');
+      oval(x,y,r,r,mau);
+    }
+  }else{
+    const ran=loai==='snake', ca=loai==='fish', luoi=loai==='sloth', bo=loai==='cow';
+    const y=ca?126:77;
+    const xuong=ran?[[128,108],[126,144],[158,156],[173,177],[162,198],[126,203],[89,195],[74,176],[93,159],[139,169],[151,190],[138,214],[96,225],[63,212]]:ca?[[105,127],[162,129],[202,128]]:[[128,107],[128,145],[128,179]];
+    const chi=ran?[]:ca?[[[166,130],[209,101]],[[166,130],[211,153]],[[131,131],[146,163]]]:[
+      [[117,122],[luoi?67:86,147],[luoi?48:63,luoi?190:154]],
+      [[139,122],[luoi?189:170,147],[luoi?208:193,luoi?190:154]],
+      [[115,168],[99,197],[83,211]],[[141,168],[157,197],[173,211]]
+    ];
+    if(!ran&&!ca)oval(128,145,39,44,den);
+    for(const nhanh of [xuong,...chi]){net(nhanh,den,ran?25:22);net(nhanh,trang,ran?10:8);}
+    if(!ran&&!ca){
+      for(const [yy,rr] of [[127,24],[140,27],[153,21]])net([[128-rr,yy],[128,yy+8],[128+rr,yy]],trang,5);
+      if(loai==='leopard'){net([[148,170],[181,183],[207,169],[214,149]],den,15);net([[148,170],[181,183],[207,169],[214,149]],trang,6);}
+    }
+    const x=ca?91:128;
+    if(bo)for(const ben of [-1,1]){net([[x+ben*29,y-22],[x+ben*49,y-39],[x+ben*48,y-50]],den,15);net([[x+ben*29,y-22],[x+ben*49,y-39],[x+ben*48,y-50]],trang,7);}
+    if(loai==='leopard')for(const ben of [-1,1]){oval(x+ben*35,y-30,14,15,den);oval(x+ben*35,y-30,8,9,trang);}
+    oval(x,y,ca?43:45,ca?36:41,den);
+    oval(x,y,ca?35:37,ca?29:34,trang);
+    oval(x-13,y-4,luoi?12:9,11,den);oval(x+13,y-4,luoi?12:9,11,den);
+    oval(x,y+10,4,5,den);
+    net([[x-13,y+20],[x+13,y+20]],den,4);
+    for(const dx of [-8,0,8])net([[x+dx,y+16],[x+dx,y+24]],den,3);
+    for(const tia of [[[30,52],[45,74],[30,78],[50,99]],[[207,44],[191,68],[208,69],[193,92]],[[34,139],[22,152],[36,163],[22,176]],[[228,135],[214,153],[229,157],[214,178]]])net(tia,'#ff9d13',7);
+  }
+  const vatLieu=new THREE.SpriteMaterial({map:new THREE.CanvasTexture(anh),transparent:true,depthTest:false,depthWrite:false});
+  const hinh=new THREE.Sprite(vatLieu);
+  hinh.renderOrder=106;
+  return hinh;
+}
+function donChichDien(p){
+  if(!p.chichDien)return;
+  for(const hinh of [p.chichDien.xuong,p.chichDien.khoi]){
+    p.group.remove(hinh);
+    hinh.material.map.dispose();
+    hinh.material.dispose();
+  }
+  p.body.visible=true;
+  p.chichDien=null;
+}
+function batDauChichDien(p,thoiGian){
+  donChichDien(p);
+  const now=performance.now();
+  p.khoaDen=now+thoiGian;
+  if(p.id===selfId)targetWorld=null;
+  const xuong=taoHinhChichDien(p.avatar);
+  const khoi=taoHinhChichDien(p.avatar,true);
+  xuong.position.y=p.avatar==='fish'?.68:1.06;
+  xuong.scale.setScalar(p.avatar==='fish'?2:2.65);
+  khoi.visible=false;
+  p.group.add(xuong,khoi);
+  p.chichDien={batDau:now,xuong,khoi};
+  veChichDien(p,now);
+}
+function veChichDien(p,now){
+  const {batDau,xuong,khoi}=p.chichDien;
+  const tuoi=now-batDau;
+  if(tuoi>=3000){donChichDien(p);return;}
+  const chop=tuoi<500||(tuoi>=590&&tuoi<1000);
+  xuong.visible=chop;
+  p.body.visible=!chop;
+  xuong.material.rotation=chop?Math.sin(tuoi*.06)*.08:0;
+  khoi.visible=tuoi>=1000;
+  if(khoi.visible){
+    const t=(tuoi-1000)/2000;
+    const caoDau=p.avatar==='fish'?1:p.avatar==='snake'?1.86:1.66;
+    khoi.position.set(Math.sin(t*10)*.16,caoDau+.39+t*.63,0);
+    khoi.scale.setScalar(.8+t*.63);
+    khoi.material.opacity=Math.min(1,(1-t)*3);
+  }
+}
 let bongBongThanTai;
 let henAnLoiThanTai;
 function hienLoiBanThanTai(loi){
@@ -1009,7 +1110,7 @@ function taoThoiVang(nguoi,batDau){
 }
 function hoatAnh(p,now){
   const hd=p.hanhDong;if(!hd||now<hd.batDau)return;
-  if(hd.loai==='bow'&&Number.isFinite(hd.yaw))p.group.rotation.y=hd.yaw;
+  if(['bow','shock'].includes(hd.loai)&&Number.isFinite(hd.yaw))p.group.rotation.y=hd.yaw;
   const t=(now-hd.batDau)/(hd.ketThuc-hd.batDau);
   const dau=p.group.userData.dau;
   if(t>=1){if(p.choang){p.group.remove(p.choang);p.choang.material.map.dispose();p.choang.material.dispose();p.choang=null;}p.body.rotation.set(0,0,0);p.body.position.y=0;if(dau)dau.rotation.z=0;for(const tay of p.group.userData.tay||[])tay.rotation.x=0;p.hanhDong=null;return;}
@@ -1017,6 +1118,11 @@ function hoatAnh(p,now){
     const nga=Math.min(1,t*6);p.body.rotation.x=-Math.PI/2*nga;p.body.position.y=.28*nga;
     if(dau)dau.rotation.z=Math.PI/4;else p.body.rotation.z=Math.PI/4;
     if(p.choang){p.choang.position.x=Math.sin(now*.008)*.35;p.choang.material.rotation=Math.sin(now*.005)*.3;}
+  }else if(hd.loai==='shock'){
+    const cham=Math.sin(t*Math.PI);
+    p.body.rotation.x=.23*cham;
+    const tay=p.group.userData.tay?.[0];
+    if(tay)tay.rotation.x=1.45*cham;
   }else if(hd.loai==='bow'){
     const nhip=Math.sin((t*2%1)*Math.PI);p.body.rotation.x=-Math.PI/2*Math.min(1,nhip*2);p.body.position.y=.22*nhip;
   }else{
@@ -1275,6 +1381,7 @@ function frame(now) {
   for(const p of players.values()){
     hoatAnh(p,now);
     if(p.nhay)hoatAnhNhay(p,now);
+    if(p.chichDien)veChichDien(p,now);
   }
   for(let i=vatNem.length-1;i>=0;i--){
     const v=vatNem[i],dich=players.get(v.dich),t=(now-v.batDau)/v.thoiGian;
