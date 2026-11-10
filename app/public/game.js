@@ -974,10 +974,12 @@ function taoHinhChichDien(loai, laKhoi=false){
   };
   const trang='#fff9df', den='#171725';
   if(laKhoi){
-    for(const [x,y,r] of [[94,187,37],[141,159,48],[113,114,44],[158,73,38]]){
+    for(const [x,y,r] of [[105,214,31],[145,194,37],[86,169,43],[164,153,48],[113,121,50],[171,99,40],[77,86,34],[133,52,39],[181,47,27]]){
       const mau=ve.createRadialGradient(x,y,0,x,y,r);
-      mau.addColorStop(0,'rgba(78,79,93,.84)');
-      mau.addColorStop(1,'rgba(119,120,132,0)');
+      mau.addColorStop(0,'rgba(59,16,104,.98)');
+      mau.addColorStop(.58,'rgba(102,38,164,.94)');
+      mau.addColorStop(.79,'rgba(222,183,255,.88)');
+      mau.addColorStop(1,'rgba(241,220,255,0)');
       oval(x,y,r,r,mau);
     }
   }else{
@@ -1047,9 +1049,9 @@ function veChichDien(p,now){
   if(khoi.visible){
     const t=(tuoi-1000)/2000;
     const caoDau=p.avatar==='fish'?1:p.avatar==='snake'?1.86:1.66;
-    khoi.position.set(Math.sin(t*10)*.16,caoDau+.39+t*.63,0);
-    khoi.scale.setScalar(.8+t*.63);
-    khoi.material.opacity=Math.min(1,(1-t)*3);
+    khoi.position.set(Math.sin(t*10)*.16,caoDau+.52+t*.78,0);
+    khoi.scale.setScalar(1.2+t*.85);
+    khoi.material.opacity=Math.min(1,(1-t)*5);
   }
 }
 let bongBongThanTai;
