@@ -1026,9 +1026,11 @@ function taoHinhChichDien(loai, laKhoi=false){
 }
 function donChichDien(p){
   if(!p.chichDien)return;
-  for(const hinh of [p.chichDien.xuong,p.chichDien.khoi]){
+  const {xuong,khoi,khoiHaiBen}=p.chichDien;
+  xuong.material.map.dispose();
+  khoi.material.map.dispose();
+  for(const hinh of [xuong,khoi,...khoiHaiBen]){
     p.group.remove(hinh);
-    hinh.material.map.dispose();
     hinh.material.dispose();
   }
   p.body.visible=true;
@@ -1044,12 +1046,17 @@ function batDauChichDien(p,thoiGian){
   xuong.position.y=p.avatar==='fish'?.68:1.06;
   xuong.scale.setScalar(p.avatar==='fish'?2:2.65);
   khoi.visible=false;
-  p.group.add(xuong,khoi);
-  p.chichDien={batDau:now,xuong,khoi};
+  const khoiHaiBen=[-1,1].map(()=>{
+    const cot=khoi.clone();
+    cot.material=khoi.material.clone();
+    return cot;
+  });
+  p.group.add(xuong,khoi,...khoiHaiBen);
+  p.chichDien={batDau:now,xuong,khoi,khoiHaiBen,huongNgang:new THREE.Vector3()};
   veChichDien(p,now);
 }
 function veChichDien(p,now){
-  const {batDau,xuong,khoi}=p.chichDien;
+  const {batDau,xuong,khoi,khoiHaiBen,huongNgang}=p.chichDien;
   const tuoi=now-batDau;
   if(tuoi>=3000){donChichDien(p);return;}
   const chop=tuoi<500||(tuoi>=590&&tuoi<1000);
@@ -1057,12 +1064,23 @@ function veChichDien(p,now){
   p.body.visible=!chop;
   xuong.material.rotation=chop?Math.sin(tuoi*.06)*.08:0;
   khoi.visible=tuoi>=1000;
+  for(const cot of khoiHaiBen)cot.visible=khoi.visible;
   if(khoi.visible){
     const t=(tuoi-1000)/2000;
     const caoDau=p.avatar==='fish'?1:p.avatar==='snake'?1.86:1.66;
     khoi.position.set(Math.sin(t*10)*.16,caoDau+.61+t*.51,0);
     khoi.scale.set(1.22+t*.4,1.65+t*.44,1);
     khoi.material.opacity=Math.min(1,(1-t)*3);
+    huongNgang.set(1,0,0).applyQuaternion(camera.quaternion)
+      .applyAxisAngle(THREE.Object3D.DEFAULT_UP,-p.group.rotation.y);
+    for(const [i,cot] of khoiHaiBen.entries()){
+      const ben=i===0?-1:1;
+      cot.position.copy(khoi.position).addScaledVector(huongNgang,ben*(.37+t*.14));
+      cot.position.y-=.14;
+      cot.scale.set(khoi.scale.x*.8,khoi.scale.y*.85,1);
+      cot.material.rotation=ben*.14;
+      cot.material.opacity=khoi.material.opacity;
+    }
   }
 }
 let bongBongThanTai;
