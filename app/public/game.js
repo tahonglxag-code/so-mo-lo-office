@@ -1061,9 +1061,12 @@ function taoDoiThanhTra(){
   });
 }
 
+let mauCauHoNhau;
+
 function hetHoatCanh(p){
   const canh=p.hoatCanh;
   if(!canh)return;
+  if(canh.cauHo)p.group.remove(canh.cauHo);
   if(canh.bia){
     scene.remove(canh.bia);
     canh.bia.material.map.dispose();
@@ -1143,6 +1146,15 @@ function veHoatCanh(p,now){
       tay.userData.khuYu.rotation.x=1.14;
     }
   }else if(canh.loai==='drink'){
+    if(!canh.cauHo){
+      mauCauHoNhau??=speechBubble('HAI BA DZOOO');
+      canh.cauHo=mauCauHoNhau.clone();
+      canh.cauHo.position.set(0,3.05,0);
+      p.group.add(canh.cauHo);
+    }
+    const nhipHo=((now-canh.batDau)*3/(canh.ketThuc-canh.batDau))%1;
+    canh.cauHo.visible=nhipHo<.8;
+    canh.cauHo.scale.copy(mauCauHoNhau.scale).multiplyScalar(1+.14*Math.sin(nhipHo*Math.PI));
     p.body.position.y=.11;
     p.body.scale.y=.83;
     for(const chan of p.group.userData.chan){
