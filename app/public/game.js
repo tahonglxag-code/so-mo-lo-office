@@ -315,7 +315,7 @@ function office() {
     box(scene, .16, .12, .16, mats.wallLight, 19.5, -.01, z, false);
   }
   enclosedRoom(10.4, 18.6, -10.7, -4.7, 'PHÒNG SẾP', 14.5);
-  enclosedRoom(10.4, 18.6, 1.2, 8.6, 'PHÒNG HỌP B', 14.5);
+  enclosedRoom(10.4, 18.6, 1.2, 8.6, 'PHÒNG HỌP', 14.5);
   enclosedRoom(-19.5, -16.1, -10.7, -6.1, 'WC', -17.8);
   box(scene, 1.0, .78, .54, mats.dark, -18.8, .16, -4.3);
   box(scene, .42, .2, .35, mats.white, -18.6, .66, -4.26);
@@ -1066,7 +1066,11 @@ socket.on('work-complete',event=>{
 });
 let doiThanhTra;
 let gioThanhTra;
-let hieuUngSep;
+const kyTuMang = '#%@$%&*$^#%@#';
+const kyTuBay = [];
+const mauKyTuMang = new Map();
+const miengSep = new THREE.Vector3();
+const dauKhach = new THREE.Vector3();
 let gocNhomBia=0;
 let tamCumBia=0;
 function taoDoiThanhTra(){
@@ -1228,15 +1232,36 @@ function veSep(now){
   tayDap.rotation.x=khach?.77+dap*.85:0;
   tayChi.rotation.x=khach?1.48:0;
   banSep.rotation.z=.024*dap*Math.sin(t*29);
-  if(!khach){if(hieuUngSep)hieuUngSep.visible=false;return;}
-  if(!hieuUngSep){
-    hieuUngSep=speechBubble('#%@$%&*$^#%@#','#bc2438');
-    hieuUngSep.scale.multiplyScalar(.65);
-    scene.add(hieuUngSep);
+  if(!khach){
+    for(const kyTu of kyTuBay)kyTu.visible=false;
+    return;
   }
-  hieuUngSep.visible=true;
-  const bay=(t*3)%1;
-  hieuUngSep.position.set(THREE.MathUtils.lerp(14.5,khach.group.position.x,bay),THREE.MathUtils.lerp(2.9,2.03,bay),THREE.MathUtils.lerp(-9.14,khach.group.position.z,bay));
+  sep.userData.dau.localToWorld(miengSep.set(0,-.15,-.74));
+  const dau=khach.group.userData.dau;
+  if(dau)dau.localToWorld(dauKhach.set(0,khach.avatar==='snake'?1.95:.13,0));
+  else khach.group.localToWorld(dauKhach.set(0,.83,0));
+  const soNhip=Math.floor(t*9);
+  for(let i=0;i<6;i++){
+    let kyTu=kyTuBay[i];
+    if(!kyTu){
+      kyTu=new THREE.Sprite();
+      kyTu.material.dispose();
+      kyTuBay.push(kyTu);
+      scene.add(kyTu);
+    }
+    const nhip=soNhip-i;
+    const bay=(t-nhip/9)/.62;
+    kyTu.visible=nhip>=0&&bay<1;
+    if(!kyTu.visible)continue;
+    const chu=kyTuMang[nhip%kyTuMang.length];
+    if(!mauKyTuMang.has(chu))mauKyTuMang.set(chu,nameLabel(chu,'#bc2438').material);
+    kyTu.material=mauKyTuMang.get(chu);
+    kyTu.position.copy(miengSep).lerp(dauKhach,bay);
+    const cung=Math.sin(Math.PI*bay);
+    kyTu.position.x+=cung*Math.sin(nhip*2)*.29;
+    kyTu.position.y+=cung*(.23+(nhip%3)*.09);
+    kyTu.scale.set(.58,.62,1).multiplyScalar(1-.35*bay);
+  }
 }
 
 socket.on('urgent-meeting',event=>{
@@ -1575,7 +1600,7 @@ function bungLoXo(p, bung, nhip, duoi=0, dangTu, dangDen, tron=0, mucUon=1, dang
     );
     if(dangThuong==='nen'){
       const vong=tiLe*Math.PI*4.7;
-      const rong=.57*Math.min(1,(1-tiLe)*5);
+      const rong=.63*(1-.34*tiLe)*Math.min(1,(1-tiLe)*5);
       tam[i].set(Math.cos(vong)*rong,.16+tiLe*.93,Math.sin(vong)*rong-.08*tiLe);
     }else if(dangThuong==='bo'){
       tam[i].set(Math.sin((1-tiLe)*Math.PI*3-nhip)*(.36-.19*tiLe),.15+.2*tiLe**6,.98-1.74*tiLe);
