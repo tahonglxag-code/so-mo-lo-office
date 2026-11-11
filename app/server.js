@@ -30,6 +30,51 @@ setInterval(() => {
     if (room.size > 1) io.to(code).volatile.emit('moves', moves);
   }
 }, 100).unref();
+setInterval(() => {
+  const now = Date.now();
+  for (const [code, room] of rooms) {
+    const choDaDung = new Set([...room.values()].map(player => player.choMuaVo));
+    let cho = 0;
+    for (const player of room.values()) {
+      if (player.choMuaVo !== undefined || player.workSeatId || now < (player.lockedUntil || 0) || now - player.lastActivity < 60000) continue;
+      while (choDaDung.has(cho)) cho++;
+      tatKhoiWc(code, player);
+      player.choMuaVo = cho;
+      choDaDung.add(cho);
+      const hang = Math.floor(cho / 10);
+      const cot = cho % 10;
+      player.x = Math.ceil(cot / 2) * (cot % 2 ? -1.85 : 1.85);
+      player.z = Math.ceil(hang / 2) * (hang % 2 ? -1.8 : 1.8);
+      player.yaw = Math.PI;
+      player.pose = '';
+      player.poseUntil = 0;
+      player.batDauMuaVo = now;
+      room.pendingMoves.delete(player.id);
+      io.to(code).emit('mua-vo', { id: player.id, x: player.x, z: player.z, yaw: player.yaw, batDau: now });
+    }
+  }
+},1000).unref();
+
+function tatKhoiWc(code, player) {
+  if (!player.khoiWc) return;
+  player.khoiWc = false;
+  io.to(code).emit('khoi-wc', { id: player.id, bat: false });
+}
+
+function roomKhoiWc(code, player) {
+  player.khoiWc = true;
+  io.to(code).emit('khoi-wc', { id: player.id, bat: true });
+}
+
+function ghiThaoTac(code, player) {
+  player.lastActivity = Date.now();
+  tatKhoiWc(code, player);
+  if (player.choMuaVo === undefined) return;
+  player.choMuaVo = undefined;
+  player.batDauMuaVo = 0;
+  io.to(code).emit('mua-vo', { id: player.id, batDau: 0 });
+}
+
 const avatars = new Set(['snake', 'fish', 'sloth', 'cow', 'leopard']);
 const defaultLines = {
   snake: ['chị khổ lắm em', 'chị lạy em', 'chị hứa mai chị gửi', 'em ơi', 'ủa em', 'alo em'],
@@ -47,7 +92,7 @@ const loiBanThanTai = [
   'Có phúc thì hưởng có họa mới kiếm ta'
 ];
 const actions = new Set(['punch', 'bonk', 'smirk', 'bow', 'throw', 'shock']);
-const items = new Set(['❤️', '🧋', '💸', '📋', '⏰', '💩']);
+const items = new Set(['❤️', '🧋', '💸', '🍻', 'KPI', '💩']);
 const interactionLines = {
   snake: 'chị hứa chị chừa',
   fish: 'bệ hạ tha tội',
@@ -94,6 +139,8 @@ function publicPlayer(player) {
     workStartedAt: player.workStartedAt,
     auraUntil: player.auraUntil,
     workGlow: Boolean(player.workGlow),
+    khoiWc: Boolean(player.khoiWc),
+    batDauMuaVo: player.batDauMuaVo || 0,
     lockedUntil: player.lockedUntil || 0
   };
 }
@@ -219,6 +266,12 @@ io.on('connection', socket => {
     reply({ ok: true, room: code });
   });
 
+  socket.on('thao-tac', () => {
+    const code = socket.data.room;
+    const player = rooms.get(code)?.get(socket.id);
+    if (player) ghiThaoTac(code, player);
+  });
+
   socket.on('move', data => {
     const code = socket.data.room;
     const player = rooms.get(code)?.get(socket.id);
@@ -230,9 +283,7 @@ io.on('connection', socket => {
     const nextZ = Math.max(-maxZ, Math.min(maxZ, Number(data.z) || 0));
     const nextYaw = Number(data.yaw) || 0;
     const changed = Math.hypot(nextX - player.x, nextZ - player.z) > .01 || Math.abs(nextYaw - player.yaw) > .01;
-    if (Math.hypot(nextX - player.x, nextZ - player.z) > .12) {
-      player.lastActivity = Date.now();
-    }
+    if (changed) ghiThaoTac(code, player);
     if (player.workSeatId) {
         const seat = workSeats.find(item => item.id === player.workSeatId);
         const distance = seat ? Math.hypot(nextX - seat.x, nextZ - seat.z) : Infinity;
@@ -258,6 +309,7 @@ io.on('connection', socket => {
     const player = rooms.get(code)?.get(socket.id);
     if (player && Date.now() < (player.lockedUntil || 0)) return;
     if (!player || !['run', 'meditate', 'toilet', 'money', 'dance'].includes(action)) return;
+    ghiThaoTac(code, player);
     if (action === 'dance') {
       releaseWorkSeat(code, player);
       const at = Date.now();
@@ -288,6 +340,9 @@ io.on('connection', socket => {
       path = [{ x: -17.8, z: -5.2 }, { x: -17.8, z: -8.15 }];
       player.x = -17.8;
       player.z = -8.15;
+      player.yaw = 0;
+      player.lockedUntil = Date.now() + duration;
+      roomKhoiWc(code, player);
       line = 'đang đi toilet...';
       player.bubble = line;
       player.bubbleUntil = Date.now() + 6500;
@@ -310,6 +365,7 @@ io.on('connection', socket => {
     const room = rooms.get(code);
     const player = room?.get(socket.id);
     if (!player || Date.now() < (player.lockedUntil || 0)) return;
+    ghiThaoTac(code, player);
     if (player.workSeatId) return socket.emit('work-result', { error: 'Bạn đang giữ một chỗ làm việc. Hãy di chuyển khỏi bàn để nhả chỗ.' });
     const occupied = new Set([...room.values()].map(item => item.workSeatId).filter(Boolean));
     const seat = workSeats.find(item => !occupied.has(item.id));
@@ -344,7 +400,8 @@ io.on('connection', socket => {
       const duration=Math.max(700,distance/7*1000);
       player.x=x;player.z=z;player.yaw=0;
       player.lockedUntil=Date.now()+duration;
-      player.lastActivity=Date.now();player.bubble='';player.bubbleUntil=0;
+      ghiThaoTac(code, player);
+      player.bubble='';player.bubbleUntil=0;
       room.pendingMoves.delete(player.id);
       scheduleIdleLine(code,player);
       return {id:player.id,x,z,yaw:0,path,duration};
@@ -360,6 +417,7 @@ io.on('connection', socket => {
     const player = rooms.get(code)?.get(socket.id);
     const text = cleanText(value, 160);
     if (!player || !text) return;
+    ghiThaoTac(code, player);
     player.bubble = text;
     player.bubbleUntil = Date.now() + 6500;
     player.lastActivity = Date.now();
@@ -397,8 +455,8 @@ io.on('connection', socket => {
       if (!layBanTho) target.lockedUntil = player.lockedUntil;
       rooms.get(code).pendingMoves.delete(player.id);
     }
-    player.lastActivity = now;
-    if (!layBanTho) target.lastActivity = now;
+    ghiThaoTac(code, player);
+    if (!layBanTho && ['punch','bonk','bow','shock'].includes(data.action)) ghiThaoTac(code,target);
     io.to(code).emit('act', event);
     if (layBanTho) {
       scheduleIdleLine(code, player);
@@ -423,6 +481,7 @@ io.on('connection', socket => {
     const room = rooms.get(socket.data.room);
     const player = room?.get(socket.id);
     if (!player) return reply({ error: 'Bạn chưa vào phòng.' });
+    ghiThaoTac(socket.data.room, player);
     if(data?.action==='stop'){room.music={videoId:'',playing:false,position:0,changedAt:Date.now()};io.to(socket.data.room).emit('music-state',room.music);return reply({ok:true});}
     if (Date.now() - (player.lastMusicAt || 0) < 800) return reply({ error: 'Đợi một chút trước khi đổi nhạc.' });
     player.lastMusicAt = Date.now();
