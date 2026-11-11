@@ -53,7 +53,7 @@ setInterval(() => {
       player.poseUntil = 0;
       player.batDauMuaVo = now + duration;
       room.pendingMoves.delete(player.id);
-      io.to(code).emit('mua-vo', { id: player.id, x, z, yaw: player.yaw, duration, batDau: player.batDauMuaVo });
+      io.to(code).emit('mua-vo', { id: player.id, x, z, yaw: player.yaw, duration, cho, batDau: player.batDauMuaVo });
     }
   }
 },1000).unref();
@@ -144,6 +144,7 @@ function publicPlayer(player) {
     workGlow: Boolean(player.workGlow),
     khoiWc: Boolean(player.khoiWc),
     batDauMuaVo: player.batDauMuaVo || 0,
+    choMuaVo: player.choMuaVo,
     lockedUntil: player.lockedUntil || 0
   };
 }
