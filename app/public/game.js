@@ -726,7 +726,7 @@ function createPlayer(data) {
   const entry={...data,group,body:group.userData.body,nameSprite:name,bubbleSprite:null,target:new THREE.Vector3(data.x||0,0,data.z||0),poseUntil:0,working:Boolean(data.working),workSeatId:data.workSeatId||'',workStartedAt:data.workStartedAt||0,meditating:false,auraUntil:0,auraSprite:null,auraRing:null};
   players.set(data.id,entry);
   if(data.khoiWc)capNhatKhoiWc(data.id,true);
-  if(data.batDauMuaVo)batDauMuaVo(entry,data.batDauMuaVo);
+  if(data.batDauMuaVo)batDauMuaVo(entry,data.batDauMuaVo,data.choMuaVo);
   if(data.id!==selfId){const opt=document.createElement('option');opt.value=data.id;opt.textContent=data.name;document.querySelector('#target-select').append(opt);}
   if(entry.working&&data.bubbleUntil>Date.now())setBubble(data.id,data.bubble,data.bubbleUntil-Date.now());
   if(data.auraUntil>Date.now())setAura(entry,data.auraUntil,2);
@@ -1411,7 +1411,20 @@ function taoChiCa(p){
   return chi;
 }
 
-function batDauMuaVo(p,batDau){
+function xepThuTuTheVo(avatar,cho){
+  const loai=['snake','fish','sloth','cow','leopard'].indexOf(avatar);
+  let ma=(cho*5+loai+1)*104729;
+  const conLai=Array.from({length:theVo.length},(_,i)=>i);
+  const thuTu=[];
+  while(conLai.length){
+    const soThe=conLai.length;
+    thuTu.push(conLai.splice(ma%soThe,1)[0]);
+    ma=Math.floor(ma/soThe);
+  }
+  return thuTu;
+}
+
+function batDauMuaVo(p,batDau,cho=0){
   if(p.nhay){
     p.nhay.ketThuc=0;
     hoatAnhNhay(p,performance.now());
@@ -1427,7 +1440,7 @@ function batDauMuaVo(p,batDau){
   if(chi.length)for(const chan of p.group.userData.chan)chan.visible=false;
   const tay=chi.length?chi.slice(0,2):p.group.userData.tay;
   const chan=chi.length?chi.slice(2):p.group.userData.chan;
-  p.muaVo={batDau,chi,tay,chan,gocTay:tay.map(canh=>canh.rotation.clone()),gocChan:chan.map(chi=>chi.rotation.clone())};
+  p.muaVo={batDau,thuTu:xepThuTuTheVo(p.avatar,cho),tocDo:1+((cho%7)-3)*.035,chi,tay,chan,gocTay:tay.map(canh=>canh.rotation.clone()),gocChan:chan.map(chi=>chi.rotation.clone())};
 }
 
 function dungMuaVo(p){
@@ -1454,14 +1467,14 @@ function veMuaVo(p){
   const ran=p.avatar==='snake';
   const kieu=nhanVatMuaVo[p.avatar];
   const thuVien=ran?theRan:theVo;
-  const nhip=Math.max(0,Date.now()-p.muaVo.batDau)/820*(kieu?.nhip||1);
+  const {batDau,thuTu,tocDo,tay,chan,gocTay,gocChan}=p.muaVo;
+  const nhip=Math.max(0,Date.now()-batDau)/820*(kieu?.nhip||1)*tocDo;
   const i=Math.floor(nhip)%thuVien.length;
   const pha=nhip%1;
-  const {tay,chan,gocTay,gocChan}=p.muaVo;
-  const dangXoay=i===10;
+  const dangXoay=thuTu[i]===10;
   const raDon=Math.min(1,pha/(dangXoay?.88:p.avatar==='fish'?.78:.63));
   const muot=raDon*raDon*(3-2*raDon);
-  const tu=thuVien[i],den=thuVien[(i+1)%thuVien.length];
+  const tu=thuVien[thuTu[i]],den=thuVien[thuTu[(i+1)%thuVien.length]];
   const noi=(dau,cuoi)=>THREE.MathUtils.lerp(dau,cuoi,muot);
   const xoayVong=dangXoay?muot*Math.PI*2:0;
   const cungXoay=Math.sin(xoayVong)*.37;
@@ -1512,7 +1525,8 @@ socket.on('mua-vo',event=>{
     started:performance.now(),
     duration:event.duration,
     jump:false,
-    batDau:event.batDau
+    batDau:event.batDau,
+    cho:event.cho
   };
   p.runMotion=p.raHang;
   if(p.id===selfId)targetWorld=null;
@@ -1648,10 +1662,10 @@ function frame(now) {
     if(p.nhay)hoatAnhNhay(p,now);
     if(p.chichDien)veChichDien(p,now);
     if(p.raHang&&!p.runMotion){
-      const {batDau}=p.raHang;
+      const {batDau,cho}=p.raHang;
       p.raHang=null;
       p.group.rotation.y=p.yaw;
-      batDauMuaVo(p,batDau);
+      batDauMuaVo(p,batDau,cho);
     }
     if(p.muaVo)veMuaVo(p);
   }
