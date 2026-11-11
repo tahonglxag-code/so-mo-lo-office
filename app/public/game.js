@@ -499,9 +499,19 @@ function faceLine(parent, points, material, radius = .018) {
 }
 
 function taoCanhTay(than, chatLieu, ben, ngang, cao, sau, dai, rong, doXoe) {
-  const tyLe = [[0,-1.12],[.58,-1.1],[.94,-1.03],[1,-.94],[.93,-.85],[.74,-.72],[.73,-.53],[.8,-.31],[.87,-.12],[.79,.04],[.53,.12],[0,.16]];
-  const matCat = tyLe.map(([banKinh, viTri])=>new THREE.Vector2(banKinh*rong,viTri*dai));
-  const tay = new THREE.Mesh(new THREE.LatheGeometry(matCat,16),chatLieu);
+  const tay = new THREE.Group();
+  const khuYu = new THREE.Group();
+  const viTriKhuYu = -.53;
+  const matCat = (cacDiem, moc = 0) => cacDiem.map(([banKinh, viTri]) =>
+    new THREE.Vector2(banKinh * rong, (viTri - moc) * dai)
+  );
+  const bapTay = [[0,-.64],[.56,-.61],[.73,-.53],[.8,-.31],[.87,-.12],[.79,.04],[.53,.12],[0,.16]];
+  const cangTay = [[0,-1.12],[.58,-1.1],[.94,-1.03],[1,-.94],[.93,-.85],[.74,-.72],[.73,-.53],[.54,-.44],[0,-.41]];
+  tay.add(new THREE.Mesh(new THREE.LatheGeometry(matCat(bapTay),16),chatLieu));
+  khuYu.add(new THREE.Mesh(new THREE.LatheGeometry(matCat(cangTay,viTriKhuYu),16),chatLieu));
+  khuYu.position.y = viTriKhuYu * dai;
+  tay.add(khuYu);
+  tay.userData.khuYu = khuYu;
   tay.position.set(ben*ngang,cao,sau);
   tay.rotation.z=ben*doXoe;
   tay.userData.tay=true;
@@ -581,9 +591,9 @@ function animal(type, tint = null) {
       const tay=taoCanhTay(body,fur,ben,.41,.87,.02,.72,.126,.13);
       for(let i=0;i<3;i++) {
         const mong=new THREE.Mesh(new THREE.ConeGeometry(.029,.13,7),mat('#e8ddbd'));
-        mong.position.set((i-1)*.055,-.79,-.025);
+        mong.position.set((i-1)*.055,-.79-tay.userData.khuYu.position.y,-.025);
         mong.rotation.x=Math.PI;
-        tay.add(mong);
+        tay.userData.khuYu.add(mong);
       }
     }
   } else if (type === 'leopard') {
@@ -1314,7 +1324,10 @@ function hoatAnhNhay(p,now){
     p.body.position.set(0,0,0);
     if(p.avatar==='snake')bungLoXo(p,0,0);
     for(const nhan of [p.nameSprite,p.bubbleSprite])if(nhan){nhan.position.x=0;nhan.position.z=0;}
-    for(const canh of tay)canh.rotation.x=0;
+    for(const canh of tay){
+      canh.rotation.x=0;
+      canh.userData.khuYu.rotation.x=0;
+    }
     p.nhay=null;
     return;
   }
@@ -1357,7 +1370,12 @@ function hoatAnhNhay(p,now){
     p.body.rotation.set(.34*lac,.38*lac,.25*Math.cos(pha)*vaoRa);
     p.body.position.y=.13*bat;
   }
-  for(const [i,canh] of tay.entries())canh.rotation.x=kieu===1?-1.12*vaoRa:(i%2?-1:1)*lac*(kieu===4?1.3:.72);
+  for(const [i,canh] of tay.entries()){
+    const ben=i%2?-1:1;
+    canh.rotation.x=kieu===1?-1.12*vaoRa:ben*lac*(kieu===4?1.3:.72);
+    const gap=kieu===1?.32:kieu===0?.94:.7;
+    canh.userData.khuYu.rotation.x=(gap+.44*Math.sin(pha+ben*Math.PI/2))*vaoRa;
+  }
 }
 const theVo=[
   {tay:[[.74,-.16],[.74,-.16]],chan:[[.19,.24],[-.13,.24]],than:[0,0,0],viTri:[0,.02,0]},
@@ -1399,6 +1417,10 @@ function taoChiCa(p){
   const chi=[];
   for(const [cao,ngang,dai,doXoe] of [[.62,.6,.53,.67],[.24,.31,.4,.36]]){
     for(const ben of [-1,1]){
+      if(cao===.62){
+        chi.push(taoCanhTay(p.body,chatLieu,ben,ngang,cao,-.22,dai/1.12,.028,doXoe));
+        continue;
+      }
       const hinh=new THREE.CapsuleGeometry(.028,dai-.056,3,6);
       hinh.translate(0,-dai/2,0);
       const que=new THREE.Mesh(hinh,chatLieu);
@@ -1450,11 +1472,12 @@ function dungMuaVo(p){
   tay.forEach((canh,i)=>canh.rotation.copy(gocTay[i]));
   for(const que of chi){
     p.body.remove(que);
-    que.geometry.dispose();
+    que.traverse(boPhan=>boPhan.geometry?.dispose());
   }
-  if(chi.length)chi[0].material.dispose();
+  if(chi.length)chi.at(-1).material.dispose();
   for(const boPhan of [...p.group.userData.tay,...p.group.userData.chan]){
     boPhan.rotation.x=0;
+    if(boPhan.userData.khuYu)boPhan.userData.khuYu.rotation.x=0;
     boPhan.visible=true;
   }
   p.body.rotation.set(0,0,0);
@@ -1489,6 +1512,11 @@ function veMuaVo(p){
     const ben=j===0?-1:1;
     const [duaTruoc,moNgang]=tu.tay[j].map((giaTri,k)=>noi(giaTri,den.tay[j][k]));
     tay[j].rotation.set(duaTruoc*kieu.tay,0,gocTay[j].z+ben*moNgang*kieu.tay,'ZXY');
+    const khuYu=tay[j].userData.khuYu;
+    if(khuYu){
+      const gap=(the)=>THREE.MathUtils.clamp(1.55-Math.abs(the.tay[j][0]- .55)*1.37,.08,1.45);
+      khuYu.rotation.x=noi(gap(tu),gap(den));
+    }
     const [gocDaTu,ngangTu,huongTu=0]=tu.chan[j];
     const [gocDaDen,ngangDen,huongDen=0]=den.chan[j];
     const da=noi(gocDaTu,gocDaDen);
