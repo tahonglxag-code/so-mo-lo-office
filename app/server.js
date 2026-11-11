@@ -36,7 +36,7 @@ setInterval(() => {
     const choDaDung = new Set([...room.values()].map(player => player.choMuaVo));
     let cho = 0;
     for (const player of room.values()) {
-      if (player.choMuaVo !== undefined || player.workSeatId || now < (player.lockedUntil || 0) || now - player.lastActivity < 60000) continue;
+      if (player.choMuaVo !== undefined || player.hoatCanh || player.workSeatId || now < (player.lockedUntil || 0) || now - player.lastActivity < 60000) continue;
       while (choDaDung.has(cho)) cho++;
       tatKhoiWc(code, player);
       player.choMuaVo = cho;
@@ -71,6 +71,10 @@ function roomKhoiWc(code, player) {
 
 function ghiThaoTac(code, player) {
   player.lastActivity = Date.now();
+  if (player.hoatCanh?.loai === 'boss' && Date.now() >= player.lockedUntil) {
+    player.hoatCanh = null;
+    io.to(code).emit('het-hoat-canh', player.id);
+  }
   tatKhoiWc(code, player);
   if (player.choMuaVo === undefined) return;
   player.choMuaVo = undefined;
@@ -137,6 +141,7 @@ function publicPlayer(player) {
     pose: player.pose,
     poseUntil: player.poseUntil,
     dieuNhay: player.pose === 'dance' ? player.dieuNhay : undefined,
+    hoatCanh: player.hoatCanh,
     workSeatId: player.workSeatId,
     working: player.working,
     workStartedAt: player.workStartedAt,
@@ -385,12 +390,66 @@ io.on('connection', socket => {
     io.to(code).emit('work-move', { id: player.id, seat, duration: Math.max(700, Math.hypot(player.x - seat.x, player.z - seat.z) / 5.2 * 1000) });
   });
 
+  socket.on('hoat-canh', data => {
+    const code = socket.data.room;
+    const room = rooms.get(code);
+    const nguoiGoi = room?.get(socket.id);
+    const now = Date.now();
+    const loai = data?.loai;
+    if (!nguoiGoi || now < (nguoiGoi.lockedUntil || 0) || !['inspect','boss','drink'].includes(loai)) return;
+    if (loai === 'inspect' && now < (room.thanhTraDen || 0)) return;
+    if (loai!=='inspect' && [...room.values()].some(p=>p.hoatCanh?.loai===loai)) {
+      return socket.emit('feed',{text:loai==='boss'?'Phòng Sếp đang có người.':'Dãy ghế đang có người nhậu.'});
+    }
+    const ids = Array.isArray(data.ids) ? [...new Set(data.ids)].filter(id=>typeof id==='string'&&id!==socket.id).slice(0,3) : [];
+    const khach = loai === 'inspect' ? [...room.values()] : loai === 'boss'
+      ? [data.target ? room.get(data.target) : nguoiGoi].filter(Boolean)
+      : [nguoiGoi,...ids.map(id=>room.get(id)).filter(Boolean)];
+    if (!khach.length || (loai==='drink' && khach.length<2)) return;
+    if (loai!=='inspect' && khach.some(p=>now<(p.lockedUntil||0)||p.hoatCanh?.loai==='boss')) {
+      return socket.emit('feed',{text:'Người chơi đang bận.'});
+    }
+    const batDau=now+900;
+    const ketThuc=loai==='inspect'?batDau+5000:loai==='drink'?batDau+2000:0;
+    const khoaDen=ketThuc||(batDau+3000);
+    const nguoi=khach.map((p,i)=>{
+      if(p.hoatCanh)io.to(code).emit('het-hoat-canh',p.id);
+      p.hoatCanh=null;
+      releaseWorkSeat(code,p);
+      ghiThaoTac(code,p);
+      const x=loai==='inspect'?(i%10- (Math.min(khach.length,10)-1)/2)*1.6:loai==='drink'?-3.5+i*2.3:14.5;
+      const z=loai==='inspect'?3.5-Math.floor(i/10)*1.35:loai==='drink'?8.2:-7.15;
+      const yaw=loai==='boss'?0:Math.PI;
+      p.x=x;
+      p.z=z;
+      p.yaw=yaw;
+      p.pose='';
+      p.poseUntil=0;
+      p.lockedUntil=khoaDen;
+      p.hoatCanh={loai,batDau,ketThuc,khoaDen,x,z,yaw};
+      room.pendingMoves.delete(p.id);
+      if(ketThuc)setTimeout(()=>{
+        if(p.hoatCanh?.batDau!==batDau)return;
+        p.hoatCanh=null;
+        io.to(code).emit('het-hoat-canh',p.id);
+      },ketThuc-now).unref();
+      return {id:p.id,x,z,yaw};
+    });
+    if(loai==='inspect')room.thanhTraDen=ketThuc+900;
+    io.to(code).emit('hoat-canh',{loai,batDau,ketThuc,khoaDen,nguoi});
+    const ten=loai==='inspect'?'🚨 Thanh tra':loai==='boss'?'📋 Họp riêng':'🍻 Rủ nhậu';
+    io.to(code).emit('feed',{text:`${ten} · ${loai==='inspect'?nguoiGoi.name:khach.map(p=>p.name).join(', ')}`});
+  });
+
   socket.on('urgent-meeting', () => {
     const code = socket.data.room;
     const room = rooms.get(code);
     if (!room?.has(socket.id)) return;
+    if(Date.now()<(room.get(socket.id).lockedUntil||0))return;
     if(Date.now()<(room.meetingUntil||0))return socket.emit('feed',{text:'Mọi người đang di chuyển vào phòng họp B.'});
     const players = [...room.values()].map((player, index) => {
+      if(player.hoatCanh)io.to(code).emit('het-hoat-canh',player.id);
+      player.hoatCanh=null;
       releaseWorkSeat(code, player);
       const x=11.2+(index%8)*.8,z=2+Math.floor(index/8)*.8;
       const path=[];
@@ -423,7 +482,7 @@ io.on('connection', socket => {
     const code = socket.data.room;
     const player = rooms.get(code)?.get(socket.id);
     const text = cleanText(value, 160);
-    if (!player || !text) return;
+    if (!player || !text || (player.hoatCanh && Date.now()<player.lockedUntil)) return;
     ghiThaoTac(code, player);
     player.bubble = text;
     player.bubbleUntil = Date.now() + 6500;
