@@ -280,7 +280,16 @@ function enclosedRoom(xMin, xMax, zMin, zMax, title, doorX) {
   box(door, doorWidth - .16, 2.28, .12, vatLieu, (doorWidth - .16) / 2, 1.14, 0);
   box(door, .06, .13, .06, mats.dark, doorWidth * .34, 1.12, -.08);
   if (title === 'WC') wcDoor = door;else cuaHop.set(title,door);
-  makeRoomLabel(title, (xMin + xMax) / 2, (zMin + zMax) / 2);
+  if(title==='PHÒNG SẾP'){
+    const mauBien=label(title,'#493650');
+    const bien=new THREE.Mesh(
+      new THREE.PlaneGeometry(1.48,.34),
+      new THREE.MeshBasicMaterial({map:mauBien.material.map,transparent:true})
+    );
+    mauBien.material.dispose();
+    bien.position.set(doorX,wallHeight+.04,zMax+.09);
+    scene.add(bien);
+  }else makeRoomLabel(title,(xMin+xMax)/2,(zMin+zMax)/2);
 }
 
 function office() {
@@ -520,12 +529,12 @@ function taoCanhTay(than, chatLieu, ben, ngang, cao, sau, dai, rong, doXoe) {
   return tay;
 }
 
-function animal(type, tint = null) {
+function animal(type, tint = null, macVest = false) {
   const root = new THREE.Group();
   const body = new THREE.Group();
   root.add(body);
   const fur = tint ? mat(tint) : ({ snake: mat('#64bc83'), fish: mat('#57a9d8'), sloth: mat('#92745b'), cow: mat('#fffaf0'), leopard: mat('#d7a353') }[type]);
-  const cowBodyFur = type === 'cow' ? patternMaterial('#fffaf0', 'cow', 'body') : fur;
+  const cowBodyFur = macVest ? mat('#18191d') : type === 'cow' ? patternMaterial('#fffaf0', 'cow', 'body') : fur;
   const cowHeadFur = type === 'cow' ? patternMaterial('#fffaf0', 'cow', 'head') : fur;
   const leopardBodyFur = type === 'leopard' ? patternMaterial('#d7a353', 'leopard', 'body') : fur;
   const leopardHeadFur = type === 'leopard' ? patternMaterial('#d7a353', 'leopard', 'head') : fur;
@@ -627,7 +636,7 @@ function animal(type, tint = null) {
     sphere(body,-.2,1.42,-.52,.07,.09,.05,eye,10); sphere(body,.2,1.42,-.52,.07,.09,.05,eye,10);
     sphere(body,0,1.17,-.6,.28,.19,.12,blush,14);
     sphere(body,-.09,1.17,-.7,.035,.055,.025,dark,8); sphere(body,.09,1.17,-.7,.035,.055,.025,dark,8);
-    for(const ben of [-1,1])taoCanhTay(body,fur,ben,.455,.99,-.045,.53,.15,.35);
+    for(const ben of [-1,1])taoCanhTay(body,macVest?cowBodyFur:fur,ben,.455,.99,-.045,.53,.15,.35);
   }
   if(type!=='snake') for(const x of [-.3,.3]) {
     const tall=type==='cow'||type==='leopard';
@@ -670,13 +679,29 @@ function taoPhongSep(){
   for(const x of [13.18,15.82])box(scene,.24,.94,.95,mats.wood,x,.47,-8.55);
   stool(14.5,-9.65);
   stool(14.5,-7.15);
-  sep=animal('cow','#79617b');
+  sep=animal('cow',null,true);
   sep.scale.setScalar(2);
   sep.position.set(14.5,0,-9.65);
   sep.rotation.y=Math.PI;
   const dau=sep.userData.dau;
-  faceLine(dau,[[-.32,.19,-.56],[-.13,.1,-.59]],mats.dark,.035);
-  faceLine(dau,[[.13,.1,-.59],[.32,.19,-.56]],mats.dark,.035);
+  for(const ben of [-1,1]){
+    faceLine(dau,[[ben*.31,.27,-.56],[ben*.23,.23,-.63],[ben*.09,.17,-.65]],mats.dark,.04);
+  }
+  const than=sep.userData.body;
+  const coAo=new THREE.Shape();
+  coAo.moveTo(-.22,1.01);
+  coAo.lineTo(0,.54);
+  coAo.lineTo(.22,1.01);
+  coAo.closePath();
+  const soMi=new THREE.Mesh(new THREE.ShapeGeometry(coAo),new THREE.MeshStandardMaterial({color:'#faf7f1',side:THREE.DoubleSide}));
+  soMi.position.z=-.45;
+  than.add(soMi);
+  const mauCaVat=mat('#26272d');
+  box(than,.075,.25,.035,mauCaVat,0,.78,-.47);
+  box(than,.09,.08,.04,mauCaVat,0,.96,-.47).rotation.z=Math.PI/4;
+  for(const ben of [-1,1]){
+    faceLine(than,[[ben*.24,1.02,-.42],[ben*.25,.88,-.45],[ben*.06,.55,-.47]],mat('#424349'),.025);
+  }
   const ten=nameLabel('SẾP','#84243a');
   ten.position.y=2.05;
   sep.add(ten);
