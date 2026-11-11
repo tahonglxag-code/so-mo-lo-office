@@ -412,21 +412,28 @@ io.on('connection', socket => {
     const batDau=now+900;
     const ketThuc=loai==='inspect'?batDau+5000:loai==='drink'?batDau+2000:0;
     const khoaDen=ketThuc||(batDau+3000);
+    const tamBia={x:-.05,z:8.2};
+    const gheNhau=loai==='drink'?khach.map((_,i)=>{
+      const goc=2*Math.PI*i/khach.length+(khach.length===4?Math.PI/4:0);
+      const banKinh=khach.length===2?1:khach.length===3?1.18:1.4;
+      return {x:tamBia.x+banKinh*Math.cos(goc),z:tamBia.z+banKinh*Math.sin(goc),yaw:Math.PI/2-goc};
+    }):null;
+    const boTri=gheNhau?{tamBia,gheNhau}:{};
     const nguoi=khach.map((p,i)=>{
       if(p.hoatCanh)io.to(code).emit('het-hoat-canh',p.id);
       p.hoatCanh=null;
       releaseWorkSeat(code,p);
       ghiThaoTac(code,p);
-      const x=loai==='inspect'?(i%10- (Math.min(khach.length,10)-1)/2)*1.6:loai==='drink'?-3.5+i*2.3:14.5;
-      const z=loai==='inspect'?3.5-Math.floor(i/10)*1.35:loai==='drink'?8.2:-7.15;
-      const yaw=loai==='boss'?0:Math.PI;
+      const x=loai==='inspect'?(i%10- (Math.min(khach.length,10)-1)/2)*1.6:gheNhau?gheNhau[i].x:14.5;
+      const z=loai==='inspect'?3.5-Math.floor(i/10)*1.35:gheNhau?gheNhau[i].z:-7.15;
+      const yaw=gheNhau?gheNhau[i].yaw:loai==='boss'?0:Math.PI;
       p.x=x;
       p.z=z;
       p.yaw=yaw;
       p.pose='';
       p.poseUntil=0;
       p.lockedUntil=khoaDen;
-      p.hoatCanh={loai,batDau,ketThuc,khoaDen,x,z,yaw};
+      p.hoatCanh={loai,batDau,ketThuc,khoaDen,x,z,yaw,...boTri};
       room.pendingMoves.delete(p.id);
       if(ketThuc)setTimeout(()=>{
         if(p.hoatCanh?.batDau!==batDau)return;
@@ -436,7 +443,7 @@ io.on('connection', socket => {
       return {id:p.id,x,z,yaw};
     });
     if(loai==='inspect')room.thanhTraDen=ketThuc+900;
-    io.to(code).emit('hoat-canh',{loai,batDau,ketThuc,khoaDen,nguoi});
+    io.to(code).emit('hoat-canh',{loai,batDau,ketThuc,khoaDen,nguoi,...boTri});
     const ten=loai==='inspect'?'🚨 Thanh tra':loai==='boss'?'📋 Họp riêng':'🍻 Rủ nhậu';
     io.to(code).emit('feed',{text:`${ten} · ${loai==='inspect'?nguoiGoi.name:khach.map(p=>p.name).join(', ')}`});
   });
