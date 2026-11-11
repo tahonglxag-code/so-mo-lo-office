@@ -59,14 +59,15 @@ setInterval(() => {
 },1000).unref();
 
 function tatKhoiWc(code, player) {
+  player.buongWc = null;
   if (!player.khoiWc) return;
   player.khoiWc = false;
   io.to(code).emit('khoi-wc', { id: player.id, bat: false });
 }
 
 function roomKhoiWc(code, player) {
-  player.khoiWc = true;
-  io.to(code).emit('khoi-wc', { id: player.id, bat: true });
+  player.khoiWc = player.buongWc;
+  io.to(code).emit('khoi-wc', { id: player.id, bat: player.khoiWc });
 }
 
 function ghiThaoTac(code, player) {
@@ -147,7 +148,7 @@ function publicPlayer(player) {
     workStartedAt: player.workStartedAt,
     auraUntil: player.auraUntil,
     workGlow: Boolean(player.workGlow),
-    khoiWc: Boolean(player.khoiWc),
+    khoiWc: player.khoiWc || false,
     batDauMuaVo: player.batDauMuaVo || 0,
     choMuaVo: player.choMuaVo,
     lockedUntil: player.lockedUntil || 0
@@ -278,7 +279,7 @@ io.on('connection', socket => {
   socket.on('thao-tac', () => {
     const code = socket.data.room;
     const player = rooms.get(code)?.get(socket.id);
-    if (player) ghiThaoTac(code, player);
+    if (player && (!player.buongWc || Date.now() >= player.lockedUntil)) ghiThaoTac(code, player);
   });
 
   socket.on('move', data => {
@@ -316,11 +317,52 @@ io.on('connection', socket => {
     if (changed) rooms.get(code).pendingMoves.set(socket.id, { id: socket.id, x: player.x, z: player.z, yaw: player.yaw });
   });
 
+  function diWc(idBan) {
+    const code = socket.data.room;
+    const room = rooms.get(code);
+    const nguoi = room?.get(socket.id);
+    const ban = idBan && idBan !== socket.id ? room?.get(idBan) : null;
+    const lucDi = Date.now();
+    if (!nguoi || lucDi < (nguoi.lockedUntil || 0)) return;
+    if (idBan && (!ban || lucDi < (ban.lockedUntil || 0) || ban.buongWc)) {
+      return socket.emit('feed', { text: 'Người được chọn đang bận hoặc đã rời phòng.' });
+    }
+    const buong = ban ? 'doi' : 'don';
+    const nhom = ban ? [nguoi, ban] : [nguoi];
+    if ([...room.values()].some(p => p.buongWc === buong && !nhom.includes(p))) {
+      return socket.emit('feed', { text: 'Buồng này đang có người.' });
+    }
+    const duration = 2600;
+    const cuaZ = ban ? -6.95 : -11.3;
+    for (const [i,p] of nhom.entries()) {
+      ghiThaoTac(code,p);
+      releaseWorkSeat(code,p);
+      p.buongWc = buong;
+      p.x = -18.95;
+      p.z = cuaZ + (ban ? (i-.5)*.94 : 0);
+      p.yaw = -Math.PI/2;
+      p.lockedUntil = lucDi + duration;
+      p.pose = 'toilet';
+      p.poseUntil = p.lockedUntil;
+      p.bubble = 'đang đi toilet...';
+      p.bubbleUntil = lucDi + 6500;
+      room.pendingMoves.delete(p.id);
+      const path = [{x:-16,z:cuaZ},{x:-17.1,z:cuaZ},{x:p.x,z:p.z}];
+      io.to(code).emit('self-action', {id:p.id,action:'toilet',buong,x:p.x,z:p.z,yaw:p.yaw,path,line:p.bubble,duration,at:lucDi});
+      setTimeout(() => {
+        if (room.get(p.id) === p && p.buongWc === buong && p.lockedUntil === lucDi + duration) roomKhoiWc(code,p);
+      },duration).unref();
+      scheduleIdleLine(code,p);
+    }
+  }
+  socket.on('di-wc', data => diWc(typeof data?.ban === 'string' ? data.ban : ''));
+
   socket.on('self-action', action => {
     const code = socket.data.room;
     const player = rooms.get(code)?.get(socket.id);
     if (player && Date.now() < (player.lockedUntil || 0)) return;
     if (!player || !['run', 'meditate', 'toilet', 'money', 'dance'].includes(action)) return;
+    if (action === 'toilet') return diWc('');
     ghiThaoTac(code, player);
     if (action === 'dance') {
       releaseWorkSeat(code, player);
@@ -339,8 +381,8 @@ io.on('connection', socket => {
       io.to(code).emit('self-action', { id: player.id, action, x: player.x, z: player.z, yaw: player.yaw, duration, at, dieuNhay: player.dieuNhay });
       return;
     }
-    if (action === 'money' || action === 'run' || action === 'toilet') releaseWorkSeat(code, player);
-    const duration = action === 'run' ? 900 : action === 'toilet' ? 2600 : action === 'money' ? 5000 : 4000;
+    if (action === 'money' || action === 'run') releaseWorkSeat(code, player);
+    const duration = action === 'run' ? 900 : action === 'money' ? 5000 : 4000;
     let line = '';
     let path = [];
     if (action === 'run') {
@@ -348,16 +390,6 @@ io.on('connection', socket => {
       player.x = Math.max(-maxX, Math.min(maxX, player.x - Math.sin(player.yaw) * distance));
       player.z = Math.max(-maxZ, Math.min(maxZ, player.z - Math.cos(player.yaw) * distance));
       path = [{ x: player.x, z: player.z }];
-    } else if (action === 'toilet') {
-      path = [{ x: -17.8, z: -5.2 }, { x: -17.8, z: -8.15 }];
-      player.x = -17.8;
-      player.z = -8.15;
-      player.yaw = 0;
-      player.lockedUntil = Date.now() + duration;
-      roomKhoiWc(code, player);
-      line = 'đang đi toilet...';
-      player.bubble = line;
-      player.bubbleUntil = Date.now() + 6500;
     } else if (action === 'meditate') {
       line = 'lương bất biến giữa dòng deadline vạn biến';
       player.bubble = line;
