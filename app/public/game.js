@@ -313,13 +313,13 @@ function taoKhuWc(){
     box(canh,.12,.07,.07,mats.white,.095,.88,rong-.16);
     cuaWc.set(ten,canh);
     const soCho=ten==='doi'?2:1;
-    box(scene,.47,.72,soCho===2?1.88:.88,mats.white,-19.55,.64,cua);
-    box(scene,.53,.08,soCho===2?1.96:.96,mats.cream,-19.55,1.04,cua);
+    box(scene,.68,.72,soCho===2?1.88:.88,mats.white,-19.24,.64,cua);
+    box(scene,.74,.08,soCho===2?1.96:.96,mats.cream,-19.24,1.04,cua);
     for(let i=0;i<soCho;i++){
       const z=cua+(i-(soCho-1)/2)*.94;
-      sphere(scene,-18.97,.21,z,.29,.25,.31,mats.white);
-      sphere(scene,-18.89,.44,z,.52,.22,.49,mats.white);
-      sphere(scene,-18.87,.60,z,.52,.06,.49,mats.cream);
+      sphere(scene,-18.51,.21,z,.29,.25,.31,mats.white);
+      sphere(scene,-18.43,.44,z,.52,.22,.49,mats.white);
+      sphere(scene,-18.41,.60,z,.52,.06,.49,mats.cream);
     }
   }
   const bien=label('WC','#493650');
@@ -2017,7 +2017,7 @@ socket.on('self-action',event=>{
     const path=(event.path?.length?event.path:[{x:event.x,z:event.z}]).map(point=>new THREE.Vector3(point.x,0,point.z));
     p.runMotion={points:[from,...path],started:performance.now(),duration:event.duration,jump:event.action==='run',yawCuoi:event.action==='toilet'?event.yaw:undefined};
     if(event.line)setBubble(p.id,event.line);
-    if(event.action==='toilet')p.khoaDen=performance.now()+event.duration;
+    if(event.action==='toilet'){p.khoaDen=performance.now()+event.duration;if(p.id===selfId)targetWorld=null;}
     const cua=event.action==='toilet'?cuaWc.get(event.buong):null;
     if(cua){
       cua.rotation.y=-Math.PI/2;
