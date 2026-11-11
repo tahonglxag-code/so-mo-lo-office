@@ -311,7 +311,6 @@ function office() {
   box(scene, 1.0, .78, .54, mats.dark, -18.8, .16, -4.3);
   box(scene, .42, .2, .35, mats.white, -18.6, .66, -4.26);
   makeRoomLabel('QUẦY CÀ PHÊ', -13.5, -9.1);
-  makeRoomLabel('SẢNH CHUNG', 0, 7.9);
   box(scene, 4.6, .72, 1.1, mats.wood, -13.5, .22, -8.6);
   box(scene, 4.7, .13, 1.2, mats.woodLight, -13.5, .65, -8.6);
   box(scene, 1.05, .36, .75, mats.dark, -14.8, .9, -8.6);
