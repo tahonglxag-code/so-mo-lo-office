@@ -355,20 +355,22 @@ function office() {
   enclosedRoom(10.4, 18.6, -10.7, -4.7, 'PHÒNG SẾP', 14.5);
   enclosedRoom(10.4, 18.6, 1.2, 8.6, 'PHÒNG HỌP', 14.5);
   taoKhuWc();
-  makeRoomLabel('QUẦY CÀ PHÊ', -13.5, -9.1);
-  box(scene, 4.6, .72, 1.1, mats.wood, -13.5, .22, -8.6);
-  box(scene, 4.7, .13, 1.2, mats.woodLight, -13.5, .65, -8.6);
-  box(scene, 1.05, .36, .75, mats.dark, -14.8, .9, -8.6);
-  for (const x of [-15.2, -11.8]) box(scene, .12, .3, .12, mats.dark, x, .04, -8.4);
+  const lechQuay=1.5;
+  makeRoomLabel('QUẦY CÀ PHÊ', -13.5+lechQuay, -9.1);
+  box(scene, .14, 1.03, 2.45, mats.wallLight, -15.17, .515, -8.65);
+  box(scene, 4.6, .72, 1.1, mats.wood, -13.5+lechQuay, .22, -8.6);
+  box(scene, 4.7, .13, 1.2, mats.woodLight, -13.5+lechQuay, .65, -8.6);
+  box(scene, 1.05, .36, .75, mats.dark, -14.8+lechQuay, .9, -8.6);
+  for (const x of [-15.2, -11.8]) box(scene, .12, .3, .12, mats.dark, x+lechQuay, .04, -8.4);
   for (const [x, z] of [[-10.9,-7.8],[-10.1,-7.8],[-10.9,-9.1],[-10.1,-9.1]]) {
     const cup = new THREE.Mesh(new THREE.CylinderGeometry(.13,.17,.2,12), mats.cream);
-    cup.position.set(x,.84,z); cup.castShadow = true; scene.add(cup);
-    sphere(scene,x,.97,z,.025,.07,.025,mats.wood,8);
+    cup.position.set(x+lechQuay,.84,z); cup.castShadow = true; scene.add(cup);
+    sphere(scene,x+lechQuay,.97,z,.025,.07,.025,mats.wood,8);
   }
   taoBanTho();
   taoPhongSep();
   conferenceRoom(14.5, 5.1);
-  for (const [index, z] of [11.4,.4,2.6,4.8,7,9.2].entries()) workTable(z,`desk-${index+1}`);
+  for (const [id,z] of [[1,11.4],[3,1.4],[4,3.9],[5,6.4],[6,8.9]]) workTable(z,`desk-${id}`);
   for (const [x,z] of [[-18.8,-5.7],[-16.8,-5.7],[12.2,-4.2],[18.8,-4.2],[12.2,8.9],[18.8,8.9],[-18.5,11.8],[18.5,11.8]]) plant(x,z);
   box(scene, .12, .85, 5.2, mats.wallLight, -6.8, .17, -8.3);
   box(scene, .12, .85, 5.2, mats.wallLight, 6.8, .17, -8.3);
