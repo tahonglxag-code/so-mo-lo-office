@@ -515,6 +515,7 @@ function taoCanhTay(than, chatLieu, ben, ngang, cao, sau, dai, rong, doXoe) {
   tay.position.set(ben*ngang,cao,sau);
   tay.rotation.z=ben*doXoe;
   tay.userData.tay=true;
+  tay.userData.viTriVai=tay.position.clone();
   than.add(tay);
   return tay;
 }
@@ -1351,6 +1352,7 @@ function hoatAnhNhay(p,now){
     for(const nhan of [p.nameSprite,p.bubbleSprite])if(nhan){nhan.position.x=0;nhan.position.z=0;}
     for(const canh of tay){
       canh.rotation.x=0;
+      canh.position.copy(canh.userData.viTriVai);
       canh.userData.khuYu.rotation.x=0;
     }
     for(const chan of p.group.userData.chan){
@@ -1389,8 +1391,11 @@ function hoatAnhNhay(p,now){
   if(kieu===0){
     p.body.rotation.set(0,t*Math.PI*2*soNhip,lac*.15);
     for(const canh of tay){
-      canh.rotation.x=2.95*vaoRa;
-      canh.userData.khuYu.rotation.x=-.36*vaoRa;
+      const vai=canh.userData.viTriVai;
+      const nang=p.avatar==='sloth'?.12:.43;
+      canh.position.set(vai.x*(1-.48*vaoRa),vai.y+nang*vaoRa,vai.z);
+      canh.rotation.x=3.03*vaoRa;
+      canh.userData.khuYu.rotation.x=-.26*vaoRa;
     }
     const chanCo=p.group.userData.chan[0];
     chanCo.rotation.x=1.17*vaoRa;
