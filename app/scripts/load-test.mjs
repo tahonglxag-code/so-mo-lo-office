@@ -10,7 +10,7 @@ async function work(s){const p=once(s,'work-result');s.emit('work');const r=awai
 let movement;
 try{
  for(let i=0;i<60;i++){try{if((await fetch(url+'/healthz')).ok)break;}catch{}await wait(1000);}
- for(let i=0;i<5;i++)await work(await join(i));for(let i=5;i<10;i++)await join(i);await work(clients[5]);
+ for(let i=0;i<5;i++)await work(await join(i));for(let i=5;i<10;i++)await join(i);const full=once(clients[5],'work-result');clients[5].emit('work');if((await full).ok)throw new Error('Sixth work seat was available');
  const start=Date.now();running=true;let step=0;
  movement=setInterval(()=>{const t=(Date.now()-start)/1000;for(let i=6;i<10;i++)clients[i].emit('move',{x:Math.sin(t+i)*6,z:Math.cos(t+i)*4,yaw:t});},110);
  while(Date.now()-start<60000){
@@ -19,7 +19,7 @@ try{
   if(step%4===0){clients[6].emit('act',{target:clients[7].id,action:['punch','bonk','bow','throw'][Math.floor(step/4)%4],item:'❤️'});clients[8].emit('self-action',['money','meditate','run','toilet'][Math.floor(step/4)%4]);}
   if(step===2){const r=await ack(clients[9],'music',{url:'https://www.youtube.com/watch?v=jfKfPfyJRdk',action:'play'});if(!r.ok)throw new Error('Music failed');}
   if(step===20){const state=once(clients[0],'music-state',r=>!r.videoId&&!r.playing);const r=await ack(clients[9],'music',{action:'stop'});if(!r.ok)throw new Error('Stop failed');await state;}
-  if(step===30)clients[9].emit('urgent-meeting');if(step===40)for(let i=0;i<6;i++)await work(clients[i]);
+  if(step===30)clients[9].emit('urgent-meeting');if(step===40)for(let i=0;i<5;i++)await work(clients[i]);
   if(step%20===0)console.log(`Progress ${Math.floor((Date.now()-start)/1000)}s, 10 clients`);step++;await wait(1000);
  }
  if(errors.length||!events.moves||!events.chat||!events.impact||!events.music)throw new Error(JSON.stringify({errors,events}));
