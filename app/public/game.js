@@ -330,7 +330,7 @@ function office() {
   for (let x=-3.5;x<=3.5;x+=2.3) stool(x, 8.2);
   const sign=box(scene,3,.85,.14,mats.purple,0,1.7,-12.83);
   sign.material=mat('#665379');
-  makeRoomLabel('VP SỜ MỜ LỜ', 0, -12.2);
+  makeRoomLabel('ĐI LÀM CÔNG TY', 0, -12.2);
 }
 
 function taoBanTho() {
