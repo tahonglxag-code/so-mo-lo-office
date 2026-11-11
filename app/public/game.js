@@ -1353,16 +1353,16 @@ function hoatAnhNhay(p,now){
   for(const [i,canh] of tay.entries())canh.rotation.x=kieu===1?-1.12*vaoRa:(i%2?-1:1)*lac*(kieu===4?1.3:.72);
 }
 const theVo=[
-  [-1.48,-1.48,.1,-.1,.08,0,.04],
-  [-2.35,-.55,-.43,.18,.22,-.26,.19],
-  [-.4,-2.38,.16,-.5,.21,.27,-.19],
-  [-1.78,-.86,-1.04,.12,.34,-.32,.18],
-  [-.77,-1.82,.12,-1.06,.32,.31,-.18],
-  [-2.65,-2.52,-.25,-.3,.64,0,-.13],
-  [-.45,-.48,.58,.65,.07,0,.36],
-  [-2.1,-.7,-.62,.24,.23,.43,.12],
-  [-.69,-2.12,.23,-.68,.23,-.43,-.12],
-  [-2.46,-2.46,-.18,-.19,.42,0,.02]
+  {tay:[[.75,.32],[.8,.32]],chan:[.16,-.14],than:[0,.08,0],nhun:.02,buoc:0},
+  {tay:[[1.56,.08],[.77,.24]],chan:[.43,-.26],than:[.28,.13,-.1],nhun:.03,buoc:-.19},
+  {tay:[[.69,.24],[1.62,.08]],chan:[-.25,.46],than:[-.31,.12,.1],nhun:.03,buoc:.21},
+  {tay:[[2.18,.74],[.88,.15]],chan:[.38,-.34],than:[.35,-.1,-.22],nhun:.12,buoc:-.26},
+  {tay:[[1.12,1.42],[1.48,.16]],chan:[-.18,.29],than:[-.46,.11,.2],nhun:.04,buoc:.2},
+  {tay:[[.96,.45],[.62,.72]],chan:[1.42,-.3],than:[.14,-.24,-.16],nhun:.32,buoc:-.16},
+  {tay:[[.62,.77],[.98,.4]],chan:[-.28,1.45],than:[-.16,-.24,.16],nhun:.34,buoc:.16},
+  {tay:[[.36,.55],[1.29,1.4]],chan:[.45,.38],than:[.52,.39,.29],nhun:-.07,buoc:.34},
+  {tay:[[1.58,.94],[1.6,.94]],chan:[.65,.54],than:[0,-.2,0],nhun:.63,buoc:0},
+  {tay:[[1.45,.2],[1.47,.2]],chan:[.47,-.28],than:[.07,.18,0],nhun:.09,buoc:0}
 ];
 const theRan=[
   [.66,.32,.13,0],[.95,.46,.16,.12],[1,.37,.12,-.13],
@@ -1406,12 +1406,15 @@ function batDauMuaVo(p,batDau){
   p.body.scale.set(1,1,1);
   const chi=p.avatar==='fish'?taoChiCa(p):[];
   if(chi.length)for(const chan of p.group.userData.chan)chan.visible=false;
-  p.muaVo={batDau,chi};
+  const tay=chi.length?chi.slice(0,2):p.group.userData.tay;
+  const chan=chi.length?chi.slice(2):p.group.userData.chan;
+  p.muaVo={batDau,chi,tay,chan,gocTay:tay.map(canh=>canh.rotation.clone())};
 }
 
 function dungMuaVo(p){
   if(!p.muaVo)return;
-  const {chi}=p.muaVo;
+  const {chi,tay,gocTay}=p.muaVo;
+  tay.forEach((canh,i)=>canh.rotation.copy(gocTay[i]));
   for(const que of chi){
     p.body.remove(que);
     que.geometry.dispose();
@@ -1422,7 +1425,7 @@ function dungMuaVo(p){
     boPhan.visible=true;
   }
   p.body.rotation.set(0,0,0);
-  p.body.position.y=0;
+  p.body.position.set(0,0,0);
   if(p.avatar==='snake')bungLoXo(p,0,0);
   p.muaVo=null;
 }
@@ -1434,26 +1437,27 @@ function veMuaVo(p){
   const nhip=Math.max(0,Date.now()-p.muaVo.batDau)/820*(kieu?.nhip||1);
   const i=Math.floor(nhip)%thuVien.length;
   const pha=nhip%1;
-  const muot=pha*pha*(3-2*pha);
+  const {tay,chan,gocTay}=p.muaVo;
+  const raDon=Math.min(1,pha/(p.avatar==='fish'?.86:.52));
+  const muot=raDon*raDon*(3-2*raDon);
   const tu=thuVien[i],den=thuVien[(i+1)%thuVien.length];
-  const the=tu.map((giaTri,j)=>THREE.MathUtils.lerp(giaTri,den[j],muot));
+  const noi=(dau,cuoi)=>THREE.MathUtils.lerp(dau,cuoi,muot);
   if(ran){
-    const [duoi,nga,nhun,nghieng]=the;
+    const [duoi,nga,nhun,nghieng]=tu.map((giaTri,j)=>noi(giaTri,den[j]));
     bungLoXo(p,.77,Math.sin(nhip*Math.PI*2),duoi);
     p.body.rotation.set(-nga,0,nghieng);
     p.body.position.y=nhun;
     return;
   }
-  const [tayTrai,tayPhai,chanTrai,chanPhai,nhun,xoay,cui]=the;
-  const {chi}=p.muaVo;
-  const tay=chi.length?chi.slice(0,2):p.group.userData.tay;
-  const chan=chi.length?chi.slice(2):p.group.userData.chan;
-  tay[0].rotation.x=tayTrai*kieu.tay;
-  tay[1].rotation.x=tayPhai*kieu.tay;
-  chan[0].rotation.x=chanTrai*kieu.chan;
-  chan[1].rotation.x=chanPhai*kieu.chan;
-  p.body.position.y=nhun*kieu.chan;
-  p.body.rotation.set(cui*kieu.nghieng,xoay*kieu.nghieng,(tayPhai-tayTrai)*.07*kieu.nghieng);
+  for(let j=0;j<2;j++){
+    const ben=j===0?-1:1;
+    const [duaTruoc,moNgang]=tu.tay[j].map((giaTri,k)=>noi(giaTri,den.tay[j][k]));
+    tay[j].rotation.set(duaTruoc*kieu.tay,0,gocTay[j].z+ben*moNgang*kieu.tay,'ZXY');
+    chan[j].rotation.x=noi(tu.chan[j],den.chan[j])*kieu.chan;
+  }
+  const [xoay,cui,nghieng]=tu.than.map((giaTri,j)=>noi(giaTri,den.than[j])*kieu.nghieng);
+  p.body.position.set(noi(tu.buoc,den.buoc)*kieu.chan,noi(tu.nhun,den.nhun)*kieu.chan,0);
+  p.body.rotation.set(cui,xoay,nghieng);
 }
 
 socket.on('mua-vo',event=>{
