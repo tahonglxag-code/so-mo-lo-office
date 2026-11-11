@@ -1177,7 +1177,10 @@ function veDoiThanhTra(now){
   if(lui===1)gioThanhTra=null;
 }
 function veSep(now){
-  const khach=[...players.values()].find(p=>p.hoatCanh?.loai==='boss'&&!p.runMotion&&now>=p.hoatCanh.batDau);
+  let khach;
+  for(const p of players.values()){
+    if(p.hoatCanh?.loai==='boss'&&!p.runMotion&&now>=p.hoatCanh.batDau){khach=p;break;}
+  }
   const t=khach?(now-khach.hoatCanh.batDau)/1000:0;
   const dap=khach?Math.max(0,Math.sin(t*8)):0;
   const than=sep.userData.body;
@@ -1508,6 +1511,7 @@ function bungLoXo(p, bung, nhip, duoi=0, dangTu, dangDen, tron=0, mucUon=1, dang
     loXo=new THREE.Mesh(hinh,than.userData.longRan);
     loXo.frustumCulled=false;
     loXo.userData.tam=Array.from({length:49},()=>new THREE.Vector3());
+    loXo.userData.vec=[new THREE.Vector3(),new THREE.Vector3(),new THREE.Vector3(),new THREE.Vector3()];
     than.add(loXo);
     than.userData.loXo=loXo;
   }
@@ -1520,7 +1524,8 @@ function bungLoXo(p, bung, nhip, duoi=0, dangTu, dangDen, tron=0, mucUon=1, dang
   const cao=1.38+bung*(.62+.38*nhip);
   const banKinh=.62-bung*(.12+.07*nhip);
   const tam=loXo.userData.tam;
-  const diemDich=new THREE.Vector3();
+  const [diemDich,tiepTuyen,ngang,dung]=loXo.userData.vec;
+  const phapTuyen=loXo.geometry.attributes.normal;
   for(let i=0;i<=48;i++){
     const tiLe=i/48;
     const goc=tiLe*Math.PI*5;
@@ -1542,7 +1547,6 @@ function bungLoXo(p, bung, nhip, duoi=0, dangTu, dangDen, tron=0, mucUon=1, dang
       tam[i].lerp(diemDich,mucUon);
     }
   }
-  const tiepTuyen=new THREE.Vector3(), ngang=new THREE.Vector3(), dung=new THREE.Vector3();
   for(let i=0;i<=48;i++){
     tiepTuyen.subVectors(tam[Math.min(48,i+1)],tam[Math.max(0,i-1)]).normalize();
     ngang.crossVectors(tiepTuyen,THREE.Object3D.DEFAULT_UP);
@@ -1552,27 +1556,31 @@ function bungLoXo(p, bung, nhip, duoi=0, dangTu, dangDen, tron=0, mucUon=1, dang
     const day=.025+.125*Math.min(1,i/8);
     for(let j=0;j<=10;j++){
       const goc=j*Math.PI*2/10;
-      const x=-Math.cos(goc)*day, y=Math.sin(goc)*day;
-      diem.setXYZ(i*11+j,tam[i].x+ngang.x*x+dung.x*y,tam[i].y+ngang.y*x+dung.y*y,tam[i].z+ngang.z*x+dung.z*y);
+      const x=-Math.cos(goc), y=Math.sin(goc);
+      const nx=ngang.x*x+dung.x*y,ny=ngang.y*x+dung.y*y,nz=ngang.z*x+dung.z*y;
+      const chiSo=i*11+j;
+      diem.setXYZ(chiSo,tam[i].x+nx*day,tam[i].y+ny*day,tam[i].z+nz*day);
+      phapTuyen.setXYZ(chiSo,nx,ny,nz);
     }
   }
   diem.needsUpdate=true;
-  loXo.geometry.computeVertexNormals();
+  phapTuyen.needsUpdate=true;
   dau.position.set(tam[48].x,tam[48].y-1.73,dangThuong?tam[48].z+.08:0);
 }
 
 function veRanThuong(p,now){
   if(!p.body.userData.thanCuon)return;
   const {x,z}=p.group.position;
-  const truoc=p.viTriRanTruoc;
-  const diChuyen=truoc&&Math.hypot(x-truoc.x,z-truoc.z)>.003;
-  p.viTriRanTruoc={x,z};
+  const diChuyen=Math.abs(x-p.ranX)+Math.abs(z-p.ranZ)>.003;
+  p.ranX=x;
+  p.ranZ=z;
   if(p.nhay||p.muaVo||p.hanhDong||p.hoatCanh||p.chichDien){
     p.dangRanThuong=null;
     return;
   }
   const dang=diChuyen?'bo':'nen';
-  if(dang==='nen'&&p.dangRanThuong===dang)return;
+  if(p.dangRanThuong===dang&&(dang==='nen'||now-p.gioVeRan<33))return;
+  p.gioVeRan=now;
   bungLoXo(p,1,now*.009,0,undefined,undefined,0,1,dang);
   p.dangRanThuong=dang;
 }
