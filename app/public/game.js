@@ -631,12 +631,21 @@ function animal(type, tint = null) {
   if(type!=='snake') for(const x of [-.3,.3]) {
     const tall=type==='cow'||type==='leopard';
     const dai=tall?.44:.34;
-    const hinhChan=new THREE.CylinderGeometry(tall?.12:.1,tall?.14:.13,dai,8);
-    hinhChan.translate(0,-dai/2,0);
-    const leg=new THREE.Mesh(hinhChan,type==='sloth'?fur:dark);
+    const tren=tall?.12:.1, duoi=tall?.14:.13;
+    const giua=(tren+duoi)/2;
+    const chatLieu=type==='sloth'?fur:dark;
+    const leg=new THREE.Group();
+    const goi=new THREE.Group();
+    const dui=new THREE.CylinderGeometry(tren,giua,dai/2+.014,8);
+    dui.translate(0,-dai/4-.007,0);
+    const ongChan=new THREE.CylinderGeometry(giua,duoi,dai/2+.014,8);
+    ongChan.translate(0,-dai/4+.007,0);
+    leg.add(new THREE.Mesh(dui,chatLieu),goi);
+    goi.position.y=-dai/2;
+    goi.add(new THREE.Mesh(ongChan,chatLieu));
     leg.userData.chan=true;
+    leg.userData.goi=goi;
     leg.position.set(x,(tall?.21:.15)+dai/2,.05);
-    leg.castShadow=true;
     body.add(leg);
   }
   body.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true;}});
@@ -1344,6 +1353,10 @@ function hoatAnhNhay(p,now){
       canh.rotation.x=0;
       canh.userData.khuYu.rotation.x=0;
     }
+    for(const chan of p.group.userData.chan){
+      chan.rotation.x=0;
+      chan.userData.goi.rotation.x=0;
+    }
     p.nhay=null;
     return;
   }
@@ -1375,7 +1388,15 @@ function hoatAnhNhay(p,now){
   }
   if(kieu===0){
     p.body.rotation.set(0,t*Math.PI*2*soNhip,lac*.15);
-    p.body.position.y=.22*bat;
+    for(const canh of tay){
+      canh.rotation.x=2.95*vaoRa;
+      canh.userData.khuYu.rotation.x=-.36*vaoRa;
+    }
+    const chanCo=p.group.userData.chan[0];
+    chanCo.rotation.x=1.17*vaoRa;
+    chanCo.userData.goi.rotation.x=-1.92*vaoRa;
+    p.body.position.y=.04*vaoRa;
+    return;
   }else if(kieu===1){
     const doc=Math.min(1,t*5,(1-t)*5);
     const cao={snake:1.94,fish:1.68,sloth:1.89,cow:2.03,leopard:1.91}[p.avatar];
@@ -1394,7 +1415,7 @@ function hoatAnhNhay(p,now){
   for(const [i,canh] of tay.entries()){
     const ben=i%2?-1:1;
     canh.rotation.x=kieu===1?-1.12*vaoRa:ben*lac*(kieu===4?1.3:.72);
-    const gap=kieu===1?.32:kieu===0?.94:.7;
+    const gap=kieu===1?.32:.7;
     canh.userData.khuYu.rotation.x=(gap+.44*Math.sin(pha+ben*Math.PI/2))*vaoRa;
   }
 }
