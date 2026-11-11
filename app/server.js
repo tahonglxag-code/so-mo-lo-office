@@ -446,7 +446,7 @@ io.on('connection', socket => {
     const room = rooms.get(code);
     if (!room?.has(socket.id)) return;
     if(Date.now()<(room.get(socket.id).lockedUntil||0))return;
-    if(Date.now()<(room.meetingUntil||0))return socket.emit('feed',{text:'Mọi người đang di chuyển vào phòng họp B.'});
+    if(Date.now()<(room.meetingUntil||0))return socket.emit('feed',{text:'Mọi người đang di chuyển vào phòng họp.'});
     const players = [...room.values()].map((player, index) => {
       if(player.hoatCanh)io.to(code).emit('het-hoat-canh',player.id);
       player.hoatCanh=null;
@@ -475,7 +475,7 @@ io.on('connection', socket => {
     const duration=Math.max(...players.map(p=>p.duration));
     room.meetingUntil=Date.now()+duration;
     io.to(code).emit('urgent-meeting', { players, duration });
-    io.to(code).emit('feed', { text: '🚨 HỌP GẤP: cả phòng đã được gọi vào phòng họp B' });
+    io.to(code).emit('feed', { text: '🚨 HỌP GẤP: cả phòng đã được gọi vào phòng họp' });
   });
 
   socket.on('chat', value => {
