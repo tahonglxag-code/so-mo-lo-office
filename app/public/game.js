@@ -691,6 +691,8 @@ function guiThaoTac(){
   const now=performance.now();
   if(now-thaoTacGanNhat<300)return;
   thaoTacGanNhat=now;
+  const me=players.get(selfId);
+  if(me?.muaVo)dungMuaVo(me);
   socket.emit('thao-tac');
 }
 document.addEventListener('pointerdown',guiThaoTac,true);
@@ -1493,13 +1495,28 @@ function veMuaVo(p){
 socket.on('mua-vo',event=>{
   const p=players.get(event.id);
   if(!p)return;
-  if(!event.batDau){dungMuaVo(p);return;}
   dungMuaVo(p);
-  p.group.position.set(event.x,0,event.z);
-  p.target.copy(p.group.position);
-  p.group.rotation.y=p.yaw=event.yaw;
+  if(!event.batDau){
+    if(p.raHang&&p.runMotion===p.raHang){
+      p.runMotion=null;
+      p.group.position.y=0;
+      p.target.copy(p.group.position);
+    }
+    p.raHang=null;
+    return;
+  }
+  const dich=new THREE.Vector3(event.x,0,event.z);
+  p.yaw=event.yaw;
+  p.target.copy(dich);
+  p.raHang={
+    points:[p.group.position.clone(),dich],
+    started:performance.now(),
+    duration:event.duration,
+    jump:false,
+    batDau:event.batDau
+  };
+  p.runMotion=p.raHang;
   if(p.id===selfId)targetWorld=null;
-  batDauMuaVo(p,event.batDau);
 });
 socket.on('self-action',event=>{
   const p=players.get(event.id);if(!p)return;
@@ -1603,7 +1620,7 @@ function frame(now) {
     if(!running&&me.workSeatId&&!me.working){dx=0;dz=0;}
     if(now<(me.khoaDen||0)){dx=0;dz=0;}
     if(!running&&(dx||dz)){const mag=Math.hypot(dx,dz);dx/=mag;dz/=mag;me.group.position.x=THREE.MathUtils.clamp(me.group.position.x+dx*5.2*dt,-18.4,18.4);me.group.position.z=THREE.MathUtils.clamp(me.group.position.z+dz*5.2*dt,-11.5,11.5);me.group.rotation.y=Math.atan2(-dx,-dz);}
-    if(socket.connected&&now>=(me.khoaDen||0)&&now-lastMove>100){socket.volatile.emit('move',{x:me.group.position.x,z:me.group.position.z,yaw:me.group.rotation.y});lastMove=now;}
+    if(socket.connected&&!me.raHang&&!me.muaVo&&now>=(me.khoaDen||0)&&now-lastMove>100){socket.volatile.emit('move',{x:me.group.position.x,z:me.group.position.z,yaw:me.group.rotation.y});lastMove=now;}
     const goc=tinhGocMay(me.group.position.x,me.group.position.z,camera.fov,camera.aspect);
     camera.position.set(goc.viTri.x,goc.viTri.y,goc.viTri.z);camera.lookAt(goc.tam.x,goc.tam.y,goc.tam.z);
   }
@@ -1631,6 +1648,12 @@ function frame(now) {
     hoatAnh(p,now);
     if(p.nhay)hoatAnhNhay(p,now);
     if(p.chichDien)veChichDien(p,now);
+    if(p.raHang&&!p.runMotion){
+      const {batDau}=p.raHang;
+      p.raHang=null;
+      p.group.rotation.y=p.yaw;
+      batDauMuaVo(p,batDau);
+    }
     if(p.muaVo)veMuaVo(p);
   }
   veKhoiWc(now);
