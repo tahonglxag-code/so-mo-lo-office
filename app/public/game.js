@@ -1262,7 +1262,16 @@ function batDauNhay(p,kieu,batDau,ketThuc){
   p.nhay={kieu,batDau,ketThuc};
   if(p.id===selfId)targetWorld=null;
 }
-function bungLoXo(p, bung, nhip, duoi=0){
+const dangThanRan = [
+  [[.98,2.5],[.64,1.93],[.21,1.06],[-.04,.67],[-.3,.78],[-.69,1.05]],
+  [[.21,2.5],[.24,1.99],[.18,1.37],[.05,.72],[-.18,.24]],
+  [[.98,1.94],[.67,1.57],[.22,.91],[-.02,.57],[-.29,.95],[-.72,1.43]],
+  [[.27,1.99],[.81,1.69],[.95,1.03],[.75,.49],[.11,.22],[-.58,.37],[-.86,.79],[-.68,1.39],[-.26,1.79]]
+].map(cacDiem => new THREE.CatmullRomCurve3(
+  cacDiem.map(([x,y])=>new THREE.Vector3(x,y,-.08))
+).getSpacedPoints(48));
+
+function bungLoXo(p, bung, nhip, duoi=0, dangTu, dangDen, tron=0, mucUon=1){
   const than=p.body;
   const dau=p.group.userData.dau;
   const dangBung=bung>.09;
@@ -1281,13 +1290,14 @@ function bungLoXo(p, bung, nhip, duoi=0){
   }
   if(loXo)loXo.visible=dangBung;
   if(!dangBung){
-    dau.position.y=than.userData.caoDauRan;
+    dau.position.set(0,than.userData.caoDauRan,0);
     return;
   }
   const diem=loXo.geometry.attributes.position;
   const cao=1.38+bung*(.62+.38*nhip);
   const banKinh=.62-bung*(.12+.07*nhip);
   const tam=loXo.userData.tam;
+  const diemDich=new THREE.Vector3();
   for(let i=0;i<=48;i++){
     const tiLe=i/48;
     const goc=tiLe*Math.PI*5;
@@ -1298,11 +1308,17 @@ function bungLoXo(p, bung, nhip, duoi=0){
       .12+cao*tiLe,
       .03+(1-duoi)*Math.sin(goc)*banKinh*thuon-.11*tiLe
     );
+    if(dangTu||dangDen){
+      diemDich.copy(dangTu?.[i]||tam[i]).lerp(dangDen?.[i]||tam[i],tron);
+      tam[i].lerp(diemDich,mucUon);
+    }
   }
   const tiepTuyen=new THREE.Vector3(), ngang=new THREE.Vector3(), dung=new THREE.Vector3();
   for(let i=0;i<=48;i++){
     tiepTuyen.subVectors(tam[Math.min(48,i+1)],tam[Math.max(0,i-1)]).normalize();
-    ngang.crossVectors(tiepTuyen,THREE.Object3D.DEFAULT_UP).normalize();
+    ngang.crossVectors(tiepTuyen,THREE.Object3D.DEFAULT_UP);
+    if(ngang.lengthSq()<.00001)ngang.set(1,0,0);
+    else ngang.normalize();
     dung.crossVectors(tiepTuyen,ngang).normalize();
     const day=.025+.125*Math.min(1,i/8);
     for(let j=0;j<=10;j++){
@@ -1313,7 +1329,7 @@ function bungLoXo(p, bung, nhip, duoi=0){
   }
   diem.needsUpdate=true;
   loXo.geometry.computeVertexNormals();
-  dau.position.y=tam[48].y-1.73;
+  dau.position.set(tam[48].x,tam[48].y-1.73,0);
 }
 
 function hoatAnhNhay(p,now){
@@ -1338,9 +1354,14 @@ function hoatAnhNhay(p,now){
   const lac=Math.sin(pha)*bienDo*vaoRa;
   const bat=Math.abs(Math.sin(pha/2))*bienDo*vaoRa;
   if(p.avatar==='snake'){
-    bungLoXo(p,vaoRa,Math.sin(pha));
-    p.body.rotation.set(0,kieu===0?t*Math.PI*2:0,.17*lac);
-    p.body.position.y=(kieu===3?.32:.12)*bat;
+    const moc=t*4;
+    const dang=Math.floor(moc);
+    const phaDang=moc-dang;
+    const tron=phaDang*phaDang*(3-2*phaDang);
+    const tu=dangThanRan[(dang+kieu)%4],den=dangThanRan[(dang+kieu+1)%4];
+    bungLoXo(p,vaoRa,Math.sin(pha),.4,tu,den,tron,vaoRa);
+    p.body.rotation.set(0,kieu===0?t*Math.PI*2:.28*lac,.09*lac);
+    p.body.position.y=.14*bat;
     return;
   }
   if(p.avatar==='fish'&&kieu===0){
@@ -1503,8 +1524,12 @@ function veMuaVo(p){
   const cungXoay=Math.sin(xoayVong)*.37;
   if(ran){
     const [duoi,nga,nhun,nghieng,huong,ngang,truoc]=tu.map((giaTri,j)=>noi(giaTri,den[j]));
-    bungLoXo(p,.77,Math.sin(nhip*Math.PI*2),duoi);
-    p.body.rotation.set(-nga,huong+xoayVong,nghieng);
+    const cacDang=[-1,0,1,2,3,-1,2,0,1,3,-1,-1];
+    const dangTu=dangThanRan[cacDang[thuTu[i]]];
+    const dangDen=dangThanRan[cacDang[thuTu[(i+1)%thuVien.length]]];
+    const tyLeDang=noi(Number(Boolean(dangTu)),Number(Boolean(dangDen)));
+    bungLoXo(p,.77,Math.sin(nhip*Math.PI*2),duoi,dangTu,dangDen,muot);
+    p.body.rotation.set(-nga*(1-.9*tyLeDang),huong+xoayVong,nghieng*(1-.65*tyLeDang));
     p.body.position.set(ngang+cungXoay,nhun,truoc);
     return;
   }
