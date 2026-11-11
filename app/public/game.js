@@ -1353,21 +1353,32 @@ function hoatAnhNhay(p,now){
   for(const [i,canh] of tay.entries())canh.rotation.x=kieu===1?-1.12*vaoRa:(i%2?-1:1)*lac*(kieu===4?1.3:.72);
 }
 const theVo=[
-  {tay:[[.75,.32],[.8,.32]],chan:[.16,-.14],than:[0,.08,0],nhun:.02,buoc:0},
-  {tay:[[1.56,.08],[.77,.24]],chan:[.43,-.26],than:[.28,.13,-.1],nhun:.03,buoc:-.19},
-  {tay:[[.69,.24],[1.62,.08]],chan:[-.25,.46],than:[-.31,.12,.1],nhun:.03,buoc:.21},
-  {tay:[[2.18,.74],[.88,.15]],chan:[.38,-.34],than:[.35,-.1,-.22],nhun:.12,buoc:-.26},
-  {tay:[[1.12,1.42],[1.48,.16]],chan:[-.18,.29],than:[-.46,.11,.2],nhun:.04,buoc:.2},
-  {tay:[[.96,.45],[.62,.72]],chan:[1.42,-.3],than:[.14,-.24,-.16],nhun:.32,buoc:-.16},
-  {tay:[[.62,.77],[.98,.4]],chan:[-.28,1.45],than:[-.16,-.24,.16],nhun:.34,buoc:.16},
-  {tay:[[.36,.55],[1.29,1.4]],chan:[.45,.38],than:[.52,.39,.29],nhun:-.07,buoc:.34},
-  {tay:[[1.58,.94],[1.6,.94]],chan:[.65,.54],than:[0,-.2,0],nhun:.63,buoc:0},
-  {tay:[[1.45,.2],[1.47,.2]],chan:[.47,-.28],than:[.07,.18,0],nhun:.09,buoc:0}
+  {tay:[[.74,-.16],[.74,-.16]],chan:[[.19,.24],[-.13,.24]],than:[0,0,0],viTri:[0,.02,0]},
+  {tay:[[1.61,.05],[.61,-.33]],chan:[[.78,.16],[-.57,.42]],than:[-.79,.16,-.08],viTri:[-.56,.02,-.58]},
+  {tay:[[.61,-.16],[.76,-.28]],chan:[[1.87,.05],[-.13,.08]],than:[-.72,-.27,-.14],viTri:[-.43,.39,-.69]},
+  {tay:[[.88,-.24],[2.36,.37]],chan:[[-.35,.35],[.55,.29]],than:[.67,-.08,.13],viTri:[.37,.04,-.24]},
+  {tay:[[1.08,1.01],[1.08,1.01]],chan:[[.57,.83],[.57,.83]],than:[0,.16,0],viTri:[0,-.16,.22]},
+  {tay:[[1.22,.78],[.57,-.14]],chan:[[1.84,1.07],[-.1,.13]],than:[-1.56,-.19,-.3],viTri:[-.72,.35,.08]},
+  {tay:[[.63,-.18],[1.53,.52]],chan:[[-.17,.08],[1.94,.68]],than:[1.68,-.22,.27],viTri:[.57,.45,-.37]},
+  {tay:[[1.64,.07],[1.64,.07]],chan:[[.68,.22],[-.6,.37]],than:[.56,.29,0],viTri:[.55,.04,-.83]},
+  {tay:[[2.58,.41],[.48,-.36]],chan:[[.52,.35],[-.45,.43]],than:[-.94,-.14,-.17],viTri:[-.46,.12,-.48]},
+  {tay:[[.15,.24],[1.17,-.29]],chan:[[.69,.5],[-.47,.35]],than:[-.71,.56,.17],viTri:[-.47,-.04,-.39]},
+  {tay:[[.15,1.46],[.15,1.46]],chan:[[.08,.52],[.08,.52]],than:[0,0,0],viTri:[0,.19,.16]},
+  {tay:[[2.5,.72],[2.5,.72]],chan:[[0,.06],[0,.06]],than:[0,-.13,0],viTri:[0,.04,0]}
 ];
 const theRan=[
-  [.66,.32,.13,0],[.95,.46,.16,.12],[1,.37,.12,-.13],
-  [.87,.18,.43,.16],[1,.09,.65,0],[.55,0,.3,-.1],
-  [1,1.49,.43,0],[.9,1.32,.38,.12],[.74,.58,.24,-.14],[.64,.15,.38,0]
+  [.66,.23,.13,0,0,0,0],
+  [.95,.86,.48,.14,-.78,-.53,-.58],
+  [1,.18,.39,-.14,-.55,-.4,-.7],
+  [.87,.12,.25,.28,.66,.34,-.22],
+  [1,1.44,.43,0,0,0,.22],
+  [.91,1.17,.47,-.19,-1.53,-.68,.08],
+  [1,.97,.59,.26,1.66,.55,-.37],
+  [.79,.75,.37,.12,.55,.51,-.81],
+  [.91,.02,.7,-.14,-.87,-.43,-.45],
+  [1,1.29,.44,.19,-.67,-.42,-.34],
+  [.43,.23,.41,0,0,0,.15],
+  [.64,.08,.29,0,0,0,0]
 ];
 const nhanVatMuaVo={
   fish:{tay:.97,chan:.85,nghieng:1.4,nhip:.9},
@@ -1409,12 +1420,13 @@ function batDauMuaVo(p,batDau){
   if(chi.length)for(const chan of p.group.userData.chan)chan.visible=false;
   const tay=chi.length?chi.slice(0,2):p.group.userData.tay;
   const chan=chi.length?chi.slice(2):p.group.userData.chan;
-  p.muaVo={batDau,chi,tay,chan,gocTay:tay.map(canh=>canh.rotation.clone())};
+  p.muaVo={batDau,chi,tay,chan,gocTay:tay.map(canh=>canh.rotation.clone()),gocChan:chan.map(chi=>chi.rotation.clone())};
 }
 
 function dungMuaVo(p){
   if(!p.muaVo)return;
-  const {chi,tay,gocTay}=p.muaVo;
+  const {chi,tay,chan,gocTay,gocChan}=p.muaVo;
+  chan.forEach((boPhan,i)=>boPhan.rotation.copy(gocChan[i]));
   tay.forEach((canh,i)=>canh.rotation.copy(gocTay[i]));
   for(const que of chi){
     p.body.remove(que);
@@ -1438,34 +1450,35 @@ function veMuaVo(p){
   const nhip=Math.max(0,Date.now()-p.muaVo.batDau)/820*(kieu?.nhip||1);
   const i=Math.floor(nhip)%thuVien.length;
   const pha=nhip%1;
-  const {tay,chan,gocTay}=p.muaVo;
-  const raDon=Math.min(1,pha/(p.avatar==='fish'?.86:.52));
+  const {tay,chan,gocTay,gocChan}=p.muaVo;
+  const dangXoay=i===10;
+  const raDon=Math.min(1,pha/(dangXoay?.88:p.avatar==='fish'?.78:.63));
   const muot=raDon*raDon*(3-2*raDon);
   const tu=thuVien[i],den=thuVien[(i+1)%thuVien.length];
   const noi=(dau,cuoi)=>THREE.MathUtils.lerp(dau,cuoi,muot);
+  const xoayVong=dangXoay?muot*Math.PI*2:0;
+  const cungXoay=Math.sin(xoayVong)*.37;
   if(ran){
-    const [duoi,nga,nhun,nghieng]=tu.map((giaTri,j)=>noi(giaTri,den[j]));
+    const [duoi,nga,nhun,nghieng,huong,ngang,truoc]=tu.map((giaTri,j)=>noi(giaTri,den[j]));
     bungLoXo(p,.77,Math.sin(nhip*Math.PI*2),duoi);
-    p.body.rotation.set(-nga,0,nghieng);
-    p.body.position.y=nhun;
+    p.body.rotation.set(-nga,huong+xoayVong,nghieng);
+    p.body.position.set(ngang+cungXoay,nhun,truoc);
     return;
   }
   for(let j=0;j<2;j++){
     const ben=j===0?-1:1;
     const [duaTruoc,moNgang]=tu.tay[j].map((giaTri,k)=>noi(giaTri,den.tay[j][k]));
     tay[j].rotation.set(duaTruoc*kieu.tay,0,gocTay[j].z+ben*moNgang*kieu.tay,'ZXY');
-    chan[j].rotation.x=noi(tu.chan[j],den.chan[j])*kieu.chan;
+    const [da,buocNgang]=tu.chan[j].map((giaTri,k)=>noi(giaTri,den.chan[j][k]));
+    chan[j].rotation.set(da*kieu.chan,0,gocChan[j].z+ben*buocNgang*kieu.chan,'ZXY');
   }
-  if(p.avatar==='fish'){
-    const vong=nhip/thuVien.length*Math.PI*2;
-    const luon=Math.sin(vong*2);
-    p.body.position.set(noi(tu.buoc,den.buoc)*1.5+luon*.28,.13+noi(tu.nhun,den.nhun)*.95,0);
-    p.body.rotation.set(noi(tu.than[1],den.than[1])*.7,noi(tu.than[0],den.than[0])*1.5,luon*.23);
-    return;
-  }
-  const [xoay,cui,nghieng]=tu.than.map((giaTri,j)=>noi(giaTri,den.than[j])*kieu.nghieng);
-  p.body.position.set(noi(tu.buoc,den.buoc)*kieu.chan,noi(tu.nhun,den.nhun)*kieu.chan,0);
-  p.body.rotation.set(cui,xoay,nghieng);
+  const [xoay,cui,nghieng]=tu.than.map((giaTri,j)=>noi(giaTri,den.than[j]));
+  const [ngang,cao,truoc]=tu.viTri.map((giaTri,j)=>noi(giaTri,den.viTri[j]));
+  const vong=thuVien.length;
+  const ca=p.avatar==='fish';
+  const luon=ca?Math.sin(nhip/vong*Math.PI*4):0;
+  p.body.position.set(ngang+cungXoay+luon*.13,cao+(ca?.13:0),truoc);
+  p.body.rotation.set(cui*kieu.nghieng,xoay+xoayVong,nghieng*kieu.nghieng+luon*.2);
 }
 
 socket.on('mua-vo',event=>{
