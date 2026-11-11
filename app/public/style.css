@@ -23,11 +23,11 @@
 .chat-head,.messages{color:#352139;text-shadow:0 0 3px #fff,0 0 5px #fff}
 .messages{max-height:none;min-height:0;overscroll-behavior:contain}
 .feed div{animation:none}
-#ru-nhau{max-width:min(360px,90vw);border:0;border-radius:16px;background:#fff6e8;color:#382b40;padding:18px}
-#ru-nhau::backdrop{background:#281e35a3}
-#ban-nhau{max-height:45vh;overflow:auto;margin:10px 0}
-#ban-nhau label{display:block;padding:4px}
-#ru-nhau button{padding:6px 12px;margin-right:6px}
+:is(#ru-nhau,#di-wc){max-width:min(360px,90vw);border:0;border-radius:16px;background:#fff6e8;color:#382b40;padding:18px}
+:is(#ru-nhau,#di-wc)::backdrop{background:#281e35a3}
+:is(#ban-nhau,#ban-wc){max-height:45vh;overflow:auto;margin:10px 0}
+:is(#ban-nhau,#ban-wc) label{display:block;padding:4px}
+:is(#ru-nhau,#di-wc) button{padding:6px 12px;margin-right:6px}
 @media(max-width:760px){.chatbox{height:152px}.action-grid button{padding-inline:2px}}
 
 .dock{grid-template-rows:minmax(0,1fr)}
