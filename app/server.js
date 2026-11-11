@@ -329,7 +329,7 @@ io.on('connection', socket => {
       }
       player.pose = action;
       player.poseUntil = player.lockedUntil;
-      player.dieuNhay = randomInt(5);
+      player.dieuNhay = ((player.dieuNhay ?? -1) + 1) % 5;
       scheduleIdleLine(code, player);
       io.to(code).emit('self-action', { id: player.id, action, x: player.x, z: player.z, yaw: player.yaw, duration, at, dieuNhay: player.dieuNhay });
       return;
