@@ -292,6 +292,8 @@ function enclosedRoom(xMin, xMax, zMin, zMax, title, doorX) {
   }else makeRoomLabel(title,(xMin+xMax)/2,(zMin+zMax)/2);
 }
 
+const gheSanh=[];
+
 function office() {
   const base = new THREE.Mesh(new THREE.BoxGeometry(40, .42, 26), mats.floor);
   base.position.y = -.3;
@@ -336,7 +338,10 @@ function office() {
   for (const [x,z] of [[-18.8,-5.7],[-16.8,-5.7],[12.2,-4.2],[18.8,-4.2],[12.2,8.9],[18.8,8.9],[-18.5,11.8],[18.5,11.8]]) plant(x,z);
   box(scene, .12, .85, 5.2, mats.wallLight, -6.8, .17, -8.3);
   box(scene, .12, .85, 5.2, mats.wallLight, 6.8, .17, -8.3);
-  for (let x=-3.5;x<=3.5;x+=2.3) stool(x, 8.2);
+  for(let i=0;i<4;i++){
+    const x=-3.5+i*2.3,z=8.2;
+    gheSanh.push({x,z,vat:stool(x,z)});
+  }
   const sign=box(scene,3,.85,.14,mats.purple,0,1.7,-12.83);
   sign.material=mat('#665379');
   makeRoomLabel('ĐI LÀM CÔNG TY', 0, -12.2);
@@ -442,10 +447,14 @@ function conferenceRoom(x,z) {
 }
 
 function stool(x,z) {
+  const ghe=new THREE.Group();
+  ghe.position.set(x,0,z);
+  scene.add(ghe);
   const seat = new THREE.Mesh(new THREE.CylinderGeometry(.29,.29,.16,24),mats.gray);
-  seat.position.set(x,.48,z); seat.castShadow=true; scene.add(seat);
+  seat.position.y=.48; seat.castShadow=true; ghe.add(seat);
   const leg=new THREE.Mesh(new THREE.CylinderGeometry(.07,.09,.43,12),mats.trim);
-  leg.position.set(x,.2,z); leg.castShadow=true; scene.add(leg);
+  leg.position.y=.2; leg.castShadow=true; ghe.add(leg);
+  return ghe;
 }
 
 function plant(x,z) {
@@ -1071,8 +1080,21 @@ const kyTuBay = [];
 const mauKyTuMang = new Map();
 const miengSep = new THREE.Vector3();
 const dauKhach = new THREE.Vector3();
-let gocNhomBia=0;
-let tamCumBia=0;
+let doiHinhGhe;
+function veGheNhau(now){
+  let canh;
+  for(const p of players.values()){
+    if(p.hoatCanh?.gheNhau&&now<p.hoatCanh.ketThuc){canh=p.hoatCanh;break;}
+  }
+  if(doiHinhGhe===canh?.batDau)return;
+  doiHinhGhe=canh?.batDau;
+  gheSanh.forEach(({x,z,vat},i)=>{
+    const ghe=canh?.gheNhau[i];
+    vat.visible=!canh||Boolean(ghe);
+    vat.position.set(ghe?.x??x,0,ghe?.z??z);
+  });
+  renderer.shadowMap.needsUpdate=true;
+}
 function taoDoiThanhTra(){
   const xanh=mat('#438846'), non=mat('#2d6233');
   return Array.from({length:5},()=>{
@@ -1146,17 +1168,13 @@ function batHoatCanh(p,canh,vaoSau=false){
 }
 
 socket.on('hoat-canh',event=>{
-  if(event.loai==='drink'){
-    gocNhomBia=event.batDau;
-    tamCumBia=event.nguoi.reduce((tong,p)=>tong+p.x,0)/event.nguoi.length;
-  }
   if(event.loai==='boss'){
     const cua=cuaHop.get('PHÒNG SẾP');
     if(cua){cua.rotation.y=Math.PI/2;clearTimeout(cua.userData.dong);cua.userData.dong=setTimeout(()=>{cua.rotation.y=0;renderer.shadowMap.needsUpdate=true;},1300);}
   }
   for(const data of event.nguoi){
     const p=players.get(data.id);
-    if(p)batHoatCanh(p,{...data,loai:event.loai,batDau:event.batDau,ketThuc:event.ketThuc,khoaDen:event.khoaDen});
+    if(p)batHoatCanh(p,{...data,loai:event.loai,batDau:event.batDau,ketThuc:event.ketThuc,khoaDen:event.khoaDen,gheNhau:event.gheNhau,tamBia:event.tamBia});
   }
 });
 socket.on('het-hoat-canh',id=>{const p=players.get(id);if(p)hetHoatCanh(p);});
@@ -1197,8 +1215,11 @@ function veHoatCanh(p,now){
       tay.userData.khuYu.rotation.x=.4+uong*.86;
     }
     if(!canh.bia){canh.bia=taoIcon('🍺');scene.add(canh.bia);}
-    const tam=gocNhomBia===canh.batDau?tamCumBia:0;
-    canh.bia.position.set(THREE.MathUtils.lerp(p.group.position.x,tam,toiTam),1.2+.48*uong,8.82+.1*toiTam);
+    const {x,z}=p.group.position;
+    const dx=canh.tamBia.x-x,dz=canh.tamBia.z-z;
+    const dai=Math.hypot(dx,dz)||1;
+    const vuon=THREE.MathUtils.lerp(.55-.2*uong,Math.max(.55,dai-.09),toiTam);
+    canh.bia.position.set(x+dx/dai*vuon,1.2+.48*uong,z+dz/dai*vuon);
     canh.bia.material.rotation=uong*.64;
   }
 }
@@ -1600,7 +1621,7 @@ function bungLoXo(p, bung, nhip, duoi=0, dangTu, dangDen, tron=0, mucUon=1, dang
     );
     if(dangThuong==='nen'){
       const vong=tiLe*Math.PI*4.7;
-      const rong=.63*(1-.34*tiLe)*Math.min(1,(1-tiLe)*5);
+      const rong=.63*(1-.42*tiLe)*Math.min(1,(1-tiLe)*5);
       tam[i].set(Math.cos(vong)*rong,.16+tiLe*.93,Math.sin(vong)*rong-.08*tiLe);
     }else if(dangThuong==='bo'){
       tam[i].set(Math.sin((1-tiLe)*Math.PI*3-nhip)*(.36-.19*tiLe),.15+.2*tiLe**6,.98-1.74*tiLe);
@@ -2058,6 +2079,7 @@ function frame(now) {
   veKhoiWc(now);
   veDoiThanhTra(Date.now());
   veSep(Date.now());
+  veGheNhau(Date.now());
   for(let i=vatNem.length-1;i>=0;i--){
     const v=vatNem[i],dich=players.get(v.dich),t=(now-v.batDau)/v.thoiGian;
     if(!dich||t>=1){
