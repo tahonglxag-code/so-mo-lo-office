@@ -1370,21 +1370,22 @@ const theRan=[
   [1,1.49,.43,0],[.9,1.32,.38,.12],[.74,.58,.24,-.14],[.64,.15,.38,0]
 ];
 const nhanVatMuaVo={
-  fish:{tay:.58,chan:.37,nghieng:.55,nhip:.8},
+  fish:{tay:.97,chan:.85,nghieng:1.4,nhip:.9},
   sloth:{tay:.79,chan:.51,nghieng:.72,nhip:.88},
   cow:{tay:.91,chan:.79,nghieng:.91,nhip:1},
   leopard:{tay:1,chan:1,nghieng:1,nhip:1.12}
 };
 
 function taoChiCa(p){
-  const chatLieu=new THREE.LineBasicMaterial({color:'#175d78'});
+  const chatLieu=new THREE.MeshBasicMaterial({color:'#133e50'});
   const chi=[];
-  for(const [cao,ngang,dai] of [[.55,.57,.36],[.24,.23,.26]]){
+  for(const [cao,ngang,dai,doXoe] of [[.62,.6,.53,.67],[.24,.31,.4,.36]]){
     for(const ben of [-1,1]){
-      const hinh=new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(),new THREE.Vector3(0,-dai,0)]);
-      const que=new THREE.Line(hinh,chatLieu);
-      que.position.set(ben*ngang,cao,-.02);
-      que.rotation.z=ben*.65;
+      const hinh=new THREE.CapsuleGeometry(.028,dai-.056,3,6);
+      hinh.translate(0,-dai/2,0);
+      const que=new THREE.Mesh(hinh,chatLieu);
+      que.position.set(ben*ngang,cao,-.22);
+      que.rotation.z=ben*doXoe;
       p.body.add(que);
       chi.push(que);
     }
@@ -1454,6 +1455,13 @@ function veMuaVo(p){
     const [duaTruoc,moNgang]=tu.tay[j].map((giaTri,k)=>noi(giaTri,den.tay[j][k]));
     tay[j].rotation.set(duaTruoc*kieu.tay,0,gocTay[j].z+ben*moNgang*kieu.tay,'ZXY');
     chan[j].rotation.x=noi(tu.chan[j],den.chan[j])*kieu.chan;
+  }
+  if(p.avatar==='fish'){
+    const vong=nhip/thuVien.length*Math.PI*2;
+    const luon=Math.sin(vong*2);
+    p.body.position.set(noi(tu.buoc,den.buoc)*1.5+luon*.28,.13+noi(tu.nhun,den.nhun)*.95,0);
+    p.body.rotation.set(noi(tu.than[1],den.than[1])*.7,noi(tu.than[0],den.than[0])*1.5,luon*.23);
+    return;
   }
   const [xoay,cui,nghieng]=tu.than.map((giaTri,j)=>noi(giaTri,den.than[j])*kieu.nghieng);
   p.body.position.set(noi(tu.buoc,den.buoc)*kieu.chan,noi(tu.nhun,den.nhun)*kieu.chan,0);
