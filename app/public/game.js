@@ -621,8 +621,14 @@ function animal(type, tint = null) {
   }
   if(type!=='snake') for(const x of [-.3,.3]) {
     const tall=type==='cow'||type==='leopard';
-    const leg=new THREE.Mesh(new THREE.CylinderGeometry(tall?.12:.1,tall?.14:.13,tall?.44:.34,8),type==='sloth'?fur:dark);
-    leg.userData.chan=true;leg.position.set(x,tall?.21:.15,.05); leg.castShadow=true; body.add(leg);
+    const dai=tall?.44:.34;
+    const hinhChan=new THREE.CylinderGeometry(tall?.12:.1,tall?.14:.13,dai,8);
+    hinhChan.translate(0,-dai/2,0);
+    const leg=new THREE.Mesh(hinhChan,type==='sloth'?fur:dark);
+    leg.userData.chan=true;
+    leg.position.set(x,(tall?.21:.15)+dai/2,.05);
+    leg.castShadow=true;
+    body.add(leg);
   }
   body.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true;}});
   let dau;
@@ -1355,11 +1361,11 @@ function hoatAnhNhay(p,now){
 const theVo=[
   {tay:[[.74,-.16],[.74,-.16]],chan:[[.19,.24],[-.13,.24]],than:[0,0,0],viTri:[0,.02,0]},
   {tay:[[1.61,.05],[.61,-.33]],chan:[[.78,.16],[-.57,.42]],than:[-.79,.16,-.08],viTri:[-.56,.02,-.58]},
-  {tay:[[.61,-.16],[.76,-.28]],chan:[[1.87,.05],[-.13,.08]],than:[-.72,-.27,-.14],viTri:[-.43,.39,-.69]},
+  {tay:[[.61,-.16],[.76,-.28]],chan:[[2.18,.05],[-.13,.08]],than:[-.72,-.27,-.14],viTri:[-.43,.39,-.69]},
   {tay:[[.88,-.24],[2.36,.37]],chan:[[-.35,.35],[.55,.29]],than:[.67,-.08,.13],viTri:[.37,.04,-.24]},
   {tay:[[1.08,1.01],[1.08,1.01]],chan:[[.57,.83],[.57,.83]],than:[0,.16,0],viTri:[0,-.16,.22]},
-  {tay:[[1.22,.78],[.57,-.14]],chan:[[1.84,1.07],[-.1,.13]],than:[-1.56,-.19,-.3],viTri:[-.72,.35,.08]},
-  {tay:[[.63,-.18],[1.53,.52]],chan:[[-.17,.08],[1.94,.68]],than:[1.68,-.22,.27],viTri:[.57,.45,-.37]},
+  {tay:[[1.22,.78],[.57,-.14]],chan:[[2.08,.24,.94],[-.1,.13]],than:[-1.56,-.19,-.3],viTri:[-.72,.35,.08]},
+  {tay:[[.63,-.18],[1.53,.52]],chan:[[-.17,.08],[2.23,.17,1.18]],than:[1.68,-.22,.27],viTri:[.57,.45,-.37]},
   {tay:[[1.64,.07],[1.64,.07]],chan:[[.68,.22],[-.6,.37]],than:[.56,.29,0],viTri:[.55,.04,-.83]},
   {tay:[[2.58,.41],[.48,-.36]],chan:[[.52,.35],[-.45,.43]],than:[-.94,-.14,-.17],viTri:[-.46,.12,-.48]},
   {tay:[[.15,.24],[1.17,-.29]],chan:[[.69,.5],[-.47,.35]],than:[-.71,.56,.17],viTri:[-.47,-.04,-.39]},
@@ -1469,8 +1475,11 @@ function veMuaVo(p){
     const ben=j===0?-1:1;
     const [duaTruoc,moNgang]=tu.tay[j].map((giaTri,k)=>noi(giaTri,den.tay[j][k]));
     tay[j].rotation.set(duaTruoc*kieu.tay,0,gocTay[j].z+ben*moNgang*kieu.tay,'ZXY');
-    const [da,buocNgang]=tu.chan[j].map((giaTri,k)=>noi(giaTri,den.chan[j][k]));
-    chan[j].rotation.set(da*kieu.chan,0,gocChan[j].z+ben*buocNgang*kieu.chan,'ZXY');
+    const [gocDaTu,ngangTu,huongTu=0]=tu.chan[j];
+    const [gocDaDen,ngangDen,huongDen=0]=den.chan[j];
+    const da=noi(gocDaTu,gocDaDen);
+    const gocDa=da*kieu.chan+Math.max(0,da-1)*(.98-kieu.chan)*1.72;
+    chan[j].rotation.set(gocDa,ben*noi(huongTu,huongDen),gocChan[j].z+ben*noi(ngangTu,ngangDen)*kieu.chan,'YXZ');
   }
   const [xoay,cui,nghieng]=tu.than.map((giaTri,j)=>noi(giaTri,den.than[j]));
   const [ngang,cao,truoc]=tu.viTri.map((giaTri,j)=>noi(giaTri,den.viTri[j]));
