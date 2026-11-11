@@ -338,7 +338,7 @@ io.on('connection', socket => {
       ghiThaoTac(code,p);
       releaseWorkSeat(code,p);
       p.buongWc = buong;
-      p.x = -18.95;
+      p.x = -18.4;
       p.z = cuaZ + (ban ? (i-.5)*.94 : 0);
       p.yaw = -Math.PI/2;
       p.lockedUntil = lucDi + duration;
