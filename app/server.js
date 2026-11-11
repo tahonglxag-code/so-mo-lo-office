@@ -43,14 +43,17 @@ setInterval(() => {
       choDaDung.add(cho);
       const hang = Math.floor(cho / 10);
       const cot = cho % 10;
-      player.x = Math.ceil(cot / 2) * (cot % 2 ? -1.85 : 1.85);
-      player.z = Math.ceil(hang / 2) * (hang % 2 ? -1.8 : 1.8);
+      const x = -.05 + Math.ceil(cot / 2) * (cot % 2 ? -2.1 : 2.1);
+      const z = 5.6 - hang * 1.85;
+      const duration = Math.max(350, Math.hypot(x - player.x, z - player.z) / 7 * 1000);
+      player.x = x;
+      player.z = z;
       player.yaw = Math.PI;
       player.pose = '';
       player.poseUntil = 0;
-      player.batDauMuaVo = now;
+      player.batDauMuaVo = now + duration;
       room.pendingMoves.delete(player.id);
-      io.to(code).emit('mua-vo', { id: player.id, x: player.x, z: player.z, yaw: player.yaw, batDau: now });
+      io.to(code).emit('mua-vo', { id: player.id, x, z, yaw: player.yaw, duration, batDau: player.batDauMuaVo });
     }
   }
 },1000).unref();
@@ -277,12 +280,15 @@ io.on('connection', socket => {
     const player = rooms.get(code)?.get(socket.id);
     if (!player || !data) return;
     const now = Date.now();
-    if (now < (player.lockedUntil || 0) || now - player.lastMoveAt < 80) return;
+    if (now < (player.lockedUntil || 0) || now < (player.batDauMuaVo || 0) || now - player.lastMoveAt < 80) return;
     player.lastMoveAt = now;
     const nextX = Math.max(-maxX, Math.min(maxX, Number(data.x) || 0));
     const nextZ = Math.max(-maxZ, Math.min(maxZ, Number(data.z) || 0));
     const nextYaw = Number(data.yaw) || 0;
-    const changed = Math.hypot(nextX - player.x, nextZ - player.z) > .01 || Math.abs(nextYaw - player.yaw) > .01;
+    const daDiChuyen = Math.hypot(nextX - player.x, nextZ - player.z) > .01;
+    if (player.choMuaVo !== undefined && !daDiChuyen) return;
+    const lechGoc = Math.atan2(Math.sin(nextYaw - player.yaw), Math.cos(nextYaw - player.yaw));
+    const changed = daDiChuyen || Math.abs(lechGoc) > .01;
     if (changed) ghiThaoTac(code, player);
     if (player.workSeatId) {
         const seat = workSeats.find(item => item.id === player.workSeatId);
