@@ -15,11 +15,10 @@ const maxX = 18.4;
 const maxZ = 11.5;
 const workSeats = [
   { id: 'desk-1', x: -15.45, z: 11.4 },
-  { id: 'desk-2', x: -15.45, z: .4 },
-  { id: 'desk-3', x: -15.45, z: 2.6 },
-  { id: 'desk-4', x: -15.45, z: 4.8 },
-  { id: 'desk-5', x: -15.45, z: 7 },
-  { id: 'desk-6', x: -15.45, z: 9.2 }
+  { id: 'desk-3', x: -15.45, z: 1.4 },
+  { id: 'desk-4', x: -15.45, z: 3.9 },
+  { id: 'desk-5', x: -15.45, z: 6.4 },
+  { id: 'desk-6', x: -15.45, z: 8.9 }
 ];
 const workMilestones = [9, 69, 99, 199, 299, 399, 499, 599, 699, 799, 899];
 setInterval(() => {
