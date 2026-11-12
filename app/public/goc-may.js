@@ -1,4 +1,4 @@
-import {TAM_BAN_MA_SOI} from './ma-soi-layout.js';
+const TAM_BAN_MA_SOI=Object.freeze({x:0,z:-7.2});
 
 export function tinhGocMay(x,z,fov,tyLe){
   const khoangCach=innerWidth<760?16:12;
