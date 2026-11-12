@@ -1,4 +1,5 @@
 import { randomInt } from 'node:crypto';
+import { taoViTriGheMaSoi } from './public/ma-soi-layout.js';
 
 const vaiTro = {
   wolf: { ten: 'Ma Sói', phe: 'Sói', moTa: 'Mỗi đêm, chọn một người không phải Sói để cắn.' },
@@ -216,8 +217,7 @@ function batDauGame(io,game,ids) {
   unique.forEach((id,index)=>{
     const player=game.getPlayer(id);
     const old={x:player.x,z:player.z,yaw:player.yaw};
-    const angle=2*Math.PI*index/unique.length-Math.PI/2;
-    const seat={x:-1.8+3.35*Math.cos(angle),z:-7.2+3.35*Math.sin(angle),yaw:Math.atan2(-Math.cos(angle),Math.sin(angle))};
+    const seat=taoViTriGheMaSoi(index,unique.length);
     game.nguoi.set(id,{id,session:player.sessionId||'',ten:player.name,avatar:player.avatar,ghe:index,song:true,dangKetNoi:true,x:seat.x,z:seat.z,yaw:seat.yaw,viTriCu:old,vai:'',nguyenNhan:''});
     game.lockPlayer(id,true,seat);
   });
