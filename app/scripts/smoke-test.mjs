@@ -23,9 +23,12 @@ try {
   const page = await response.text();
   if (!page.includes('ĐI LÀM CÔNG TY') || !page.includes('wolf-create-modal') || !page.includes('wolf-history-modal') || !page.includes('world') || !page.includes('avatar-quote') || !page.includes('data-avatar="sloth"') || !page.includes('data-avatar="leopard"') || !page.includes('BÁO THỦ')) throw new Error('Game page did not load expected app markup');
   const jsResponse = await fetch(`${origin}/game.js`);
+  const cameraResponse = await fetch(`${origin}/goc-may.js`);
   const threeResponse = await fetch(`${origin}/three.module.js`);
   const threeCoreResponse = await fetch(`${origin}/three.core.js`);
-  if (!jsResponse.ok || !threeResponse.ok || !threeCoreResponse.ok) throw new Error('Game assets did not load');
+  if (!jsResponse.ok || !cameraResponse.ok || !threeResponse.ok || !threeCoreResponse.ok) throw new Error('Game assets did not load');
+  const gameSource = await jsResponse.text();
+  if (!gameSource.includes('window.__smlJoinReady=true')) throw new Error('Game join controls did not finish initialization');
   const first = io(origin, { transports: ['websocket'] });
   const second = io(origin, { transports: ['websocket'] });
   await Promise.all([expectEvent(first, 'connect'), expectEvent(second, 'connect')]);
