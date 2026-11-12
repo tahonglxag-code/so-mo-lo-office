@@ -9,7 +9,8 @@
     "test:smoke": "node scripts/smoke-test.mjs",
     "test:ma-soi": "node scripts/ma-soi-test.mjs",
     "test:ma-soi-load": "node scripts/ma-soi-load-test.mjs",
-    "test:ma-soi-history": "node scripts/ma-soi-history-test.mjs"
+    "test:ma-soi-history": "node scripts/ma-soi-history-test.mjs",
+    "test:ma-soi-layout": "node scripts/ma-soi-layout-test.mjs"
   },
   "dependencies": {
     "express": "^4.21.2",
