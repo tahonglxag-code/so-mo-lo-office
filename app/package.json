@@ -6,7 +6,9 @@
   "scripts": {
     "start": "node server.js",
     "dev": "node server.js",
-    "test:smoke": "node scripts/smoke-test.mjs"
+    "test:smoke": "node scripts/smoke-test.mjs",
+    "test:ma-soi": "node scripts/ma-soi-test.mjs",
+    "test:ma-soi-load": "node scripts/ma-soi-load-test.mjs"
   },
   "dependencies": {
     "express": "^4.21.2",
