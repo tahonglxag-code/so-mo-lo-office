@@ -2039,7 +2039,7 @@ socket.on('self-action',event=>{
     createMoneyShower(p,p.moneyUntil);
   }
   const actionLabel={run:'tốc biến',meditate:'ngồi thiền',toilet:'đi toilet',money:'lúa về'}[event.action]||event.action;
-  addFeed(`${avatarIcons[p.avatar]||'🙂'} ${p.name} ${actionLabel}`);
+  if(event.action!=='toilet')addFeed(`${avatarIcons[p.avatar]||'🙂'} ${p.name} ${actionLabel}`);
 });
 socket.on('connect_error',()=>{
   if(!modal.classList.contains('hidden'))document.querySelector('#join-error').textContent='Không kết nối được máy chủ. Kiểm tra mạng rồi thử lại.';
