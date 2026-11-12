@@ -1,7 +1,14 @@
 import * as THREE from '/three.module.js';
 import {tinhGocMay,tinhGocMayMaSoi} from './goc-may.js';
 import {dinhDangLichSuMaSoi} from './ma-soi-lich-su.js';
-import {TAM_BAN_MA_SOI, SO_GHE_TOI_DA_MA_SOI, taoViTriGheMaSoi} from './ma-soi-layout.js';
+const TAM_BAN_MA_SOI=Object.freeze({x:0,z:-7.2});
+const SO_GHE_TOI_DA_MA_SOI=15;
+function taoViTriGheMaSoi(soThuTu,tongSoNguoi){
+  if(!Number.isInteger(soThuTu)||!Number.isInteger(tongSoNguoi)||tongSoNguoi<1||tongSoNguoi>SO_GHE_TOI_DA_MA_SOI||soThuTu<0||soThuTu>=tongSoNguoi)return null;
+  const goc=2*Math.PI*soThuTu/tongSoNguoi-Math.PI/2;
+  const dx=Math.cos(goc),dz=Math.sin(goc);
+  return {x:TAM_BAN_MA_SOI.x+3.35*dx,z:TAM_BAN_MA_SOI.z+3.35*dz,yaw:Math.atan2(dx,dz)};
+}
 import {CSS3DRenderer,CSS3DObject} from '/css3d.js';
 
 import {banTho} from './ban-tho.js';
@@ -21,6 +28,30 @@ let myName = '';
 let myAvatar = 'snake';
 let selectedId = '';
 let hasJoinedRoom = false;
+
+function startGame(event) {
+  event.preventDefault();
+  const joinButton=document.querySelector('#join-form .primary');
+  const joinError=document.querySelector('#join-error');
+  joinError.textContent='';
+  if(!socket.connected){joinError.textContent='Chưa kết nối được máy chủ. Vui lòng thử lại sau vài giây.';return;}
+  myName=document.querySelector('#name').value.trim().slice(0,18)||'Bạn mới';
+  myAvatar=document.querySelector('.avatar.selected')?.dataset.avatar||'snake';
+  const requested=document.querySelector('#room').value.trim().toUpperCase()||new URLSearchParams(location.search).get('room')||'';
+  joinButton.disabled=true;
+  joinButton.textContent='Đang kết nối…';
+  try{localStorage.setItem('smlName',myName);}catch{}
+  socket.timeout(8000).emit('join',{name:myName,avatar:myAvatar,room:requested,sessionId},(error,result)=>{
+    joinButton.disabled=false;
+    joinButton.textContent='Vào phòng thôi →';
+    if(error){joinError.textContent='Máy chủ chưa phản hồi. Vui lòng kiểm tra kết nối rồi thử lại.';return;}
+    if(result?.error){joinError.textContent=result.error;return;}
+    if(!result?.ok){joinError.textContent='Không vào được phòng. Vui lòng thử lại.';return;}
+    joinError.textContent='';
+    modal.classList.add('hidden');
+  });
+}
+document.querySelector('#join-form').addEventListener('submit',startGame);
 const vatNem = [];
 let trangThaiNhac = null;
 let trinhPhat = null;
@@ -1244,34 +1275,6 @@ function addMessage(name,text,self=false) {
   if(ganCuoi)messages.scrollTop=messages.scrollHeight;
 }
 
-function startGame(event) {
-  event.preventDefault();
-  const joinButton=document.querySelector('#join-form .primary');
-  const joinError=document.querySelector('#join-error');
-  joinError.textContent='';
-  if(!socket.connected){joinError.textContent='Chưa kết nối được máy chủ. Vui lòng thử lại sau vài giây.';return;}
-  myName=document.querySelector('#name').value.trim().slice(0,18)||'Bạn mới';
-  myAvatar=document.querySelector('.avatar.selected')?.dataset.avatar||'snake';
-  const requested=document.querySelector('#room').value.trim().toUpperCase()||new URLSearchParams(location.search).get('room')||'';
-  joinButton.disabled=true;
-  joinButton.textContent='Đang kết nối…';
-  socket.timeout(8000).emit('join',{name:myName,avatar:myAvatar,room:requested,sessionId},(error,result)=>{
-    joinButton.disabled=false;
-    joinButton.textContent='Vào phòng thôi →';
-    if(error){joinError.textContent='Máy chủ chưa phản hồi. Hãy bấm vào phòng lại; nếu vẫn lỗi, tải lại trang.';return;}
-    if(result?.error){joinError.textContent=result.error;return;}
-    if(!result?.ok){joinError.textContent='Không vào được phòng. Vui lòng thử lại.';return;}
-    joinError.textContent='';
-    modal.classList.add('hidden');
-  });
-}
-
-document.querySelectorAll('.avatar').forEach(button=>button.addEventListener('click',()=>{
-  document.querySelectorAll('.avatar').forEach(item=>item.classList.remove('selected'));
-  button.classList.add('selected');
-  document.querySelector('#avatar-quote').textContent=`“${selectionLines[button.dataset.avatar]}”`;
-}));
-document.querySelector('#join-form').addEventListener('submit',startGame);
 document.querySelector('#chat-form').addEventListener('submit',event=>{
   event.preventDefault();
   const input=document.querySelector('#chat-input'); const text=input.value.trim();
@@ -2530,11 +2533,6 @@ function frame(now) {
 function resize(){const w=canvas.clientWidth,h=canvas.clientHeight;renderer.setSize(w,h,false);veRadio.setSize(w,h);camera.aspect=w/Math.max(1,h);camera.fov=innerWidth<760?54:40;camera.updateProjectionMatrix();}
 new ResizeObserver(resize).observe(canvas);resize();requestAnimationFrame(frame);
 
-const query=new URLSearchParams(location.search);
-if(query.get('room'))document.querySelector('#room').value=query.get('room');
-document.querySelector('#name').value=localStorage.getItem('smlName')||'';
-document.querySelector('#join-form').addEventListener('submit',()=>localStorage.setItem('smlName',document.querySelector('#name').value.trim()));
-
 function capNhatNhac(state){
   if(!state)return;trangThaiNhac=state;
   document.querySelector('#radio-panel').classList.toggle('has-music',Boolean(state.videoId));
@@ -2563,3 +2561,4 @@ setInterval(()=>{if(!document.hidden)dongBoNhac();},10000);
 document.querySelector('#target-select').addEventListener('change',e=>{if(e.target.value)selectPlayer(e.target.value);else{selectedId='';document.querySelector('#target-name').textContent='chưa chọn ai';}});
 
 document.querySelector('#music-stop').onclick=()=>guiNhac({action:'stop'});
+window.__smlJoinReady=true;
