@@ -19,7 +19,7 @@
 .action-grid button,.throw-control{min-width:0}
 .action-grid button{white-space:normal}
 .throw-control select{width:2.2em;min-width:0;padding-inline:2px}
-.chatbox{align-self:end;height:var(--chat-height);background:linear-gradient(to top,#fff6e8 50%,transparent 50%);pointer-events:none}.chatbox :is(input,button,.messages){pointer-events:auto}
+.chatbox{align-self:end;height:var(--chat-height);background:linear-gradient(to top,#fff6e8 50%,transparent 50%)}
 .chat-head,.messages{color:#352139;text-shadow:0 0 3px #fff,0 0 5px #fff}
 #app{--chat-height:calc((var(--dock-height) - 18px)*2);--feed-bottom:calc(var(--chat-height) - var(--dock-height) + 17px)}
 .messages{max-height:none;min-height:0;overscroll-behavior:contain}
@@ -34,5 +34,8 @@
 :is(#ru-nhau,#di-wc) button{padding:6px 12px;margin-right:6px}
 @media(max-width:760px){#app{--chat-height:152px;--feed-bottom:78px}.action-grid button{padding-inline:2px}}
 
-.dock{grid-template-rows:minmax(0,1fr);pointer-events:none}.dock :is(button,input,select,.messages){pointer-events:auto}
+.dock{grid-template-rows:minmax(0,1fr)}
 @media(max-width:760px){.dock{grid-template-rows:76px minmax(0,1fr)}}
+.wolf-ui{position:absolute;z-index:8;left:16px;top:16px;width:min(380px,calc(100vw - 32px));max-height:calc(100% - 32px);overflow:auto;padding:12px;background:#fff6e9f2;border:2px solid #745e7c;border-radius:18px;box-shadow:0 8px 28px #20172570;color:#382b40}.wolf-ui[hidden]{display:none}.wolf-ui header{display:flex;justify-content:space-between;align-items:center}.wolf-ui header button,.wolf-ui button{padding:6px 10px}.wolf-ui header button{background:#e9d8ed}.wolf-ui p{margin:7px 0}.wolf-log{max-height:115px;overflow:auto;margin-top:8px;padding:6px;background:#f5ebf4;border-radius:10px;font-size:13px}.wolf-log div{padding:2px 0}.wolf-ui input,.wolf-ui select{max-width:100%;border:1px solid #c9b8cc;border-radius:9px;padding:7px}.wolf-ui form{display:flex;gap:6px;margin-top:7px}.wolf-ui form input{flex:1;min-width:0}.wolf-actions{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}.wolf-choice{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:7px}.wolf-choice label{font-size:13px}.wolf-dead{filter:grayscale(1);opacity:.8}.wolf-participant .actions{opacity:.55}.wolf-participant .action-grid{pointer-events:none}.wolf-participant .target-line{opacity:.55}
+dialog#wolf-create-modal,dialog#wolf-incoming-modal,dialog#wolf-history-modal{border:2px solid #745e7c;border-radius:18px;max-width:min(560px,94vw);width:min(560px,94vw);max-height:86vh;color:#382b40;background:#fff6e9;box-shadow:0 12px 44px #20172570}dialog#wolf-create-modal::backdrop,dialog#wolf-incoming-modal::backdrop,dialog#wolf-history-modal::backdrop{background:#241a2d88}dialog#wolf-create-modal form,dialog#wolf-incoming-modal form,dialog#wolf-history-modal form{display:flex;flex-wrap:wrap;gap:8px}#wolf-invite-list{width:100%;max-height:42vh;overflow:auto;display:grid;grid-template-columns:1fr 1fr;gap:5px}#wolf-invite-list label{padding:5px;background:#fff;border-radius:9px}#wolf-incoming-modal strong,#wolf-incoming-modal p{width:100%}#wolf-history-content{width:100%;max-height:58vh;overflow:auto;white-space:pre-wrap;background:#fff;border-radius:10px;padding:10px;font-size:13px}#wolf-history-timer{margin:auto 0 auto auto;color:#7d5b80;font-weight:800}
+@media(max-width:760px){.wolf-ui{left:6px;top:6px;width:min(350px,calc(100vw - 12px));max-height:calc(100% - 12px);padding:9px}.wolf-log{max-height:70px}#wolf-invite-list{grid-template-columns:1fr}}
