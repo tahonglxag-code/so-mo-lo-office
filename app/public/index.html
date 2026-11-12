@@ -46,6 +46,50 @@
   </main>
   <script type="importmap">{"imports":{"three":"/three.module.js"}}</script>
   <script src="/socket.io/socket.io.js"></script>
-  <script type="module" src="/game.js"></script>
+  <script>
+    (() => {
+      const form=document.querySelector('#join-form');
+      const nameInput=document.querySelector('#name');
+      const roomInput=document.querySelector('#room');
+      const joinError=document.querySelector('#join-error');
+      const quote=document.querySelector('#avatar-quote');
+      const cauHinh={snake:'tôi khổ quá mà',fish:'thần thiếp không làm được',sloth:'hả?',cow:'là sao nữa...',leopard:'cú bé'};
+      window.__smlJoinReady=false;
+      const room=new URLSearchParams(location.search).get('room');
+      if(room&&!roomInput.value)roomInput.value=room;
+      if(!nameInput.value){
+        try{nameInput.value=localStorage.getItem('smlName')||'';}catch{}
+      }
+      document.querySelectorAll('.avatar').forEach(button=>button.addEventListener('click',()=>{
+        document.querySelectorAll('.avatar').forEach(item=>item.classList.remove('selected'));
+        button.classList.add('selected');
+        quote.textContent='“'+(cauHinh[button.dataset.avatar]||cauHinh.snake)+'”';
+      }));
+      form.addEventListener('submit',event=>{
+        if(window.__smlJoinReady)return;
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        joinError.textContent=window.__smlBootError||'Game đang khởi động. Thông tin của bạn vẫn được giữ lại, vui lòng chờ thêm vài giây.';
+      },true);
+      window.addEventListener('error',event=>{
+        if(window.__smlJoinReady)return;
+        const message=String(event.message||'Không xác định').slice(0,180);
+        window.__smlBootError='Game chưa khởi động được: '+message;
+        joinError.textContent=window.__smlBootError;
+      });
+      window.addEventListener('unhandledrejection',event=>{
+        if(window.__smlJoinReady)return;
+        const message=String(event.reason?.message||event.reason||'Không xác định').slice(0,180);
+        window.__smlBootError='Game chưa khởi động được: '+message;
+        joinError.textContent=window.__smlBootError;
+      });
+      document.querySelector('#game-module').addEventListener('error',()=>{
+        if(window.__smlJoinReady)return;
+        window.__smlBootError='Không tải được mã game. Hãy tải lại trang và thử lại.';
+        joinError.textContent=window.__smlBootError;
+      });
+    })();
+  </script>
+  <script id="game-module" type="module" src="/game.js"></script>
 </body>
 </html>
