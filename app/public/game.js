@@ -1,6 +1,7 @@
 import * as THREE from '/three.module.js';
 import {tinhGocMay,tinhGocMayMaSoi} from './goc-may.js';
 import {dinhDangLichSuMaSoi} from './ma-soi-lich-su.js';
+import {TAM_BAN_MA_SOI, SO_GHE_TOI_DA_MA_SOI, taoViTriGheMaSoi} from './ma-soi-layout.js';
 import {CSS3DRenderer,CSS3DObject} from '/css3d.js';
 
 import {banTho} from './ban-tho.js';
@@ -346,21 +347,19 @@ function capNhatSoGheMaSoi(count){for(let i=0;i<gheMaSoi.length;i++)gheMaSoi[i].
 function taoBanMaSoi(){
   const ban=new THREE.Group();
   nhomBanMaSoi=ban;
-  ban.position.set(0,0,-7.2);
+  ban.position.set(TAM_BAN_MA_SOI.x,0,TAM_BAN_MA_SOI.z);
   phuToiMaSoi=new THREE.Mesh(new THREE.CircleGeometry(4.8,40),new THREE.MeshBasicMaterial({color:'#242031',transparent:true,opacity:.28,depthWrite:false,side:THREE.DoubleSide}));
-  phuToiMaSoi.rotation.x=-Math.PI/2;phuToiMaSoi.position.set(ban.position.x,-.015,ban.position.z);phuToiMaSoi.visible=false;scene.add(phuToiMaSoi);
+  phuToiMaSoi.rotation.x=-Math.PI/2;phuToiMaSoi.position.set(0,-.015,0);phuToiMaSoi.visible=false;ban.add(phuToiMaSoi);
   const matBan=mat('#553e52'),go=mat('#a8793f'),vang=mat('#f6d36f');
   const matBanTron=new THREE.Mesh(new THREE.CylinderGeometry(1.12,1.12,.24,32),matBan);
   matBanTron.position.y=.88;matBanTron.castShadow=true;matBanTron.userData.wolfButton=true;ban.add(matBanTron);vatTheMaSoi.push(matBanTron);
   const chan=new THREE.Mesh(new THREE.CylinderGeometry(.22,.32,.76,16),go);chan.position.y=.4;ban.add(chan);
   const nut=new THREE.Mesh(new THREE.CylinderGeometry(.48,.48,.11,24),vang);nut.position.set(0,1.075,-.12);nut.castShadow=true;nut.userData.wolfButton=true;ban.add(nut);vatTheMaSoi.push(nut);
   capNhatNhanMaSoi('CHƠI MA SÓI');
-  for(let i=0;i<15;i++){
-    const goc=2*Math.PI*i/15-Math.PI/2;
-    const ghe=stool(Math.cos(goc)*3.35,Math.sin(goc)*3.35);
-    ghe.position.x+=ban.position.x;
-    ghe.position.z+=ban.position.z;
-    ghe.rotation.y=Math.atan2(-Math.cos(goc),Math.sin(goc));
+  for(let i=0;i<SO_GHE_TOI_DA_MA_SOI;i++){
+    const viTri=taoViTriGheMaSoi(i,SO_GHE_TOI_DA_MA_SOI);
+    const ghe=stool(viTri.x-TAM_BAN_MA_SOI.x,viTri.z-TAM_BAN_MA_SOI.z,ban);
+    ghe.rotation.y=viTri.yaw;
     ghe.visible=false;gheMaSoi.push(ghe);
   }
   scene.add(ban);
@@ -515,10 +514,10 @@ function conferenceRoom(x,z) {
   for (const dx of [-1.8,1.8]) for (const dz of [-.35,.35]) box(scene,.1,.26,.1,mats.wood,x+dx,.04,z+dz);
 }
 
-function stool(x,z) {
+function stool(x,z,parent=scene) {
   const ghe=new THREE.Group();
   ghe.position.set(x,0,z);
-  scene.add(ghe);
+  parent.add(ghe);
   const seat = new THREE.Mesh(new THREE.CylinderGeometry(.29,.29,.16,24),mats.gray);
   seat.position.y=.48; seat.castShadow=true; ghe.add(seat);
   const leg=new THREE.Mesh(new THREE.CylinderGeometry(.07,.09,.43,12),mats.trim);
