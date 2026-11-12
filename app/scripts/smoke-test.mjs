@@ -21,7 +21,7 @@ try {
   }
   if (!response?.ok) throw new Error('HTTP server did not start');
   const page = await response.text();
-  if (!page.includes('ĐI LÀM CÔNG TY') || !page.includes('wolf-create-modal') || !page.includes('wolf-history-modal') || !page.includes('world') || !page.includes('avatar-quote') || !page.includes('data-avatar="sloth"') || !page.includes('data-avatar="leopard"') || !page.includes('BÁO THỦ')) throw new Error('Game page did not load expected app markup');
+  if (!page.includes('ĐI LÀM CÔNG TY') || !page.includes('wolf-create-modal') || !page.includes('wolf-history-modal') || !page.includes('world') || !page.includes('avatar-quote') || !page.includes('data-avatar="sloth"') || !page.includes('data-avatar="leopard"') || !page.includes('BÁO THỦ') || !page.includes('window.__smlJoinReady=false') || !page.includes('event.stopImmediatePropagation()') || !page.includes('id="game-module"')) throw new Error('Game page did not load expected app markup or join fallback');
   const jsResponse = await fetch(`${origin}/game.js`);
   const cameraResponse = await fetch(`${origin}/goc-may.js`);
   const threeResponse = await fetch(`${origin}/three.module.js`);
