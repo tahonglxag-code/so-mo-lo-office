@@ -1,5 +1,6 @@
 import express from 'express';
 import { banTho } from './public/ban-tho.js';
+import { TAM_BAN_MA_SOI, trongVungBanMaSoi } from './public/ma-soi-layout.js';
 import { taoQuanLyMaSoi } from './ma-soi.js';
 import { createServer } from 'node:http';
 import { randomInt } from 'node:crypto';
@@ -246,9 +247,10 @@ const quanLyMaSoi=taoQuanLyMaSoi(io,rooms,{
   },
   clearArea:(code,accepted)=>{
     const room=rooms.get(code);if(!room)return;
-    const center={x:-1.8,z:-7.2},occupied=[...room.values()].filter(player=>accepted.has(player.id)||Math.hypot(player.x-center.x,player.z-center.z)>5.2).map(player=>({x:player.x,z:player.z}));
+    const center=TAM_BAN_MA_SOI;
+    const occupied=[...room.values()].filter(player=>accepted.has(player.id)||!trongVungBanMaSoi(player.x,player.z)).map(player=>({x:player.x,z:player.z}));
     for(const player of room.values()){
-      if(accepted.has(player.id)||Math.hypot(player.x-center.x,player.z-center.z)>5.2)continue;
+      if(accepted.has(player.id)||!trongVungBanMaSoi(player.x,player.z))continue;
       let spot=null;
       for(const radius of [6,7.2,8.4,9.6])for(let index=0;index<24&&!spot;index++){
         const angle=2*Math.PI*index/24;
