@@ -21,7 +21,7 @@ try {
   }
   if (!response?.ok) throw new Error('HTTP server did not start');
   const page = await response.text();
-  if (!page.includes('SỜ MỜ LỜ') || !page.includes('world') || !page.includes('avatar-quote') || !page.includes('data-avatar="sloth"') || !page.includes('data-avatar="leopard"') || !page.includes('BÁO THỦ')) throw new Error('Game page did not load expected app markup');
+  if (!page.includes('ĐI LÀM CÔNG TY') || !page.includes('wolf-create-modal') || !page.includes('wolf-history-modal') || !page.includes('world') || !page.includes('avatar-quote') || !page.includes('data-avatar="sloth"') || !page.includes('data-avatar="leopard"') || !page.includes('BÁO THỦ')) throw new Error('Game page did not load expected app markup');
   const jsResponse = await fetch(`${origin}/game.js`);
   const threeResponse = await fetch(`${origin}/three.module.js`);
   const threeCoreResponse = await fetch(`${origin}/three.core.js`);
@@ -73,6 +73,7 @@ try {
   first.emit('urgent-meeting');
   const meetingEvent = await meeting;
   if (meetingEvent.players.length !== 2 || meetingEvent.players.some(player => player.x < 10 || player.z < 1)) throw new Error('Urgent meeting did not move all players into room B');
+  await wait(meetingEvent.duration + 120);
   const money = expectEvent(second, 'self-action');
   first.emit('self-action', 'money');
   const moneyEvent = await money;
@@ -80,7 +81,8 @@ try {
   const toileted = expectEvent(second, 'self-action');
   first.emit('self-action', 'toilet');
   const toiletAction = await toileted;
-  if (toiletAction.action !== 'toilet' || toiletAction.x !== -17.8 || toiletAction.z !== -8.15 || toiletAction.path.length !== 2) throw new Error('Toilet action did not move the character into the WC');
+  if (toiletAction.action !== 'toilet' || toiletAction.x !== -18.4 || toiletAction.z !== -11.3 || toiletAction.path.length !== 3) throw new Error('Toilet action did not move the character into the WC');
+  await wait(toiletAction.duration + 120);
   const chatted = expectEvent(second, 'chat');
   first.emit('chat', 'Xin chào phòng!');
   if ((await chatted).text !== 'Xin chào phòng!') throw new Error('Chat did not sync');
