@@ -19,7 +19,7 @@
 .action-grid button,.throw-control{min-width:0}
 .action-grid button{white-space:normal}
 .throw-control select{width:2.2em;min-width:0;padding-inline:2px}
-.chatbox{align-self:end;height:var(--chat-height);background:linear-gradient(to top,#fff6e8 50%,transparent 50%)}
+.chatbox{align-self:end;height:var(--chat-height);background:linear-gradient(to top,#fff6e8 50%,transparent 50%);pointer-events:none}.chatbox :is(input,button,.messages){pointer-events:auto}
 .chat-head,.messages{color:#352139;text-shadow:0 0 3px #fff,0 0 5px #fff}
 #app{--chat-height:calc((var(--dock-height) - 18px)*2);--feed-bottom:calc(var(--chat-height) - var(--dock-height) + 17px)}
 .messages{max-height:none;min-height:0;overscroll-behavior:contain}
@@ -34,5 +34,5 @@
 :is(#ru-nhau,#di-wc) button{padding:6px 12px;margin-right:6px}
 @media(max-width:760px){#app{--chat-height:152px;--feed-bottom:78px}.action-grid button{padding-inline:2px}}
 
-.dock{grid-template-rows:minmax(0,1fr)}
+.dock{grid-template-rows:minmax(0,1fr);pointer-events:none}.dock :is(button,input,select,.messages){pointer-events:auto}
 @media(max-width:760px){.dock{grid-template-rows:76px minmax(0,1fr)}}
