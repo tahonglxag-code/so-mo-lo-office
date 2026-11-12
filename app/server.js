@@ -351,7 +351,7 @@ io.on('connection', socket => {
       setTimeout(() => {
         if (room.get(p.id) === p && p.buongWc === buong && p.lockedUntil === lucDi + duration) roomKhoiWc(code,p);
       },duration).unref();
-      scheduleIdleLine(code,p);
+      scheduleIdleLine(code,p); if(i===0)io.to(code).emit('feed',{text:ban?`🚽 ${nguoi.name} rủ ${ban.name} cùng đi toilet`:`🚽 ${nguoi.name} đi toilet`});
     }
   }
   socket.on('di-wc', data => diWc(typeof data?.ban === 'string' ? data.ban : ''));
@@ -476,7 +476,7 @@ io.on('connection', socket => {
     if(loai==='inspect')room.thanhTraDen=ketThuc+900;
     io.to(code).emit('hoat-canh',{loai,batDau,ketThuc,khoaDen,nguoi,...boTri});
     const ten=loai==='inspect'?'🚨 Thanh tra':loai==='boss'?'📋 Họp riêng':'🍻 Rủ nhậu';
-    io.to(code).emit('feed',{text:loai==='boss'?`📋 ${khach[0]?.name||nguoiGoi.name} họp riêng với SẾP`:`${ten} · ${loai==='inspect'?nguoiGoi.name:khach.map(p=>p.name).join(', ')}`});
+    io.to(code).emit('feed',{text:loai==='inspect'?`🚨 ${nguoiGoi.name} gọi thanh tra đến`:loai==='boss'?`📋 ${khach[0]?.name||nguoiGoi.name} họp riêng với SẾP`:`${ten} · ${khach.map(p=>p.name).join(', ')}`});
   });
 
   socket.on('urgent-meeting', () => {
