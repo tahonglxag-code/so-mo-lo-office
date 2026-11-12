@@ -338,16 +338,16 @@ let phuToiMaSoi;
 function capNhatNhanMaSoi(text){
   if(!nhomBanMaSoi)return;
   if(nhanMaSoi){vatTheMaSoi.splice(vatTheMaSoi.indexOf(nhanMaSoi),1);nhomBanMaSoi.remove(nhanMaSoi);nhanMaSoi.material.map?.dispose();nhanMaSoi.material.dispose();}
-  nhanMaSoi=label(text,'#402c49');nhanMaSoi.scale.set(1.05,.26,1);nhanMaSoi.position.set(0,1.2,-.12);nhanMaSoi.userData.wolfButton=true;nhomBanMaSoi.add(nhanMaSoi);vatTheMaSoi.push(nhanMaSoi);
+  nhanMaSoi=label(text,'#402c49');nhanMaSoi.scale.set(3.8,.92,1);nhanMaSoi.position.set(0,1.2,-.12);nhanMaSoi.userData.wolfButton=true;nhomBanMaSoi.add(nhanMaSoi);vatTheMaSoi.push(nhanMaSoi);
 }
 function capNhatSoGheMaSoi(count){for(let i=0;i<gheMaSoi.length;i++)gheMaSoi[i].visible=i<count;}
 
 function taoBanMaSoi(){
   const ban=new THREE.Group();
   nhomBanMaSoi=ban;
-  ban.position.set(-1.8,0,-7.2);
+  ban.position.set(0,0,-7.2);
   phuToiMaSoi=new THREE.Mesh(new THREE.CircleGeometry(4.8,40),new THREE.MeshBasicMaterial({color:'#242031',transparent:true,opacity:.28,depthWrite:false,side:THREE.DoubleSide}));
-  phuToiMaSoi.rotation.x=-Math.PI/2;phuToiMaSoi.position.set(-1.8,-.015,-7.2);phuToiMaSoi.visible=false;scene.add(phuToiMaSoi);
+  phuToiMaSoi.rotation.x=-Math.PI/2;phuToiMaSoi.position.set(ban.position.x,-.015,ban.position.z);phuToiMaSoi.visible=false;scene.add(phuToiMaSoi);
   const matBan=mat('#553e52'),go=mat('#a8793f'),vang=mat('#f6d36f');
   const matBanTron=new THREE.Mesh(new THREE.CylinderGeometry(1.12,1.12,.24,32),matBan);
   matBanTron.position.y=.88;matBanTron.castShadow=true;matBanTron.userData.wolfButton=true;ban.add(matBanTron);vatTheMaSoi.push(matBanTron);
@@ -357,7 +357,8 @@ function taoBanMaSoi(){
   for(let i=0;i<15;i++){
     const goc=2*Math.PI*i/15-Math.PI/2;
     const ghe=stool(Math.cos(goc)*3.35,Math.sin(goc)*3.35);
-    ghe.position.x+=-1.8;ghe.position.z+=-7.2;
+    ghe.position.x+=ban.position.x;
+    ghe.position.z+=ban.position.z;
     ghe.rotation.y=Math.atan2(-Math.cos(goc),Math.sin(goc));
     ghe.visible=false;gheMaSoi.push(ghe);
   }
@@ -413,11 +414,7 @@ function office() {
     const x=-3.5+i*2.3,z=8.2;
     gheSanh.push({x,z,vat:stool(x,z)});
   }
-  const sign=box(scene,3,.85,.14,mats.purple,0,1.7,-12.83);
-  sign.material=mat('#665379');
-  makeRoomLabel('ĐI LÀM CÔNG TY', 0, -12.2);
 }
-
 function taoBanTho() {
   const ke = new THREE.Group();
   ke.position.set(banTho.x, 0, banTho.z);
