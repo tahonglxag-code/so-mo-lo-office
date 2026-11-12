@@ -322,9 +322,9 @@ function taoKhuWc(){
       sphere(scene,-18.41,.60,z,.52,.06,.49,mats.cream);
     }
   }
-  const bien=label('WC','#493650');
-  bien.scale.set(.78,.24,1);
-  bien.position.set(-16.39,2,-9.35);
+  const mauBien=label('WC','#493650');const bien=new THREE.Mesh(new THREE.PlaneGeometry(1.55,.39),new THREE.MeshBasicMaterial({map:mauBien.material.map,transparent:true,side:THREE.DoubleSide}));mauBien.material.dispose();bien.rotation.y=Math.PI/2;
+  bien.position.set(-16.3,1.72,-9.35);
+  
   scene.add(bien);
 }
 
@@ -371,7 +371,7 @@ function office() {
   taoPhongSep();
   conferenceRoom(14.5, 5.1);
   for (const [id,z] of [[1,11.4],[3,1.4],[4,3.9],[5,6.4],[6,8.9]]) workTable(z,`desk-${id}`);
-  for (const [x,z] of [[-18.8,-5.7],[-16.8,-5.7],[12.2,-4.2],[18.8,-4.2],[12.2,8.9],[18.8,8.9],[-18.5,11.8],[18.5,11.8]]) plant(x,z);
+  for (const [x,z] of [[-15.3,-5.7],[-15.3,-4.2],[12.2,-4.2],[18.8,-4.2],[12.2,8.9],[18.8,8.9],[-18.5,11.8],[18.5,11.8]]) plant(x,z);
   box(scene, .12, .85, 5.2, mats.wallLight, -6.8, .17, -8.3);
   box(scene, .12, .85, 5.2, mats.wallLight, 6.8, .17, -8.3);
   for(let i=0;i<4;i++){
