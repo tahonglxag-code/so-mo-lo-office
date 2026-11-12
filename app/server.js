@@ -476,7 +476,7 @@ io.on('connection', socket => {
     if(loai==='inspect')room.thanhTraDen=ketThuc+900;
     io.to(code).emit('hoat-canh',{loai,batDau,ketThuc,khoaDen,nguoi,...boTri});
     const ten=loai==='inspect'?'🚨 Thanh tra':loai==='boss'?'📋 Họp riêng':'🍻 Rủ nhậu';
-    io.to(code).emit('feed',{text:`${ten} · ${loai==='inspect'?nguoiGoi.name:khach.map(p=>p.name).join(', ')}`});
+    io.to(code).emit('feed',{text:loai==='boss'?`📋 ${khach[0]?.name||nguoiGoi.name} họp riêng với SẾP`:`${ten} · ${loai==='inspect'?nguoiGoi.name:khach.map(p=>p.name).join(', ')}`});
   });
 
   socket.on('urgent-meeting', () => {
