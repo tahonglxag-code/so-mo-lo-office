@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { taoDanhSachVaiTro, taoQuanLyMaSoi } from '../ma-soi.js';
+import { taoViTriGheMaSoi } from '../public/ma-soi-layout.js';
 
 let clock=100000;
 let nextTimer=1;
@@ -68,6 +69,12 @@ try{
   assert.equal(roles.filter(role=>role==='villager').length,2);
   assert.equal(sockets.get('player-5').inbox.some(e=>e.event==='wolf-private'),false);
   assert.equal(locked.size,5);
+  for(let index=0;index<5;index++){
+    const viTri=taoViTriGheMaSoi(index,5),player=room.get(`player-${index}`);
+    assert.ok(Math.abs(player.x-viTri.x)<1e-9);
+    assert.ok(Math.abs(player.z-viTri.z)<1e-9);
+    assert.ok(Math.abs(player.yaw-viTri.yaw)<1e-9);
+  }
   for(const socket of [host,...invited.map(id=>sockets.get(id))]){
     const publicState=socket.inbox.filter(e=>e.event==='wolf-public').at(-1)?.data;
     assert.equal(JSON.stringify(publicState).includes('"vai":"wolf"'),false);
