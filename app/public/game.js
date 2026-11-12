@@ -1082,7 +1082,7 @@ socket.on('joined',data=>{
   document.querySelector('#room-label').textContent=`Phòng ${roomCode}`;
   document.querySelector('#count-label').textContent=`${players.size}/50`;
   document.querySelector('#invite').disabled=false;
-  document.querySelector('#chat-hint').textContent=`Mã ${roomCode} · gửi link để rủ bạn`;
+  
   const url=new URL(location.href);url.searchParams.set('room',roomCode);history.replaceState({},'',url);
 });
 socket.on('player-joined',data=>{createPlayer(data);document.querySelector('#count-label').textContent=`${players.size}/50`;addFeed(`${avatarIcons[data.avatar]} ${data.name} vừa vào văn phòng`,'join');});
