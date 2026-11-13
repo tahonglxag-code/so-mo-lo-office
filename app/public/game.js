@@ -1,3 +1,6 @@
+Warning: truncated output (original token count: 31193)
+Total output lines: 2570
+
 import * as THREE from '/three.module.js';
 import {tinhGocMay,tinhGocMayMaSoi} from './goc-may.js';
 import {dinhDangLichSuMaSoi} from './ma-soi-lich-su.js';
@@ -1051,6 +1054,7 @@ function taoHieuUngThangMaSoi(result,roles){
   }
 }
 const wolfUi=document.querySelector('#wolf-ui');
+const wolfReopen=document.querySelector('#wolf-reopen');
 const wolfStatus=document.querySelector('#wolf-status');
 const wolfPrivate=document.querySelector('#wolf-private');
 const wolfActions=document.querySelector('#wolf-actions');
@@ -1199,52 +1203,11 @@ socket.on('wolf-public',state=>{phienBanTrangThaiMaSoi++;trangThaiMaSoi={...(tra
 socket.on('wolf-private',data=>{riengMaSoi=data;if(data.loai==='card')trangThaiMaSoi={...(trangThaiMaSoi||{}),giaiDoan:'cards',mocKetThuc:data.mocKetThuc,rieng:data};if(data.loai==='wolf-agreement'&&riengMaSoi)riengMaSoi.luaChon=data.luaChon;veBangMaSoi();});
 socket.on('wolf-private-result',data=>{riengMaSoi={loai:'seer-result',ketQua:data.ketQua};veBangMaSoi();});
 socket.on('wolf-event',event=>{maSoiThongBao(event.text);if(event.giaiDoan&&trangThaiMaSoi){trangThaiMaSoi.giaiDoan=event.giaiDoan;trangThaiMaSoi.mocKetThuc=event.mocKetThuc||0;veBangMaSoi();}});
-socket.on('wolf-invite-state',state=>{trangThaiMaSoi={...(trangThaiMaSoi||{}),giaiDoan:'invite',mocKetThuc:state.ketThuc,moi:{chu:state.chu,ketThuc:state.ketThuc,danhSach:state.phanHoi||[]}};veBangMaSoi();});
-socket.on('wolf-invite',invite=>{document.querySelector('#wolf-incoming-title').textContent=`🐺 ${invite.chu} đang mời bạn chơi Ma Sói!`;wolfIncomingModal.dataset.deadline=invite.ketThuc;wolfIncomingModal.showModal();});
-socket.on('wolf-error',data=>toast(data.text||'Không thể bắt đầu Ma Sói.'));
-socket.on('wolf-start',event=>{lichSuMaSoiDaMo=false;noiDungLichSuMaSoi='';capNhatSoGheMaSoi(event.nguoi?.length||0);wolfUi.hidden=false;maSoiThongBao('Ván Ma Sói bắt đầu.');});
-socket.on('wolf-lock',event=>{const p=players.get(event.id);if(!p)return;p.maSoi=event.locked;p.group.position.set(event.x,0,event.z);p.target.set(event.x,0,event.z);p.yaw=event.yaw;p.group.rotation.y=event.yaw;p.runMotion=null;if(event.locked){p.pose='wolf-seat';p.meditating=true;}else{p.pose='';p.meditating=false;p.body.scale.set(1,1,1);p.body.position.set(0,0,0);p.body.rotation.set(0,0,0);for(const arm of p.group.userData.tay){arm.rotation.set(0,0,0);arm.userData.khuYu.rotation.set(0,0,0);}for(const leg of p.group.userData.chan){leg.rotation.set(0,0,0);leg.userData.goi.rotation.set(0,0,0);}}if(event.id===selfId){keys.clear();targetWorld=null;document.querySelector('#app').classList.toggle('wolf-participant',event.locked);}});
-socket.on('wolf-relocate',event=>{const p=players.get(event.id);if(p){p.group.position.set(event.x,0,event.z);p.target.set(event.x,0,event.z);}});
-socket.on('wolf-discussion-message',data=>maSoiThongBao(`${data.name}: ${data.text}`));
-socket.on('wolf-chat-message',data=>maSoiThongBao(`🐺 ${data.name}: ${data.text}`));
-socket.on('wolf-vote-update',event=>{const target=players.get(event.to);const counts=Object.entries(event.counts||{}).map(([id,n])=>`${players.get(id)?.name||id}: ${n}`).join(' · ');maSoiThongBao(`${event.name} đã bỏ phiếu ${target?`loại ${target.name}`:'trắng'}${counts?` · ${counts}`:''}`);});
-socket.on('wolf-deaths',event=>{
-  for(const dead of event.nguoi||[]){
-    const p=players.get(dead.id);
-    if(p&&dead.ketNoi){danhDauNguoiChet(p);continue;}
-    taoBongMaSoi(dead);
-  }
-  if(event.nguoi?.length)maSoiThongBao(`${event.nguoi.map(p=>p.ten).join(', ')} đã bị loại.`);
-});
-socket.on('wolf-finished',event=>{
-  trangThaiMaSoi={...(trangThaiMaSoi||{}),giaiDoan:'finished',giaiTanLuc:event.giaiTanLuc,ketQua:event.ketQua,lichSu:event.lichSu,danhSach:event.danhSach};
-  taoHieuUngThangMaSoi(event.ketQua,event.vaiTro);
-  document.querySelector('#wolf-history-open').hidden=false;veBangMaSoi();document.querySelector('#wolf-history-open').click();
-});
-socket.on('wolf-dissolved',()=>{
-  if(hieuUngThangMaSoi){scene.remove(hieuUngThangMaSoi);hieuUngThangMaSoi.traverse(o=>{o.geometry?.dispose();o.material?.dispose();});hieuUngThangMaSoi=null;}
-  for(const group of maSoiGhosts.values()){scene.remove(group);group.traverse(o=>{o.geometry?.dispose();if(o.material?.map)o.material.map.dispose();o.material?.dispose();});}
-  maSoiGhosts.clear();
-  for(const p of [...players.values()])if(p.wolfDead||p.wolfLoss||p.wolfForm||p.wolfCelebration){const data={id:p.id,name:p.name,avatar:p.avatar,x:p.group.position.x,z:p.group.position.z,yaw:p.group.rotation.y};removePlayer(p.id);createPlayer(data);}
-  if(wolfHistoryModal.open)wolfHistoryModal.close();
-  trangThaiMaSoi=null;riengMaSoi=null;lichSuMaSoiDaMo=false;noiDungLichSuMaSoi='';choVeLaiMaSoi=false;capNhatSoGheMaSoi(0);if(phuToiMaSoi)phuToiMaSoi.visible=false;document.querySelector('#app').classList.remove('wolf-participant');wolfUi.hidden=true;document.querySelector('#wolf-history-open').hidden=true;capNhatNhanMaSoi('CHƠI MA SÓI');
-});
-document.querySelector('#wolf-create-form').addEventListener('submit',event=>{
-  event.preventDefault();if(event.submitter?.value!=='gui'){wolfInviteModal.close();return;}
-  const ids=[...document.querySelectorAll('#wolf-invite-list input:checked')].map(input=>input.value);
-  if(ids.length<4||ids.length>14)return toast('Chọn tối thiểu 4 và tối đa 14 người.');
-  socket.emit('wolf-create',ids);wolfInviteModal.close();
-});
-document.querySelector('#wolf-invite-list').addEventListener('change',event=>{
-  const checks=[...document.querySelectorAll('#wolf-invite-list input')],selected=checks.filter(input=>input.checked);
-  if(selected.length>=14)for(const input of checks)input.disabled=!input.checked;else for(const input of checks)input.disabled=false;
-});
-wolfIncomingModal.addEventListener('close',()=>{socket.emit('wolf-answer',wolfIncomingModal.returnValue==='yes'?'yes':'no');});
-document.querySelector('#wolf-chat-form').addEventListener('submit',event=>{
-  event.preventDefault();const input=document.querySelector('#wolf-chat-input'),text=input.value.trim();if(!text)return;
+socket.on('wolf-invite-state',state=>{trangThaiMaSoi={...(trangThaiMaSoi||{}),giaiDoan:'invite',mocKetThuc:state…1193 tokens truncated…-input'),text=input.value.trim();if(!text)return;
   if(riengMaSoi?.loai==='wolf-chat')socket.emit('wolf-wolf-chat',text);else socket.emit('wolf-discussion',text);input.value='';
 });
-document.querySelector('#wolf-close').onclick=()=>wolfUi.hidden=true;
+document.querySelector('#wolf-close').onclick=()=>{wolfUi.hidden=true;wolfReopen.hidden=false;};
+wolfReopen.onclick=()=>{wolfUi.hidden=false;wolfReopen.hidden=true;};
 function moLichSuMaSoi(){
   const history=document.querySelector('#wolf-history-content');
   const noiDung=dinhDangLichSuMaSoi(trangThaiMaSoi?.lichSu||[]);
@@ -1263,7 +1226,6 @@ document.querySelector('#wolf-history-modal').addEventListener('close',()=>{if(t
 document.querySelector('#wolf-create-form').addEventListener('click',event=>{if(event.target.value==='huy')wolfInviteModal.close();});
 document.querySelector('#wolf-incoming-modal').addEventListener('click',event=>{if(event.target.value==='yes'||event.target.value==='no')wolfIncomingModal.close(event.target.value);});
 document.querySelector('#wolf-history-modal').addEventListener('click',event=>{if(event.target.value==='close')wolfHistoryModal.close();});
-document.querySelector('#wolf-close').addEventListener('click',()=>{wolfUi.hidden=true;});
 setInterval(()=>{
   if(!trangThaiMaSoi)return;
   capNhatDongHoMaSoi();
