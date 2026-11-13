@@ -128,6 +128,14 @@ try{
   advance(5000);
   assert.equal(wolves8[0].inbox.some(e=>e.event==='wolf-event'&&e.data.text==='Tiên tri đã thức dậy.'),true);
   assert.equal([...sockets8.values()].some(socket=>socket.inbox.some(e=>e.event==='wolf-deaths')),false);
+  const seer8=eightCards.find(entry=>entry.card?.vai==='seer').socket;
+  seer8.fire('wolf-night-action',{target:wolves8[0].id});
+  assert.equal(seer8.inbox.filter(e=>e.event==='wolf-private-result').at(-1).data.ketQua,'SÓI');
+  const witch8=eightCards.find(entry=>entry.card?.vai==='witch').socket;
+  const poisonTarget=[...room8.werewolf.nguoi.values()].find(player=>player.vai==='villager'&&player.id!==room8.werewolf.luaChon.get('guard'));
+  witch8.fire('wolf-night-action',{target:poisonTarget.id,loai:'poison'});
+  assert.equal(room8.werewolf.nguoi.get(poisonTarget.id).nguyenNhan,'poison');
+  assert.equal(room8.werewolf.giaiDoan,'discussion');
   const villager=eightCards.find(entry=>entry.card?.vai==='villager'),oldPlayer=room8.get(villager.socket.id);
   manager8.onDisconnect(villager.socket,room8);
   assert.equal(room8.werewolf.nguoi.get(villager.socket.id).song,false);
@@ -137,7 +145,7 @@ try{
   sockets8.set(reconnectId,reconnectSocket);connections8.get('connection')(reconnectSocket);manager8.onJoin(reconnectSocket,room8);
   assert.equal(rejoined.maSoi,true);
   assert.equal(reconnectSocket.inbox.filter(e=>e.event==='wolf-state').at(-1).data.rieng,null);
-  console.log(JSON.stringify({result:'PASS',invites:'selected players only',roleDistribution:'5–15-player tables valid',privateRoles:'not broadcast',gameLocks:locked.size,singleWolf:'target killed after night resolves',earlyNightAction:'advanced immediately',multiWolfDisagreement:'no bite after 30s chat and 5s choice',disconnect:'dead seat retained; same-session reconnect is locked out as spectator'},null,2));
+  console.log(JSON.stringify({result:'PASS',invites:'selected players only',roleDistribution:'5–15-player tables valid',privateRoles:'not broadcast',gameLocks:locked.size,singleWolf:'target killed after night resolves',earlyNightAction:'advanced immediately',multiWolfDisagreement:'no bite after 30s chat and 5s choice; seer and witch actions continue',disconnect:'dead seat retained; same-session reconnect is locked out as spectator'},null,2));
 }finally{
   globalThis.setTimeout=originalSetTimeout;
   globalThis.clearTimeout=originalClearTimeout;
