@@ -960,10 +960,13 @@ function removePlayer(id) {
       if(material.userData.generatedAnimalPattern){
         material.map?.dispose();
         material.dispose();
+      }else if(material.userData.wolfTint||material.userData.wolfEffect){
+        material.map?.dispose();
+        material.dispose();
       }
     }
   });
-  for(const sprite of [p.nameSprite,p.bubbleSprite]){
+  for(const sprite of [p.nameSprite,p.bubbleSprite,p.wolfWinnerBadge,p.wolfLossBadge]){
     sprite?.material?.map?.dispose();
     sprite?.material?.dispose();
   }
@@ -1017,37 +1020,84 @@ function taoBongMaSoi(dead){
 }
 function bienHinhSoi(p){
   if(p.wolfForm)return;
-  const g=new THREE.Group(),fur=mat('#55434c'),eye=mat('#ff5148');
-  for(const side of [-1,1]){
-    const ear=new THREE.Mesh(new THREE.ConeGeometry(.16,.48,8),fur);ear.position.set(side*.27,1.95,-.1);ear.rotation.z=side*-.2;g.add(ear);
-    sphere(g,side*.16,1.58,-.44,.055,.045,.035,eye,10);
+  const fur=mat('#62505a'),shadow=mat('#3d3038'),eye=mat('#ff594f');
+  const g=new THREE.Group();
+  if(p.avatar==='snake'){
+    const neck=sphere(g,0,.9,-.02,.34,.83,.34,fur,18);neck.rotation.x=-.1;
+    sphere(g,0,1.64,-.08,.46,.43,.43,fur,18);
+    for(const side of [-1,1]){
+      const ear=new THREE.Mesh(new THREE.ConeGeometry(.14,.37,8),fur);ear.position.set(side*.28,1.97,-.08);ear.rotation.z=side*-.18;g.add(ear);
+      sphere(g,side*.17,1.69,-.43,.06,.05,.035,eye,10);
+    }
+    sphere(g,0,1.5,-.47,.23,.16,.19,shadow,14);
+    sphere(g,0,1.53,-.63,.12,.08,.07,mat('#d9a4a0'),12);
+    faceLine(g,[[0,.53,.28],[0,.43,.58],[0,.58,.9]],fur,.12);
+  }else{
+    const torso=sphere(g,0,.66,.02,.61,.65,.54,fur,18);torso.rotation.x=-.12;
+    sphere(g,0,1.14,-.13,.43,.43,.42,fur,18);
+    for(const side of [-1,1]){
+      const ear=new THREE.Mesh(new THREE.ConeGeometry(.15,.38,8),fur);ear.position.set(side*.27,1.48,-.12);ear.rotation.z=side*-.18;g.add(ear);
+      sphere(g,side*.17,1.2,-.48,.055,.05,.035,eye,10);
+      const leg=sphere(g,side*.34,.2,.03,.16,.31,.18,fur,12);leg.rotation.z=side*-.12;
+      sphere(g,side*.42,.055,-.05,.19,.095,.24,shadow,12);
+    }
+    sphere(g,0,1.02,-.51,.24,.19,.22,shadow,14);
+    sphere(g,0,1.06,-.69,.12,.09,.08,mat('#d9a4a0'),12);
+    faceLine(g,[[0,.54,.43],[0,.42,.73],[0,.6,1.01]],fur,.13);
   }
-  sphere(g,0,1.48,-.48,.22,.18,.24,fur,12);
-  const tail=new THREE.Mesh(new THREE.ConeGeometry(.15,.8,8),fur);tail.position.set(0,.83,.6);tail.rotation.x=-Math.PI/2.7;g.add(tail);
-  p.group.add(g);p.wolfForm=g;
+  p.body.add(g);p.wolfForm=g;
+  p.wolfForm.traverse(o=>{o.userData.wolfMaterial=true;});
+  p.group.traverse(o=>{
+    if(!o.isMesh||o.userData.wolfMaterialCloned)return;
+    const originals=Array.isArray(o.material)?o.material:[o.material];
+    const clones=originals.map(original=>{
+      if(!original?.clone)return original;
+      const clone=original.clone();
+      if(clone.color)clone.color.lerp(new THREE.Color('#7c6a73'),.22);
+      clone.userData.wolfTint=true;
+      return clone;
+    });
+    o.material=Array.isArray(o.material)?clones:clones[0];
+    o.userData.wolfMaterialCloned=true;
+  });
 }
 function taoHieuUngThangMaSoi(result,roles){
-  if(hieuUngThangMaSoi){scene.remove(hieuUngThangMaSoi);hieuUngThangMaSoi.traverse(o=>{o.geometry?.dispose();o.material?.dispose();});}
+  if(hieuUngThangMaSoi){scene.remove(hieuUngThangMaSoi);hieuUngThangMaSoi.traverse(o=>{o.geometry?.dispose();o.material?.map?.dispose();o.material?.dispose();});}
   const group=new THREE.Group(),isWolf=result==='wolves',color=isWolf?'#df3e48':'#f6d36f';
-  const ring=new THREE.Mesh(new THREE.TorusGeometry(3.8,.12,8,48),new THREE.MeshBasicMaterial({color,transparent:true,opacity:.82}));ring.rotation.x=Math.PI/2;ring.position.set(-1.8,.18,-7.2);group.add(ring);
-  if(isWolf){
-    const moon=new THREE.Mesh(new THREE.SphereGeometry(.64,16,12),new THREE.MeshBasicMaterial({color:'#b21d32',emissive:'#7d0c1f'}));moon.position.set(-1.8,5.3,-7.2);group.add(moon);
-    const light=new THREE.PointLight('#e93442',1.5,11,2);light.position.set(-1.8,3.3,-7.2);group.add(light);
-  }else{
-    const colors=['#ef727d','#f6d36f','#67c99a','#83b9ea'];
-    for(let i=0;i<20;i++){
-      const paper=new THREE.Mesh(new THREE.BoxGeometry(.12,.25,.035),new THREE.MeshBasicMaterial({color:colors[i%colors.length]}));
-      const angle=2*Math.PI*i/20;paper.position.set(-1.8+Math.cos(angle)*(2.2+i%3*.6),.7+i%5*.34,-7.2+Math.sin(angle)*(2.2+i%3*.6));group.add(paper);
-    }
+  const roleById=new Map((roles||[]).map(item=>[item.id,item]));
+  const center=new THREE.Vector3(TAM_BAN_MA_SOI.x,0,TAM_BAN_MA_SOI.z);
+  const ring=new THREE.Mesh(new THREE.TorusGeometry(4.45,.16,10,72),new THREE.MeshBasicMaterial({color,transparent:true,opacity:.92,depthWrite:false}));ring.material.userData.wolfEffect=true;ring.rotation.x=Math.PI/2;ring.position.set(center.x,.16,center.z);group.add(ring);group.userData.ring=ring;
+  const inner=new THREE.Mesh(new THREE.TorusGeometry(3.95,.045,8,64),new THREE.MeshBasicMaterial({color:'#fff2bb',transparent:true,opacity:.72,depthWrite:false}));inner.material.userData.wolfEffect=true;inner.rotation.x=Math.PI/2;inner.position.set(center.x,.18,center.z);group.add(inner);group.userData.innerRing=inner;
+  const spotlight=new THREE.Mesh(new THREE.CircleGeometry(3.9,48),new THREE.MeshBasicMaterial({color,transparent:true,opacity:.13,depthWrite:false,side:THREE.DoubleSide}));spotlight.material.userData.wolfEffect=true;spotlight.rotation.x=-Math.PI/2;spotlight.position.set(center.x,.025,center.z);group.add(spotlight);
+  const colors=isWolf?['#ff6470','#ffd66e','#d7c4ec']:['#ef727d','#f6d36f','#67c99a','#83b9ea'];
+  for(let i=0;i<32;i++){
+    const angle=2*Math.PI*i/32,radius=2.4+(i%4)*.55;
+    const paper=new THREE.Mesh(new THREE.BoxGeometry(.12,.25,.035),new THREE.MeshBasicMaterial({color:colors[i%colors.length]}));paper.material.userData.wolfEffect=true;
+    paper.position.set(center.x+Math.cos(angle)*radius,.65+(i%5)*.34,center.z+Math.sin(angle)*radius);paper.userData.confetti=true;paper.userData.phase=i*.47;group.add(paper);
   }
+  const light=new THREE.PointLight(color,2.4,13,2);light.userData.wolfEffect=true;light.position.set(center.x,4.5,center.z);group.add(light);
+  const title=label(isWolf?'🐺 MA SÓI THẮNG':result==='villagers'?'🏆 DÂN LÀNG THẮNG':'⚖️ HÒA');title.material.userData.wolfEffect=true;title.scale.set(4.2,.84,1);title.position.set(center.x,4.05,center.z);title.renderOrder=16;group.add(title);
   scene.add(group);hieuUngThangMaSoi=group;
-  const byId=new Map((roles||[]).map(item=>[item.id,item]));
   for(const p of players.values()){
-    const role=byId.get(p.id);if(!role||!role.song)continue;
-    const losing=result==='wolves'?role.vai!=='wolf':result==='villagers'?role.vai==='wolf':false;
-    if(losing){p.wolfLoss=true;p.group.traverse(o=>{if(o.material?.color)o.material.color.set('#898989');});}
-    else if(isWolf&&role.vai==='wolf')bienHinhSoi(p);
-    else if(result==='villagers')p.wolfCelebration=true;
+    const role=roleById.get(p.id);if(!role)continue;
+    const winning=Boolean(role.song&&(result==='wolves'?role.vai==='wolf':result==='villagers'?role.vai!=='wolf':false));
+    if(winning){
+      p.wolfWinner=true;p.group.position.y=0;
+      const halo=new THREE.Mesh(new THREE.TorusGeometry(.9,.065,8,40),new THREE.MeshBasicMaterial({color:'#ffd66e',transparent:true,opacity:.95,depthWrite:false}));halo.material.userData.wolfEffect=true;halo.rotation.x=Math.PI/2;halo.position.y=.12;halo.renderOrder=9;p.group.add(halo);p.wolfWinnerHalo=halo;
+      const badge=label('CHIẾN THẮNG','#8b5b13');badge.material.userData.wolfEffect=true;badge.scale.set(2.1,.52,1);badge.position.set(0,3.2,0);badge.renderOrder=18;p.group.add(badge);p.wolfWinnerBadge=badge;
+      if(isWolf&&role.vai==='wolf')bienHinhSoi(p);
+      p.wolfCelebration=true;
+    }else if(result!=='draw'){
+      p.wolfLoss=true;
+      const badge=label('THUA CUỘC','#6c3845');badge.material.userData.wolfEffect=true;badge.scale.set(1.8,.46,1);badge.position.set(0,3.1,0);badge.renderOrder=18;p.group.add(badge);p.wolfLossBadge=badge;
+      const ringLoss=new THREE.Mesh(new THREE.TorusGeometry(.72,.045,8,32),new THREE.MeshBasicMaterial({color:'#887983',transparent:true,opacity:.72,depthWrite:false}));ringLoss.material.userData.wolfEffect=true;ringLoss.rotation.x=Math.PI/2;ringLoss.position.y=.08;p.group.add(ringLoss);p.wolfLossRing=ringLoss;
+      p.group.traverse(o=>{
+        if(!o.isMesh||o.userData.wolfMaterial||o.userData.wolfMaterialCloned)return;
+        const originals=Array.isArray(o.material)?o.material:[o.material];
+        const clones=originals.map(original=>{if(!original?.clone)return original;const clone=original.clone();if(clone.color)clone.color.lerp(new THREE.Color('#786d73'),.58);clone.userData.wolfTint=true;return clone;});
+        o.material=Array.isArray(o.material)?clones:clones[0];o.userData.wolfMaterialCloned=true;
+      });
+    }
   }
 }
 const wolfUi=document.querySelector('#wolf-ui');
@@ -1237,11 +1287,16 @@ socket.on('wolf-deaths',event=>{
 });
 socket.on('wolf-finished',event=>{
   trangThaiMaSoi={...(trangThaiMaSoi||{}),giaiDoan:'finished',giaiTanLuc:event.giaiTanLuc,ketQua:event.ketQua,lichSu:event.lichSu,danhSach:event.danhSach};
+  for(const p of players.values()){
+    p.pose='';p.meditating=false;p.body.scale.set(1,1,1);p.body.position.set(0,0,0);p.body.rotation.set(0,0,0);p.group.position.y=0;
+    for(const arm of p.group.userData.tay){arm.rotation.set(0,0,0);arm.userData.khuYu.rotation.set(0,0,0);}
+    for(const leg of p.group.userData.chan){leg.rotation.set(0,0,0);leg.userData.goi.rotation.set(0,0,0);}
+  }
   taoHieuUngThangMaSoi(event.ketQua,event.vaiTro);
   capNhatGiaoDienMaSoi();
 });
 socket.on('wolf-dissolved',()=>{
-  if(hieuUngThangMaSoi){scene.remove(hieuUngThangMaSoi);hieuUngThangMaSoi.traverse(o=>{o.geometry?.dispose();o.material?.dispose();});hieuUngThangMaSoi=null;}
+  if(hieuUngThangMaSoi){scene.remove(hieuUngThangMaSoi);hieuUngThangMaSoi.traverse(o=>{o.geometry?.dispose();o.material?.map?.dispose();o.material?.dispose();});hieuUngThangMaSoi=null;}
   for(const group of maSoiGhosts.values()){scene.remove(group);group.traverse(o=>{o.geometry?.dispose();if(o.material?.map)o.material.map.dispose();o.material?.dispose();});}
   maSoiGhosts.clear();
   for(const p of [...players.values()])if(p.wolfDead||p.wolfLoss||p.wolfForm||p.wolfCelebration){const data={id:p.id,name:p.name,avatar:p.avatar,x:p.group.position.x,z:p.group.position.z,yaw:p.group.rotation.y};removePlayer(p.id);createPlayer(data);}
@@ -2383,7 +2438,7 @@ socket.on('connect',()=>{
     if(hadWolfState)setTimeout(()=>{
       if(version!==phienBanTrangThaiMaSoi||!trangThaiMaSoi)return;
       for(const group of maSoiGhosts.values()){scene.remove(group);group.traverse(o=>{o.geometry?.dispose();o.material?.map?.dispose();o.material?.dispose();});}
-      maSoiGhosts.clear();if(hieuUngThangMaSoi){scene.remove(hieuUngThangMaSoi);hieuUngThangMaSoi.traverse(o=>{o.geometry?.dispose();o.material?.dispose();});hieuUngThangMaSoi=null;}if(phuToiMaSoi)phuToiMaSoi.visible=false;trangThaiMaSoi=null;riengMaSoi=null;capNhatSoGheMaSoi(0);capNhatGiaoDienMaSoi();document.querySelector('#app').classList.remove('wolf-participant');capNhatNhanMaSoi('CHƠI MA SÓI');toast('Máy chủ đã khởi động lại; ván Ma Sói cũ đã bị hủy.');
+      maSoiGhosts.clear();if(hieuUngThangMaSoi){scene.remove(hieuUngThangMaSoi);hieuUngThangMaSoi.traverse(o=>{o.geometry?.dispose();o.material?.map?.dispose();o.material?.dispose();});hieuUngThangMaSoi=null;}if(phuToiMaSoi)phuToiMaSoi.visible=false;trangThaiMaSoi=null;riengMaSoi=null;capNhatSoGheMaSoi(0);capNhatGiaoDienMaSoi();document.querySelector('#app').classList.remove('wolf-participant');capNhatNhanMaSoi('CHƠI MA SÓI');toast('Máy chủ đã khởi động lại; ván Ma Sói cũ đã bị hủy.');
     },900);
   });
 });
@@ -2450,6 +2505,17 @@ function frame(now) {
       for(const leg of p.group.userData.chan){leg.rotation.x=.85;leg.userData.goi.rotation.x=-.85;}
     }
     if(p.wolfCelebration&&!p.wolfDead)p.group.position.y=.14+Math.abs(Math.sin(now*.006+(p.id.length||1)))*.28;
+    if(p.wolfWinner){
+      const pulse=1+Math.sin(now*.004+(p.id.length||1))*.12;
+      if(p.wolfWinnerHalo)p.wolfWinnerHalo.scale.set(pulse,pulse,pulse);
+      if(p.wolfWinnerBadge)p.wolfWinnerBadge.position.y=3.2+Math.sin(now*.003+(p.id.length||1))*.12;
+      if(p.wolfForm)p.wolfForm.rotation.y=Math.sin(now*.0025+(p.id.length||1))*.12;
+    }
+    if(p.wolfLoss){
+      if(p.wolfLossBadge)p.wolfLossBadge.position.y=3.05+Math.sin(now*.002+(p.id.length||1))*.045;
+      if(!p.wolfDead)p.body.rotation.z=-.28+Math.sin(now*.003+(p.id.length||1))*.035;
+      if(p.wolfLossRing)p.wolfLossRing.material.opacity=.5+Math.sin(now*.004+(p.id.length||1))*.15;
+    }
     if(p.pose==='meditate'){
       if(now<p.poseUntil){const base=p.id===selfId?1.08:1;p.body.scale.set(base,.76*base,base);p.body.position.y=-.12;}
       else{p.pose='';p.meditating=false;p.body.scale.set(1,1,1);p.body.position.y=0;p.group.position.y=0;}
@@ -2468,6 +2534,17 @@ function frame(now) {
       }
     }
     if(p.id!==selfId){const running=animateRun(p,now);if(!running)p.group.position.lerp(p.target,Math.min(1,dt*11));if(!running&&Number.isFinite(p.yaw))p.group.rotation.y=THREE.MathUtils.lerp(p.group.rotation.y,p.yaw,.15);}
+  }
+  if(hieuUngThangMaSoi){
+    const pulse=1+Math.sin(now*.003)*.035;
+    hieuUngThangMaSoi.userData.ring.scale.set(pulse,pulse,pulse);
+    hieuUngThangMaSoi.userData.ring.material.opacity=.72+Math.sin(now*.004)*.18;
+    hieuUngThangMaSoi.userData.innerRing.rotation.z=now*.00035;
+    for(const piece of hieuUngThangMaSoi.children){
+      if(!piece.userData.confetti)continue;
+      piece.position.y=.55+Math.abs(Math.sin(now*.002+piece.userData.phase))*.95;
+      piece.rotation.x+=dt*1.7;piece.rotation.z+=dt*2.1;
+    }
   }
   for(const p of players.values()){
     hoatAnh(p,now);
