@@ -1,14 +1,7 @@
 import * as THREE from '/three.module.js';
 import {tinhGocMay,tinhGocMayMaSoi} from './goc-may.js';
 import {dinhDangLichSuMaSoi} from './ma-soi-lich-su.js';
-const TAM_BAN_MA_SOI=Object.freeze({x:0,z:-7.2});
-const SO_GHE_TOI_DA_MA_SOI=15;
-function taoViTriGheMaSoi(soThuTu,tongSoNguoi){
-  if(!Number.isInteger(soThuTu)||!Number.isInteger(tongSoNguoi)||tongSoNguoi<1||tongSoNguoi>SO_GHE_TOI_DA_MA_SOI||soThuTu<0||soThuTu>=tongSoNguoi)return null;
-  const goc=2*Math.PI*soThuTu/tongSoNguoi-Math.PI/2;
-  const dx=Math.cos(goc),dz=Math.sin(goc);
-  return {x:TAM_BAN_MA_SOI.x+3.35*dx,z:TAM_BAN_MA_SOI.z+3.35*dz,yaw:Math.atan2(dx,dz)};
-}
+import {TAM_BAN_MA_SOI,SO_GHE_TOI_DA_MA_SOI,taoViTriGheMaSoi} from './ma-soi-layout.js';
 import {CSS3DRenderer,CSS3DObject} from '/css3d.js';
 
 import {banTho} from './ban-tho.js';
@@ -373,7 +366,17 @@ function capNhatNhanMaSoi(text){
   if(nhanMaSoi){vatTheMaSoi.splice(vatTheMaSoi.indexOf(nhanMaSoi),1);nhomBanMaSoi.remove(nhanMaSoi);nhanMaSoi.material.map?.dispose();nhanMaSoi.material.dispose();}
   nhanMaSoi=label(text,'#402c49');nhanMaSoi.scale.set(3.8,.92,1);nhanMaSoi.position.set(0,1.2,-.12);nhanMaSoi.userData.wolfButton=true;nhomBanMaSoi.add(nhanMaSoi);vatTheMaSoi.push(nhanMaSoi);
 }
-function capNhatSoGheMaSoi(count){for(let i=0;i<gheMaSoi.length;i++)gheMaSoi[i].visible=i<count;}
+function capNhatSoGheMaSoi(count){
+  const soNguoi=Math.max(0,Math.min(SO_GHE_TOI_DA_MA_SOI,Number.isInteger(count)?count:0));
+  for(let i=0;i<gheMaSoi.length;i++){
+    const ghe=gheMaSoi[i];
+    const viTri=i<soNguoi?taoViTriGheMaSoi(i,soNguoi):null;
+    ghe.visible=Boolean(viTri);
+    if(!viTri)continue;
+    ghe.position.set(viTri.x-TAM_BAN_MA_SOI.x,0,viTri.z-TAM_BAN_MA_SOI.z);
+    ghe.rotation.y=viTri.yaw;
+  }
+}
 
 function taoBanMaSoi(){
   const ban=new THREE.Group();
