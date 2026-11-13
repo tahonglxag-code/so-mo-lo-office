@@ -37,7 +37,7 @@ function congKhaiTrangThai(game, id) {
     daBoPhieu:[...game.boPhieu.keys()], phieu:Object.fromEntries(game.phieu),
     moi:game.moi?{chu:game.moi.chu, ketThuc:game.moi.ketThuc, danhSach:[...game.moi.phanHoi].map(([playerId,phanHoi])=>({id:playerId,phanHoi}))}:null,
     ketQua:game.ketQua||null,
-    rieng:own?{vai:own.vai, vaiMoTa:vaiTro[own.vai], tinhYeu:false, daHieu:game.daHieu.has(id), vayMoi:own.vai==='witch'?{cuu:game.thuocCuu,doc:game.thuocDoc}:null}:null
+    rieng:own&&game.giaiDoan!=='dealing'?{vai:own.vai, vaiMoTa:vaiTro[own.vai], tinhYeu:false, daHieu:game.daHieu.has(id), vayMoi:own.vai==='witch'?{cuu:game.thuocCuu,doc:game.thuocDoc}:null}:null
   };
 }
 
@@ -207,6 +207,13 @@ function batDauVote(io,game) {
   },15000);
 }
 
+function batDauChiaVai(io,game) {
+  if(game.giaiDoan!=='dealing')return;
+  game.giaiDoan='cards';game.mocKetThuc=now()+10000;
+  for(const p of game.nguoi.values())guiRieng(io,p.id,'wolf-private',{loai:'card',vai:p.vai,moTa:vaiTro[p.vai],mocKetThuc:game.mocKetThuc});
+  phatTrangThai(io,game);hen(game,()=>batDauDem(io,game),10000);
+}
+
 function batDauGame(io,game,ids) {
   const unique=[...new Set(ids)].slice(0,15);
   if(unique.length<5||unique.some(id=>!game.online.has(id)))return false;
@@ -220,10 +227,9 @@ function batDauGame(io,game,ids) {
     game.nguoi.set(id,{id,session:player.sessionId||'',ten:player.name,avatar:player.avatar,ghe:index,song:true,dangKetNoi:true,x:seat.x,z:seat.z,yaw:seat.yaw,viTriCu:old,vai:'',nguyenNhan:''});
     game.lockPlayer(id,true,seat);
   });
-  chiaVai(game);game.giaiDoan='cards';game.mocKetThuc=now()+10000;game.chu=unique[0];
-  for(const p of game.nguoi.values())guiRieng(io,p.id,'wolf-private',{loai:'card',vai:p.vai,moTa:vaiTro[p.vai],mocKetThuc:game.mocKetThuc});
-  congKhai(io,game.roomId,'wolf-start',{nguoi:congKhaiNguoi(game),mocKetThuc:game.mocKetThuc});
-  phatTrangThai(io,game);hen(game,()=>batDauDem(io,game),10000);return true;
+  chiaVai(game);game.giaiDoan='dealing';game.mocKetThuc=now()+3200+Math.max(0,unique.length-5)*160;game.chu=unique[0];
+  congKhai(io,game.roomId,'wolf-start',{nguoi:congKhaiNguoi(game),mocKetThuc:game.mocKetThuc,maTran:game.maTran});
+  phatTrangThai(io,game);hen(game,()=>batDauChiaVai(io,game),game.mocKetThuc-now());return true;
 }
 
 function giaiTan(io,game) {
