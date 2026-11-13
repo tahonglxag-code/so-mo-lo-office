@@ -87,6 +87,16 @@ try{
   const guardTarget=guardSocket.inbox.filter(e=>e.event==='wolf-private'&&e.data.loai==='role'&&e.data.vai==='guard').at(-1).data.danhSach[0].id;
   guardSocket.fire('wolf-night-action',{target:guardTarget});
   assert.equal(guardSocket.inbox.some(e=>e.event==='wolf-event'&&e.data.text==='Bảo vệ đã chọn xong.'),true);
+  const roundSockets=[host,...invited.map(id=>sockets.get(id))];
+  const wolfId=roundSockets[roles.indexOf('wolf')].id;
+  const seerSocket=roundSockets[roles.indexOf('seer')];
+  const wolfSocket=roundSockets[roles.indexOf('wolf')];
+  const victimId=roundSockets.filter((socket,index)=>roles[index]==='villager'&&socket.id!==guardTarget)[0].id;
+  wolfSocket.fire('wolf-night-action',{target:victimId});
+  seerSocket.fire('wolf-night-action',{target:wolfId});
+  assert.equal(seerSocket.inbox.filter(e=>e.event==='wolf-private-result').at(-1).data.ketQua,'SÓI');
+  assert.equal(host.inbox.filter(e=>e.event==='wolf-deaths').flatMap(e=>e.data.nguoi).some(player=>player.id===victimId),true);
+  assert.equal(host.inbox.filter(e=>e.event==='wolf-state').some(e=>e.data.giaiDoan==='discussion'),true);
   for(const timer of timers.values())timer.cancelled=true;timers.clear();
   const sockets8=new Map(),connections8=new Map(),room8=new Map();room8.pendingMoves=new Map();
   const io8={on:(name,fn)=>connections8.set(name,fn),to:destination=>({emit:(event,data)=>{
@@ -127,7 +137,7 @@ try{
   sockets8.set(reconnectId,reconnectSocket);connections8.get('connection')(reconnectSocket);manager8.onJoin(reconnectSocket,room8);
   assert.equal(rejoined.maSoi,true);
   assert.equal(reconnectSocket.inbox.filter(e=>e.event==='wolf-state').at(-1).data.rieng,null);
-  console.log(JSON.stringify({result:'PASS',invites:'selected players only',roleDistribution:'5–15-player tables valid',privateRoles:'not broadcast',gameLocks:locked.size,earlyNightAction:'advanced immediately',multiWolfDisagreement:'no bite after 30s chat and 5s choice',disconnect:'dead seat retained; same-session reconnect is locked out as spectator'},null,2));
+  console.log(JSON.stringify({result:'PASS',invites:'selected players only',roleDistribution:'5–15-player tables valid',privateRoles:'not broadcast',gameLocks:locked.size,singleWolf:'target killed after night resolves',earlyNightAction:'advanced immediately',multiWolfDisagreement:'no bite after 30s chat and 5s choice',disconnect:'dead seat retained; same-session reconnect is locked out as spectator'},null,2));
 }finally{
   globalThis.setTimeout=originalSetTimeout;
   globalThis.clearTimeout=originalClearTimeout;
