@@ -150,7 +150,7 @@ kiemTra.ok(noiDung.includes("II. ĐÊM 1"));
 kiemTra.ok(noiDung.includes("III. NGÀY 1"));
 kiemTra.ok(noiDung.includes("Bình: 2 phiếu"));
 kiemTra.ok(noiDung.includes("hòa phiếu, không ai bị loại"));
-kiemTra.ok(noiDung.includes("nguyên nhân"));
+kiemTra.ok(noiDung.includes("bị Sói cắn"));
 kiemTra.ok(noiDung.includes("V. KẾT QUẢ CUỐI CÙNG"));
 kiemTra.equal(noiDung.includes("180 giây"),false);
 console.log("PASS: lich su Ma Soi duoc dinh dang thanh noi dung de doc");
