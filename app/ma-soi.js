@@ -170,7 +170,7 @@ function goiLuot(io,game,index=0) {
     },30000);
     return;
   }
-  if(role==='wolf')game.giaiDoan='night-role';
+  game.giaiDoan='night-role';
   const end=now()+10000;game.mocKetThuc=end;phatSuKien(io,game,`${vaiTro[role].ten} đã thức dậy.`,{giaiDoan:'night-role',mocKetThuc:end});
   for(const p of active){
     guiRieng(io,p.id,'wolf-private',{loai:'role',vai:role,moTa:vaiTro[role],mocKetThuc:end,dongDoi:role==='wolf'?active.filter(q=>q.id!==p.id).map(q=>q.ten):[],danhSach:conSong(game).filter(q=>q.id!==p.id&&!(role==='wolf'&&q.vai==='wolf')).map(q=>({id:q.id,ten:q.ten})),thuoc:role==='witch'?{cuu:game.thuocCuu,doc:game.thuocDoc}:null,biSoi:role==='seer'?game.ketQuaSoi:null});
