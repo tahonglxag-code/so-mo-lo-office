@@ -3,7 +3,7 @@ const tenLyDo = {"wolf":"bị Sói cắn","poison":"trúng thuốc độc","hunt
 const tenLyDoBoQua = {"khong-co-nguoi-con-song":"không còn người giữ vai đủ điều kiện thực hiện","khong-bi-soi-can":"không có lượt bắn vì Thợ săn không bị Sói cắn","soi-khong-thong-nhat":"Sói không thống nhất hoặc không hoàn tất chọn mục tiêu","het-thoi-gian":"hết thời gian lựa chọn"};
 const tenPheThang = {"wolves":"Phe Ma Sói chiến thắng","villagers":"Phe Dân làng chiến thắng","draw":"Ván đấu kết thúc hòa"};
 
-function dinhDangLichSuMaSoi(lichSu) {
+export function dinhDangLichSuMaSoi(lichSu) {
   const suKien=Array.isArray(lichSu)?lichSu:[];
   const dong=[];
   const them=giaTri=>dong.push(giaTri);
@@ -126,3 +126,4 @@ function dinhDangLichSuMaSoi(lichSu) {
   }
   return dong.join("\n");
 }
+
