@@ -8,6 +8,7 @@
     "dev": "node server.js",
     "test:smoke": "node scripts/smoke-test.mjs",
     "test:ma-soi": "node scripts/ma-soi-test.mjs",
+    "test:ma-soi-edge": "node scripts/ma-soi-edge-test.mjs",
     "test:ma-soi-load": "node scripts/ma-soi-load-test.mjs",
     "test:ma-soi-history": "node scripts/ma-soi-history-test.mjs",
     "test:ma-soi-layout": "node scripts/ma-soi-layout-test.mjs"
