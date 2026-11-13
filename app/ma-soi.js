@@ -118,8 +118,7 @@ function danhDauChet(io,game,ids,reason) {
 
 function ketThucDem(io,game) {
   const ten=id=>layNguoi(game,id)?.ten||'';
-  const wolves = [...game.dichSoi.values()];
-  const dich = wolves.length && wolves.every(id=>id===wolves[0]) ? wolves[0] : '';
+  const dich = game.luaChon.get('wolf') || '';
   const witchChoice=game.luaChon.get('witch');
   let biCan=dich;
   if(biCan&&game.luaChon.get('guard')===biCan)biCan='';
