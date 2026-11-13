@@ -37,9 +37,50 @@
 .dock{grid-template-rows:minmax(0,1fr)}
 @media(max-width:760px){.dock{grid-template-rows:76px minmax(0,1fr)}}
 .wolf-ui{position:absolute;z-index:8;left:16px;top:16px;width:min(380px,calc(100vw - 32px));max-height:calc(100% - 32px);overflow:auto;padding:12px;background:#fff6e9f2;border:2px solid #745e7c;border-radius:18px;box-shadow:0 8px 28px #20172570;color:#382b40}.wolf-ui[hidden]{display:none}.wolf-ui header{display:flex;justify-content:space-between;align-items:center}.wolf-ui header button,.wolf-ui button{padding:6px 10px}.wolf-ui header button{background:#e9d8ed}.wolf-ui p{margin:7px 0}.wolf-log{max-height:230px;overflow:auto;margin-top:8px;padding:6px;background:#f5ebf4;border-radius:10px;font-size:13px}.wolf-log div{padding:2px 0}.wolf-ui input,.wolf-ui select{max-width:100%;border:1px solid #c9b8cc;border-radius:9px;padding:7px}.wolf-ui form{display:flex;gap:6px;margin-top:7px}.wolf-ui form input{flex:1;min-width:0}.wolf-actions{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}.wolf-choice{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:7px}.wolf-choice label{font-size:13px}.wolf-dead{filter:grayscale(1);opacity:.8}.wolf-participant .actions{opacity:.55}.wolf-participant .action-grid{pointer-events:none}.wolf-participant .target-line{opacity:.55}
-.wolf-reopen{position:absolute;z-index:8;left:16px;top:62px;padding:8px 14px;background:#fff1d8;border:2px solid #745e7c;box-shadow:0 4px 14px #20172560}.wolf-reopen[hidden]{display:none}
-dialog#wolf-create-modal,dialog#wolf-incoming-modal,dialog#wolf-history-modal{border:2px solid #745e7c;border-radius:18px;max-width:min(560px,94vw);width:min(560px,94vw);max-height:86vh;color:#382b40;background:#fff6e9;box-shadow:0 12px 44px #20172570}dialog#wolf-create-modal::backdrop,dialog#wolf-incoming-modal::backdrop,dialog#wolf-history-modal::backdrop{background:#241a2d88}dialog#wolf-create-modal form,dialog#wolf-incoming-modal form,dialog#wolf-history-modal form{display:flex;flex-wrap:wrap;gap:8px}#wolf-invite-list{width:100%;max-height:42vh;overflow:auto;display:grid;grid-template-columns:1fr 1fr;gap:5px}#wolf-invite-list label{padding:5px;background:#fff;border-radius:9px}#wolf-incoming-modal strong,#wolf-incoming-modal p{width:100%}#wolf-history-content{width:100%;max-height:58vh;overflow:auto;white-space:pre-wrap;background:#fff;border-radius:10px;padding:10px;font-size:13px}#wolf-history-timer{margin:auto 0 auto auto;color:#7d5b80;font-weight:800}
-@media(max-width:760px){.wolf-ui{left:6px;top:6px;width:min(350px,calc(100vw - 12px));max-height:calc(100% - 12px);padding:9px}.wolf-reopen{left:8px;top:50px;padding:7px 11px;font-size:12px}.wolf-log{max-height:140px}#wolf-invite-list{grid-template-columns:1fr}}
+dialog#wolf-create-modal,dialog#wolf-incoming-modal{border:2px solid #745e7c;border-radius:18px;max-width:min(560px,94vw);width:min(560px,94vw);max-height:86vh;color:#382b40;background:#fff6e9;box-shadow:0 12px 44px #20172570}dialog#wolf-create-modal::backdrop,dialog#wolf-incoming-modal::backdrop::backdrop{background:#241a2d88}dialog#wolf-create-modal form,dialog#wolf-incoming-modal form form{display:flex;flex-wrap:wrap;gap:8px}#wolf-invite-list{width:100%;max-height:42vh;overflow:auto;display:grid;grid-template-columns:1fr 1fr;gap:5px}#wolf-invite-list label{padding:5px;background:#fff;border-radius:9px}#wolf-incoming-modal strong,#wolf-incoming-modal p{width:100%}#wolf-history-content{width:100%;max-height:58vh;overflow:auto;white-space:pre-wrap;background:#fff;border-radius:10px;padding:10px;font-size:13px}#wolf-history-timer{margin:auto 0 auto auto;color:#7d5b80;font-weight:800}
+@media(max-width:760px){.wolf-ui{left:6px;top:6px;width:min(350px,calc(100vw - 12px));max-height:calc(100% - 12px);padding:9px}.wolf-log{max-height:140px}#wolf-invite-list{grid-template-columns:1fr}}
 
-dialog#wolf-history-modal{width:min(760px,94vw);max-width:min(760px,94vw)}
 #wolf-history-content{font-size:14px;line-height:1.55;overflow-wrap:anywhere;overscroll-behavior:contain}
+
+#room-chat[hidden],#room-actions[hidden],#wolf-ui[hidden],#wolf-history-panel[hidden]{display:none}
+#app.ma-soi-active .dock{grid-template-columns:minmax(230px,32%) minmax(0,1fr)}
+#app.ma-soi-active #room-chat{grid-column:1;height:100%;align-self:stretch;min-height:0}
+#app.ma-soi-active #room-actions{display:none}
+#app.ma-soi-active #wolf-ui{grid-column:2;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:10px;min-width:0;min-height:0;position:static;width:auto;max-height:none;overflow:hidden;padding:0;background:transparent;border:0;border-radius:0;box-shadow:none;color:#382b40}
+.wolf-role-panel,.wolf-chat-panel,.wolf-history-panel{min-width:0;min-height:0;background:#fff6e9ed;border:1px solid #745e7c;border-radius:14px;padding:7px 9px;box-shadow:0 2px 5px #382b4030;overflow:hidden}
+.wolf-role-panel,.wolf-chat-panel{display:flex;flex-direction:column;gap:4px}
+.wolf-role-panel>strong,.wolf-chat-panel>strong,.wolf-history-panel header{font-size:13px;font-weight:1000;color:#4d3854}
+#wolf-status{font-size:12px;font-weight:900;color:#674b69;line-height:1.3;overflow-wrap:anywhere}
+#wolf-private{flex:1;min-height:0;overflow:auto;font-size:12px;line-height:1.35;overscroll-behavior:contain}
+#wolf-private p{margin:3px 0}
+#wolf-private select{width:100%;margin:2px 0;padding:5px;font-size:12px}
+#wolf-actions{display:flex;flex-wrap:wrap;gap:5px;align-items:center}
+#wolf-actions button{padding:6px 9px;font-size:12px}
+.wolf-log{flex:1;min-height:0;max-height:none;overflow:auto;margin:0;padding:5px 7px;background:#f5ebf4;border-radius:9px;font-size:13px;overscroll-behavior:contain}
+.wolf-log div{padding:2px 0;overflow-wrap:anywhere}
+.wolf-chat-panel form{display:flex;gap:6px;margin:0}
+.wolf-chat-panel form input{flex:1;min-width:0;padding:6px 9px;font-size:13px}
+.wolf-chat-panel form button{padding:5px 10px}
+#app.ma-soi-finished .dock{grid-template-columns:minmax(0,1fr);grid-template-rows:minmax(0,1fr)}
+#app.ma-soi-finished #room-chat,#app.ma-soi-finished #room-actions,#app.ma-soi-finished #wolf-ui{display:none}
+#app.ma-soi-finished #wolf-history-panel{grid-column:1;display:flex;flex-direction:column;gap:6px;min-width:0;min-height:0;padding:8px 12px}
+.wolf-history-panel header{display:flex;align-items:center;justify-content:space-between;gap:8px}
+#wolf-history-timer{flex:0 0 auto;margin-left:auto;color:#7d5b80;font-size:12px;font-weight:900}
+#wolf-history-content{flex:1;min-height:0;max-height:none;overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere;background:#fff;border-radius:9px;padding:7px 9px;font-size:13px;line-height:1.4;overscroll-behavior:contain}
+@media(max-width:760px){
+  #app.ma-soi-active .dock{grid-template-columns:minmax(0,1fr);grid-template-rows:64px minmax(0,1fr)}
+  #app.ma-soi-active #room-chat{grid-column:1;height:100%;align-self:stretch}
+  #app.ma-soi-active #wolf-ui{grid-column:1;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:5px}
+  .wolf-role-panel,.wolf-chat-panel{padding:5px;gap:3px}
+  .wolf-role-panel>strong,.wolf-chat-panel>strong{font-size:11px}
+  #wolf-status,#wolf-private{font-size:10px}
+  #wolf-private select{font-size:10px;padding:3px}
+  #wolf-actions{gap:3px}
+  #wolf-actions button{font-size:10px;padding:4px 6px}
+  .wolf-log{font-size:11px;padding:4px}
+  .wolf-chat-panel form input{font-size:11px;padding:4px 6px}
+  .wolf-chat-panel form button{font-size:10px;padding:4px 7px}
+  #app.ma-soi-finished .wolf-history-panel{padding:6px}
+  #wolf-history-content{font-size:11px;line-height:1.3}
+}
+#app.ma-soi-active #room-chat{background:#fff6e8}
