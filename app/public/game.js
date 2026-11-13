@@ -423,9 +423,11 @@ function office() {
       scene.add(tile);
     }
   }
-  box(scene, 40, 2.1, .55, mats.wall, 0, .75, -13.2);
-  box(scene, .55, 2.1, 26, mats.wall, -20.2, .75, 0);
-  box(scene, .55, 2.1, 26, mats.wall, 20.2, .75, 0);
+  const caoTuong=2.1*3;
+  const tamTuong=-.3+caoTuong/2;
+  box(scene, 40, caoTuong, .55, mats.wall, 0, tamTuong, -13.2);
+  box(scene, .55, caoTuong, 26, mats.wall, -20.2, tamTuong, 0);
+  box(scene, .55, caoTuong, 26, mats.wall, 20.2, tamTuong, 0);
   box(scene, 40, .5, .55, mats.trim, 0, -.04, 13.2, false);
   for (const z of [-8, -3, 2, 7]) {
     box(scene, .16, .12, .16, mats.wallLight, -19.5, -.01, z, false);
