@@ -1,5 +1,6 @@
 import { spawn } from 'node:child_process';
 import { io } from 'socket.io-client';
+import { trongVungBanMaSoi } from '../public/ma-soi-layout.js';
 
 const port=40593,origin=`http://127.0.0.1:${port}`,server=spawn(process.execPath,['server.js'],{env:{...process.env,PORT:String(port)},stdio:'ignore'});
 const wait=ms=>new Promise(resolve=>setTimeout(resolve,ms));
@@ -49,7 +50,7 @@ async function runLevel(size){
     if(wolfCount!==3)throw new Error(`15-player deck expected 3 wolves; got ${wolfCount}.`);
     const observer=outside[0],observedMoves=[];
     const postStart=await ack(observer,'room-check');
-    movedAwayFromTable=postStart.players.filter(player=>!player.maSoi&&Math.hypot(player.x+1.8,player.z+7.2)<5.2).length===0?1:0;
+    movedAwayFromTable=postStart.players.filter(player=>!player.maSoi&&trongVungBanMaSoi(player.x,player.z)).length===0?1:0;
     observer.on('moves',updates=>observedMoves.push(...updates));
     participants[0].emit('move',{x:4.2,z:1.1,yaw:.5});
     await wait(260);
