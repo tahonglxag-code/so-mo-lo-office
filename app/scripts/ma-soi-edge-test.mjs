@@ -40,6 +40,7 @@ function createGame(size,roomId){
   players[0].fire('wolf-create',players.slice(1).map(socket=>socket.id));
   for(const player of players.slice(1))player.fire('wolf-answer','yes');
   advance(15000);
+  advance(3200+Math.max(0,size-5)*160);
   const cards=players.map(socket=>({socket,role:socket.inbox.find(event=>event.event==='wolf-private'&&event.data.loai==='card')?.data.vai}));
   assert.equal(cards.filter(card=>card.role).length,size);
   return {room,sockets,players,cards,game:room.werewolf,manager};

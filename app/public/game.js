@@ -2,6 +2,7 @@ import * as THREE from '/three.module.js';
 import {tinhGocMay,tinhGocMayMaSoi} from './goc-may.js';
 import {dinhDangLichSuMaSoi} from './ma-soi-lich-su.js';
 import {TAM_BAN_MA_SOI,SO_GHE_TOI_DA_MA_SOI,taoViTriGheMaSoi} from './ma-soi-layout.js';
+import {laDemMaSoi,laNguoiChoiMaSoi} from './ma-soi-anh-sang.js';
 import {CSS3DRenderer,CSS3DObject} from '/css3d.js';
 
 import {banTho} from './ban-tho.js';
@@ -78,7 +79,14 @@ renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1.15;
-scene.add(new THREE.HemisphereLight('#fff4dc', '#776579', 2.1));
+const anhSangTroi=new THREE.Color('#c5b0c1');
+const anhSangDem=new THREE.Color('#30394d');
+const mauSuongTroi=new THREE.Color('#c5b0c1');
+const mauSuongDem=new THREE.Color('#30394d');
+const mauMatTroiTroi=new THREE.Color('#fff1d4');
+const mauMatTroiDem=new THREE.Color('#a9b9ef');
+const denTroi=new THREE.HemisphereLight('#fff4dc', '#776579', 2.1);
+scene.add(denTroi);
 const sun = new THREE.DirectionalLight('#fff1d4', 3.0);
 sun.position.set(-8, 18, 12);
 sun.castShadow = true;
@@ -361,6 +369,8 @@ const gheMaSoi=[];
 let nhomBanMaSoi;
 let nhanMaSoi;
 let phuToiMaSoi;
+let mucDemMaSoi=0;
+let mucDemHienTai=0;
 function capNhatNhanMaSoi(text){
   if(!nhomBanMaSoi)return;
   if(nhanMaSoi){vatTheMaSoi.splice(vatTheMaSoi.indexOf(nhanMaSoi),1);nhomBanMaSoi.remove(nhanMaSoi);nhanMaSoi.material.map?.dispose();nhanMaSoi.material.dispose();}
@@ -1149,7 +1159,7 @@ function hienTheVaiTro(data){
 
 function capNhatGiaoDienMaSoi(){
   const giaiDoan=trangThaiMaSoi?.giaiDoan;
-  const dangChoi=Boolean(giaiDoan&&giaiDoan!=='invite'&&giaiDoan!=='finished');
+  const dangChoi=laNguoiChoiMaSoi(trangThaiMaSoi?.danhSach,selfId,giaiDoan);
   const daKetThuc=giaiDoan==='finished';
   document.querySelector('#app').classList.toggle('ma-soi-active',dangChoi);
   document.querySelector('#app').classList.toggle('ma-soi-finished',daKetThuc);
@@ -1162,6 +1172,12 @@ function capNhatGiaoDienMaSoi(){
     wolfHistoryTitle.textContent=`${nhan[trangThaiMaSoi.ketQua]||'Ván Ma Sói kết thúc'} · Lịch sử ván`;
     wolfHistoryContent.textContent=dinhDangLichSuMaSoi(trangThaiMaSoi.lichSu||[]);
   }
+}
+
+function capNhatAnhSangMaSoi(state){
+  const toi=laDemMaSoi(Boolean(players.get(selfId)?.maSoi),state?.giaiDoan);
+  if(phuToiMaSoi){phuToiMaSoi.visible=toi;phuToiMaSoi.material.opacity=.44;}
+  mucDemMaSoi=toi?1:0;
 }
 
 function moBangMaSoi(){
@@ -1182,7 +1198,6 @@ function themMaSoiNut(container,text,action){
 }
 
 function capNhatDanhSachMaSoi(state){
-  if(phuToiMaSoi)phuToiMaSoi.visible=['night','night-role','wolf-chat','wolf-choice'].includes(state.giaiDoan);
   for(const info of state.danhSach||[])if(!info.dangKetNoi&&!info.song)taoBongMaSoi(info);
   for(const player of players.values()){
     const info=state.danhSach?.find(item=>item.id===player.id);
@@ -1190,6 +1205,7 @@ function capNhatDanhSachMaSoi(state){
     if(info&&!info.song)danhDauNguoiChet(player);
     if(player.id===selfId)document.querySelector('#app').classList.toggle('wolf-participant',player.maSoi);
   }
+  capNhatAnhSangMaSoi(state);
   const select=document.querySelector('#target-select'),value=select.value;
   for(const option of [...select.options])if(option.value&&players.get(option.value)?.maSoi)option.remove();
   for(const player of players.values())if(player.id!==selfId&&!player.maSoi&&!select.querySelector(`option[value="${CSS.escape(player.id)}"]`)){
@@ -1296,7 +1312,7 @@ function maSoiThongBao(text){
   addFeed(text);
 }
 
-socket.on('wolf-state',state=>{phienBanTrangThaiMaSoi++;trangThaiMaSoi=state;capNhatSoGheMaSoi(state.giaiDoan==='invite'?0:state.danhSach?.length||0);if(state.giaiDoan==='dealing'&&wolfDealScreen.hidden)hienManChiaBai({maTran:state.maTran,nguoi:state.danhSach});veBangMaSoi();});
+socket.on('wolf-state',state=>{phienBanTrangThaiMaSoi++;trangThaiMaSoi=state;capNhatSoGheMaSoi(state.giaiDoan==='invite'?0:state.danhSach?.length||0);if(state.giaiDoan==='dealing'&&laNguoiChoiMaSoi(state.danhSach,selfId,state.giaiDoan)&&wolfDealScreen.hidden)hienManChiaBai({maTran:state.maTran,nguoi:state.danhSach});veBangMaSoi();});
 socket.on('wolf-public',state=>{phienBanTrangThaiMaSoi++;trangThaiMaSoi={...(trangThaiMaSoi||{}),...state,rieng:trangThaiMaSoi?.rieng};veBangMaSoi();});
 socket.on('wolf-private',data=>{riengMaSoi=data;if(data.loai==='card')trangThaiMaSoi={...(trangThaiMaSoi||{}),giaiDoan:'cards',mocKetThuc:data.mocKetThuc,rieng:data};if(data.loai==='wolf-agreement'&&riengMaSoi)riengMaSoi.luaChon=data.luaChon;veBangMaSoi();if(data.loai==='card')hienTheVaiTro(data);});
 socket.on('wolf-private-result',data=>{riengMaSoi={loai:'seer-result',ketQua:data.ketQua};veBangMaSoi();});
@@ -1304,8 +1320,8 @@ socket.on('wolf-event',event=>{maSoiThongBao(event.text);if(event.giaiDoan&&tran
 socket.on('wolf-invite-state',state=>{trangThaiMaSoi={...(trangThaiMaSoi||{}),giaiDoan:'invite',mocKetThuc:state.ketThuc,moi:{chu:state.chu,ketThuc:state.ketThuc,danhSach:state.phanHoi||[]}};veBangMaSoi();});
 socket.on('wolf-invite',invite=>{document.querySelector('#wolf-incoming-title').textContent=`🐺 ${invite.chu} đang mời bạn chơi Ma Sói!`;wolfIncomingModal.dataset.deadline=invite.ketThuc;wolfIncomingModal.showModal();});
 socket.on('wolf-error',data=>toast(data.text||'Không thể bắt đầu Ma Sói.'));
-socket.on('wolf-start',event=>{trangThaiMaSoi={...(trangThaiMaSoi||{}),giaiDoan:'dealing',mocKetThuc:event.mocKetThuc,danhSach:event.nguoi||[]};capNhatSoGheMaSoi(event.nguoi?.length||0);capNhatGiaoDienMaSoi();hienManChiaBai(event);maSoiThongBao('Ván Ma Sói bắt đầu: đang xào bài và chia vai.');});
 socket.on('wolf-lock',event=>{const p=players.get(event.id);if(!p)return;p.maSoi=event.locked;p.group.position.set(event.x,0,event.z);p.target.set(event.x,0,event.z);p.yaw=event.yaw;p.group.rotation.y=event.yaw;p.runMotion=null;if(event.locked){p.pose='wolf-seat';p.meditating=true;}else{p.pose='';p.meditating=false;p.body.scale.set(1,1,1);p.body.position.set(0,0,0);p.body.rotation.set(0,0,0);for(const arm of p.group.userData.tay){arm.rotation.set(0,0,0);arm.userData.khuYu.rotation.set(0,0,0);}for(const leg of p.group.userData.chan){leg.rotation.set(0,0,0);leg.userData.goi.rotation.set(0,0,0);}}if(event.id===selfId){keys.clear();targetWorld=null;document.querySelector('#app').classList.toggle('wolf-participant',event.locked);}});
+socket.on('wolf-start',event=>{trangThaiMaSoi={...(trangThaiMaSoi||{}),giaiDoan:'dealing',mocKetThuc:event.mocKetThuc,danhSach:event.nguoi||[]};capNhatSoGheMaSoi(event.nguoi?.length||0);capNhatGiaoDienMaSoi();if(laNguoiChoiMaSoi(event.nguoi,selfId,'dealing'))hienManChiaBai(event);maSoiThongBao('Ván Ma Sói bắt đầu: đang xào bài và chia vai.');});
 socket.on('wolf-relocate',event=>{const p=players.get(event.id);if(p){p.group.position.set(event.x,0,event.z);p.target.set(event.x,0,event.z);}});
 socket.on('wolf-discussion-message',data=>maSoiThongBao(`${data.name}: ${data.text}`));
 socket.on('wolf-chat-message',data=>maSoiThongBao(`🐺 ${data.name}: ${data.text}`));
@@ -1321,6 +1337,7 @@ socket.on('wolf-deaths',event=>{
 socket.on('wolf-finished',event=>{
   anManChiaBai();
   trangThaiMaSoi={...(trangThaiMaSoi||{}),giaiDoan:'finished',giaiTanLuc:event.giaiTanLuc,ketQua:event.ketQua,lichSu:event.lichSu,danhSach:event.danhSach};
+  capNhatAnhSangMaSoi(trangThaiMaSoi);
   for(const p of players.values()){
     p.pose='';p.meditating=false;p.body.scale.set(1,1,1);p.body.position.set(0,0,0);p.body.rotation.set(0,0,0);p.group.position.y=0;
     for(const arm of p.group.userData.tay){arm.rotation.set(0,0,0);arm.userData.khuYu.rotation.set(0,0,0);}
@@ -1335,7 +1352,7 @@ socket.on('wolf-dissolved',()=>{
   for(const group of maSoiGhosts.values()){scene.remove(group);group.traverse(o=>{o.geometry?.dispose();if(o.material?.map)o.material.map.dispose();o.material?.dispose();});}
   maSoiGhosts.clear();
   for(const p of [...players.values()])if(p.wolfDead||p.wolfLoss||p.wolfForm||p.wolfCelebration){const data={id:p.id,name:p.name,avatar:p.avatar,x:p.group.position.x,z:p.group.position.z,yaw:p.group.rotation.y};removePlayer(p.id);createPlayer(data);}
-  trangThaiMaSoi=null;riengMaSoi=null;choVeLaiMaSoi=false;capNhatSoGheMaSoi(0);if(phuToiMaSoi)phuToiMaSoi.visible=false;document.querySelector('#app').classList.remove('wolf-participant');capNhatGiaoDienMaSoi();capNhatNhanMaSoi('CHƠI MA SÓI');
+  trangThaiMaSoi=null;riengMaSoi=null;choVeLaiMaSoi=false;capNhatSoGheMaSoi(0);capNhatAnhSangMaSoi(null);document.querySelector('#app').classList.remove('wolf-participant');capNhatGiaoDienMaSoi();capNhatNhanMaSoi('CHƠI MA SÓI');
 });
 document.querySelector('#wolf-create-form').addEventListener('submit',event=>{
   event.preventDefault();if(event.submitter?.value!=='gui'){wolfInviteModal.close();return;}
@@ -2473,7 +2490,7 @@ socket.on('connect',()=>{
     if(hadWolfState)setTimeout(()=>{
       if(version!==phienBanTrangThaiMaSoi||!trangThaiMaSoi)return;
       for(const group of maSoiGhosts.values()){scene.remove(group);group.traverse(o=>{o.geometry?.dispose();o.material?.map?.dispose();o.material?.dispose();});}
-      maSoiGhosts.clear();if(hieuUngThangMaSoi){scene.remove(hieuUngThangMaSoi);hieuUngThangMaSoi.traverse(o=>{o.geometry?.dispose();o.material?.map?.dispose();o.material?.dispose();});hieuUngThangMaSoi=null;}if(phuToiMaSoi)phuToiMaSoi.visible=false;trangThaiMaSoi=null;riengMaSoi=null;capNhatSoGheMaSoi(0);capNhatGiaoDienMaSoi();document.querySelector('#app').classList.remove('wolf-participant');capNhatNhanMaSoi('CHƠI MA SÓI');toast('Máy chủ đã khởi động lại; ván Ma Sói cũ đã bị hủy.');
+      maSoiGhosts.clear();if(hieuUngThangMaSoi){scene.remove(hieuUngThangMaSoi);hieuUngThangMaSoi.traverse(o=>{o.geometry?.dispose();o.material?.map?.dispose();o.material?.dispose();});hieuUngThangMaSoi=null;}capNhatAnhSangMaSoi(null);trangThaiMaSoi=null;riengMaSoi=null;capNhatSoGheMaSoi(0);capNhatGiaoDienMaSoi();document.querySelector('#app').classList.remove('wolf-participant');capNhatNhanMaSoi('CHƠI MA SÓI');toast('Máy chủ đã khởi động lại; ván Ma Sói cũ đã bị hủy.');
     },900);
   });
 });
@@ -2519,6 +2536,13 @@ function animateRun(player,now){
 function frame(now) {
   requestAnimationFrame(frame);
   const dt=Math.min(.05,(now-lastFrame)/1000);lastFrame=now;
+  mucDemHienTai=THREE.MathUtils.damp(mucDemHienTai,mucDemMaSoi,3.2,dt);
+  if(scene.background)scene.background.copy(anhSangTroi).lerp(anhSangDem,mucDemHienTai);
+  if(scene.fog)scene.fog.color.copy(mauSuongTroi).lerp(mauSuongDem,mucDemHienTai);
+  denTroi.intensity=THREE.MathUtils.lerp(2.1,.78,mucDemHienTai);
+  sun.intensity=THREE.MathUtils.lerp(3,.48,mucDemHienTai);
+  sun.color.copy(mauMatTroiTroi).lerp(mauMatTroiDem,mucDemHienTai);
+  renderer.toneMappingExposure=THREE.MathUtils.lerp(1.15,.92,mucDemHienTai);
   const me=players.get(selfId);
   if(me) {
     let dx=(keys.has('KeyD')?1:0)-(keys.has('KeyA')?1:0);

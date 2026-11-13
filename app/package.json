@@ -11,7 +11,8 @@
     "test:ma-soi-edge": "node scripts/ma-soi-edge-test.mjs",
     "test:ma-soi-load": "node scripts/ma-soi-load-test.mjs",
     "test:ma-soi-history": "node scripts/ma-soi-history-test.mjs",
-    "test:ma-soi-layout": "node scripts/ma-soi-layout-test.mjs"
+    "test:ma-soi-layout": "node scripts/ma-soi-layout-test.mjs",
+    "test:ma-soi-light": "node scripts/ma-soi-anh-sang-test.mjs"
   },
   "dependencies": {
     "express": "^4.21.2",

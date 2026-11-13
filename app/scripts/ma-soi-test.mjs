@@ -60,6 +60,7 @@ try{
   assert.equal(sockets.get('player-5').inbox.some(e=>e.event==='wolf-invite'),false);
   for(const id of invited)sockets.get(id).fire('wolf-answer','yes');
   advance(15000);
+  advance(3200);
   const roleCards=[host,...invited.map(id=>sockets.get(id))].map(socket=>socket.inbox.find(e=>e.event==='wolf-private'&&e.data.loai==='card')?.data);
   assert.equal(roleCards.filter(Boolean).length,5);
   const roles=roleCards.map(card=>card.vai);
@@ -112,6 +113,7 @@ try{
   sockets8.get('eight-0').fire('wolf-create',[...sockets8.keys()].slice(1));
   for(const socket of [...sockets8.values()].slice(1))socket.fire('wolf-answer','yes');
   advance(15000);
+  advance(3680);
   const eightCards=[...sockets8.values()].map(socket=>({socket,card:socket.inbox.find(e=>e.event==='wolf-private'&&e.data.loai==='card')?.data}));
   assert.equal(eightCards.filter(entry=>entry.card).length,8);
   assert.equal(eightCards.filter(entry=>entry.card?.vai==='wolf').length,2);
