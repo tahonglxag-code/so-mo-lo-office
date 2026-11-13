@@ -1176,8 +1176,10 @@ function veBangMaSoi(){
     const vote=themMaSoiNut(wolfActions,'Xác nhận phiếu',()=>socket.emit('wolf-vote',sel.value));vote.disabled=(trangThaiMaSoi.daBoPhieu||[]).includes(selfId);
   }else if(!['wolf-chat','wolf-choice','discussion'].includes(trangThaiMaSoi.giaiDoan))document.querySelector('#wolf-chat-form').hidden=true;
   if(trangThaiMaSoi.giaiDoan==='finished')document.querySelector('#wolf-history-open').hidden=false;
+  const ganCuoiLog=wolfLog.scrollHeight-wolfLog.clientHeight-wolfLog.scrollTop<=8;
   wolfLog.replaceChildren();
-  for(const line of bongMaSoi.slice(-12)){const item=document.createElement('div');item.textContent=line;wolfLog.append(item);}
+  for(const line of bongMaSoi.slice(-80)){const item=document.createElement('div');item.textContent=line;wolfLog.append(item);}
+  if(ganCuoiLog)wolfLog.scrollTop=wolfLog.scrollHeight;
 }
 
 wolfUi.addEventListener('focusout',()=>{
