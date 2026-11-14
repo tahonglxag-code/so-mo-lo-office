@@ -81,7 +81,7 @@ try {
   assert.ok(rebel.batDauDiTho + rebel.thoiGianDiTho < rebel.duration);
   assert.ok(rebel.path.length >= 4);
   assert.ok(Math.abs(rebel.x - 8.6) < .01 && Math.abs(rebel.z + 10.15) < .01);
-  assert.equal(thongBao.text, '🔥 Hop 2 bật SẾP rồi chạy');
+  assert.equal(thongBao.text, '🔥 Hop 2 bật SẾP');
   const end = await doiSuKien(sockets[0], 'boss-rebel-end', 7500);
   assert.equal(end.id, sockets[1].id);
 
