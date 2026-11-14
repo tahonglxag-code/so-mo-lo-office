@@ -815,9 +815,16 @@ function animal(type, tint = null, macVest = false) {
 
 let sep;
 let banSep;
+let luaSep;
+let quangDoDauSep;
+let hieuUngBatSep=null;
+const nutBatSep=document.querySelector('#boss-rebel-button');
 function taoPhongSep(){
-  banSep=box(scene,3.25,.21,1.12,mats.wood,14.5,1,-8.55);
-  for(const x of [13.18,15.82])box(scene,.24,.94,.95,mats.wood,x,.47,-8.55);
+  banSep=new THREE.Group();
+  banSep.position.set(14.5,1,-8.55);
+  box(banSep,3.25,.21,1.12,mats.wood,0,0,0);
+  for(const x of [-1.32,1.32])box(banSep,.24,.94,.95,mats.wood,x,-.53,0);
+  scene.add(banSep);
   stool(14.5,-9.65);
   stool(14.5,-7.15);
   sep=animal('cow',null,true);
@@ -847,6 +854,19 @@ function taoPhongSep(){
   ten.position.y=2.05;
   sep.add(ten);
   scene.add(sep);
+  quangDoDauSep=new THREE.Mesh(new THREE.SphereGeometry(1,16,12),new THREE.MeshBasicMaterial({color:'#ff271f',transparent:true,opacity:0,depthWrite:false}));
+  quangDoDauSep.position.set(0,.06,-.31);
+  quangDoDauSep.scale.set(.44,.37,.2);
+  sep.userData.dau.add(quangDoDauSep);
+  luaSep=new THREE.Group();
+  for(const [x,y,s,mau] of [[0,.42,.5,'#ff3b16'],[-.16,.29,.32,'#ffb51c'],[.16,.31,.35,'#ff6b16']]){
+    const ngon=new THREE.Mesh(new THREE.ConeGeometry(s*.58,s*1.65,8),new THREE.MeshBasicMaterial({color:mau,transparent:true,opacity:.94,depthWrite:false}));
+    ngon.position.set(x,y,0);
+    luaSep.add(ngon);
+  }
+  luaSep.position.set(0,.58,-.1);
+  luaSep.scale.setScalar(0);
+  sep.userData.dau.add(luaSep);
 }
 office();
 const raycaster = new THREE.Raycaster();
@@ -975,6 +995,7 @@ function setBubble(id,text,thoiGian=6500) {
 
 function removePlayer(id) {
   const p=players.get(id); if(!p)return;
+  if(hieuUngBatSep?.id===id)ketThucHieuUngBatSep();
   if(p.wolfForm)p.wolfForm.traverse(o=>{o.geometry?.dispose();o.material?.dispose();});
   clearAura(p);
   capNhatKhoiWc(id,false);
@@ -1477,6 +1498,12 @@ document.querySelectorAll('[data-action]').forEach(button=>button.addEventListen
   if(!selectedId&&action!=='bow'&&action!=='shock')return toast('Chạm vào một người chơi khác để chọn họ nhé.');
   socket.emit('act',{target:selectedId,action,item});
 }));
+nutBatSep.addEventListener('click',()=>{
+  const me=players.get(selfId);
+  if(me?.hoatCanh?.loai!=='boss'||Date.now()<me.hoatCanh.batDau)return;
+  nutBatSep.hidden=true;
+  socket.emit('boss-rebel');
+});
 const hopRuNhau=document.querySelector('#ru-nhau');
 const dsBanNhau=document.querySelector('#ban-nhau');
 function moRuNhau(){
@@ -1702,7 +1729,9 @@ function batHoatCanh(p,canh,vaoSau=false){
   p.target.copy(dich);
   p.yaw=canh.yaw;
   const duong=[p.group.position.clone()];
-  if(canh.loai==='boss'&&!(p.group.position.x>10.4&&p.group.position.z< -4.7)){
+  if(Array.isArray(canh.path)&&canh.path.length){
+    duong.push(...canh.path.map(diem=>new THREE.Vector3(diem.x,0,diem.z)));
+  }else if(canh.loai==='boss'&&!(p.group.position.x>10.4&&p.group.position.z< -4.7)){
     duong.push(new THREE.Vector3(14.5,0,-3.7),new THREE.Vector3(14.5,0,-5.3));
   }
   if(vaoSau||Date.now()>=canh.batDau){p.group.position.copy(dich);p.runMotion=null;}
@@ -1718,11 +1747,12 @@ function batHoatCanh(p,canh,vaoSau=false){
 socket.on('hoat-canh',event=>{
   if(event.loai==='boss'){
     const cua=cuaHop.get('PHÒNG SẾP');
-    if(cua){cua.rotation.y=Math.PI/2;clearTimeout(cua.userData.dong);cua.userData.dong=setTimeout(()=>{cua.rotation.y=0;renderer.shadowMap.needsUpdate=true;},1300);}
+    const thoiGian=Math.max(1300,...event.nguoi.map(nguoi=>nguoi.duration||0))+800;
+    if(cua){cua.rotation.y=Math.PI/2;clearTimeout(cua.userData.dong);cua.userData.dong=setTimeout(()=>{cua.rotation.y=0;renderer.shadowMap.needsUpdate=true;},thoiGian);}
   }
   for(const data of event.nguoi){
     const p=players.get(data.id);
-    if(p)batHoatCanh(p,{...data,loai:event.loai,batDau:event.batDau,ketThuc:event.ketThuc,khoaDen:event.khoaDen,gheNhau:event.gheNhau,tamBia:event.tamBia});
+    if(p)batHoatCanh(p,{...data,loai:event.loai,batDau:data.batDau??event.batDau,ketThuc:event.ketThuc,khoaDen:data.khoaDen??event.khoaDen,gheNhau:event.gheNhau,tamBia:event.tamBia});
   }
 });
 socket.on('het-hoat-canh',id=>{const p=players.get(id);if(p)hetHoatCanh(p);});
@@ -1833,6 +1863,88 @@ function veSep(now){
   }
 }
 
+function ketThucHieuUngBatSep(){
+  if(!hieuUngBatSep)return;
+  const player=players.get(hieuUngBatSep.id);
+  if(banSep){banSep.position.set(14.5,1,-8.55);banSep.rotation.set(0,0,0);}
+  if(luaSep)luaSep.scale.setScalar(0);
+  if(quangDoDauSep)quangDoDauSep.material.opacity=0;
+  const cua=cuaHop.get('PHÒNG SẾP');
+  if(cua){clearTimeout(cua.userData.dong);cua.position.copy(hieuUngBatSep.cuaViTri);cua.rotation.set(0,0,0);}
+  for(const kyTu of kyTuBay)kyTu.visible=false;
+  if(player){
+    player.pose='';
+    player.bossRebel=null;
+    player.khoaDen=performance.now();
+    player.body.rotation.set(0,0,0);
+    player.body.position.y=0;
+    for(const tay of player.group.userData.tay){tay.rotation.x=0;tay.userData.khuYu.rotation.x=0;}
+    if(player.id===selfId)targetWorld=null;
+  }
+  hieuUngBatSep=null;
+  renderer.shadowMap.needsUpdate=true;
+}
+
+function veHieuUngBatSep(now){
+  const effect=hieuUngBatSep;
+  if(!effect)return;
+  const t=(now-effect.started)/1000;
+  if(t>=effect.duration/1000){ketThucHieuUngBatSep();return;}
+  const lua=Math.max(0,Math.min(1,(t-1.35)/.9));
+  if(quangDoDauSep)quangDoDauSep.material.opacity=lua*.78;
+  if(luaSep){
+    const cao=Math.max(0,Math.min(1,(t-1.7)/.65));
+    const nhip=1+.1*Math.sin(now*.025);
+    luaSep.scale.set(.75+nhip*.25,Math.max(.001,cao*2.3*nhip),.75+nhip*.25);
+  }
+  const lat=Math.max(0,Math.min(1,t/2.2));
+  banSep.position.set(14.5,1+Math.sin(lat*Math.PI)*4.6,-8.55+lat*3.1);
+  banSep.rotation.set(Math.PI*4*lat,0,Math.sin(lat*Math.PI)*.35);
+  if(t>=2.2){banSep.position.set(14.5,1,-5.45);banSep.rotation.set(Math.PI*4,0,.52);}
+  const cua=cuaHop.get('PHÒNG SẾP');
+  if(cua){
+    const bay=Math.max(0,Math.min(1,(t-2.08)/.85));
+    cua.position.copy(effect.cuaViTri);
+    cua.position.x+=1.45*bay;
+    cua.position.y=2.7*bay*(1-bay);
+    cua.position.z+=.28*bay;
+    cua.rotation.set(bay*Math.PI*1.3,-bay*Math.PI*2.5,bay*1.1);
+  }
+  const player=players.get(effect.id);
+  if(player){
+    if(t<1.5){
+      const lat=Math.max(0,1-Math.abs(t-.65)/.85);
+      for(const tay of player.group.userData.tay){tay.rotation.x=-2.25*lat;tay.userData.khuYu.rotation.x=.28*lat;}
+    }
+    if(t>=5.15){
+      const cui=Math.sin(Math.max(0,Math.min(1,(t-5.15)/.85))*Math.PI);
+      player.body.rotation.x=-Math.PI/2*cui;
+      player.body.position.y=.22*cui;
+      for(const tay of player.group.userData.tay){tay.rotation.x=-.65*cui;tay.userData.khuYu.rotation.x=.35*cui;}
+    }
+  }
+}
+
+socket.on('boss-rebel',event=>{
+  const player=players.get(event.id);
+  if(!player)return;
+  ketThucHieuUngBatSep();
+  const now=performance.now();
+  player.hoatCanh=null;
+  player.pose='boss-rebel';
+  player.khoaDen=now+event.duration;
+  player.target.set(event.x,0,event.z);
+  player.runMotion={points:[player.group.position.clone(),...(event.path||[{x:event.x,z:event.z}]).map(diem=>new THREE.Vector3(diem.x,0,diem.z))],started:now+event.batDauRoi,duration:event.thoiGianRoi,jump:false,yawCuoi:event.yaw};
+  if(player.id===selfId){targetWorld=null;nutBatSep.hidden=true;}
+  const cua=cuaHop.get('PHÒNG SẾP');
+  if(cua)clearTimeout(cua.userData.dong);
+  hieuUngBatSep={id:event.id,started:now,duration:event.duration,cuaViTri:cua?.position.clone()||new THREE.Vector3(13.805,0,-4.67)};
+});
+
+socket.on('boss-rebel-end',event=>{
+  if(hieuUngBatSep?.id===event.id)ketThucHieuUngBatSep();
+});
+
 socket.on('urgent-meeting',event=>{
   targetWorld=null;
   for(const cua of [...cuaHop.values()]){cua.rotation.y=Math.PI/2;clearTimeout(cua.userData.dong);cua.userData.dong=setTimeout(()=>{cua.rotation.y=0;renderer.shadowMap.needsUpdate=true;},event.duration+500);}
@@ -1842,7 +1954,8 @@ socket.on('urgent-meeting',event=>{
     p.workSeatId='';p.working=false;p.meditating=false;p.pose='';setBubble(p.id,'');
     if(p.nhay)p.nhay.ketThuc=0;
     p.khoaDen=performance.now()+(data.duration||event.duration);
-    p.runMotion={points:[p.group.position.clone(),...(data.path||[{x:data.x,z:data.z}]).map(v=>new THREE.Vector3(v.x,0,v.z))],started:performance.now(),duration:data.duration||event.duration,jump:false};
+    p.yaw=data.yaw;
+    p.runMotion={points:[p.group.position.clone(),...(data.path||[{x:data.x,z:data.z}]).map(v=>new THREE.Vector3(v.x,0,v.z))],started:performance.now(),duration:data.duration||event.duration,jump:false,yawCuoi:data.yaw};
     p.target.set(data.x,0,data.z);
   }
 });
@@ -2675,6 +2788,9 @@ function frame(now) {
   veKhoiWc(now);
   veDoiThanhTra(Date.now());
   veSep(Date.now());
+  veHieuUngBatSep(now);
+  const dangBiSepMang=Boolean(me?.hoatCanh?.loai==='boss'&&Date.now()>=me.hoatCanh.batDau&&!hieuUngBatSep);
+  if(nutBatSep.hidden===dangBiSepMang)nutBatSep.hidden=!dangBiSepMang;
   veGheNhau(Date.now());
   for(let i=vatNem.length-1;i>=0;i--){
     const v=vatNem[i],dich=players.get(v.dich),t=(now-v.batDau)/v.thoiGian;
