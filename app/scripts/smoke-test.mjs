@@ -1,5 +1,6 @@
 import { spawn } from 'node:child_process';
 import { io } from 'socket.io-client';
+import { doanDiDuoc } from '../public/office-navigation.js';
 
 const port = 40581;
 const origin = `http://127.0.0.1:${port}`;
@@ -84,7 +85,12 @@ try {
   const toileted = expectEvent(second, 'self-action');
   first.emit('self-action', 'toilet');
   const toiletAction = await toileted;
-  if (toiletAction.action !== 'toilet' || toiletAction.x !== -18.4 || toiletAction.z !== -11.3 || toiletAction.path.length !== 3) throw new Error('Toilet action did not move the character into the WC');
+  if (toiletAction.action !== 'toilet' || toiletAction.x !== -18.2 || toiletAction.z !== -11.3 || toiletAction.path.length < 3) throw new Error('Toilet action did not move the character into the WC');
+  let toiletPrevious = meetingEvent.players.find(player => player.id === firstInfo.id);
+  for (const point of toiletAction.path) {
+    if (!doanDiDuoc(toiletPrevious, point)) throw new Error('Toilet route crosses a wall');
+    toiletPrevious = point;
+  }
   await wait(toiletAction.duration + 120);
   const chatted = expectEvent(second, 'chat');
   first.emit('chat', 'Xin chào phòng!');

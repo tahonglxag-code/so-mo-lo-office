@@ -1635,12 +1635,14 @@ socket.on('work-result',result=>{
   targetWorld=null;
   const destination=new THREE.Vector3(result.seat.x,0,result.seat.z);
   me.workSeatId=result.seat.id;me.working=false;
-  me.runMotion={points:[me.group.position.clone(),destination],started:performance.now(),duration:Math.max(700,me.group.position.distanceTo(destination)/5.2*1000),jump:false};
+  const points=(result.path?.length?result.path:[{x:result.seat.x,z:result.seat.z}]).map(point=>new THREE.Vector3(point.x,0,point.z));
+  me.runMotion={points:[me.group.position.clone(),...points],started:performance.now(),duration:result.duration||Math.max(700,me.group.position.distanceTo(destination)/5.2*1000),jump:false};
 });
 socket.on('work-move',event=>{
   const p=players.get(event.id);if(!p)return;
   p.workSeatId=event.seat.id;p.working=false;
-  p.runMotion={points:[p.group.position.clone(),new THREE.Vector3(event.seat.x,0,event.seat.z)],started:performance.now(),duration:event.duration,jump:false};
+  const points=(event.path?.length?event.path:[{x:event.seat.x,z:event.seat.z}]).map(point=>new THREE.Vector3(point.x,0,point.z));
+  p.runMotion={points:[p.group.position.clone(),...points],started:performance.now(),duration:event.duration,jump:false};
 });
 socket.on('work-state',event=>{
   const p=players.get(event.id);if(!p)return;
@@ -1663,7 +1665,8 @@ socket.on('work-complete',event=>{
   const p=players.get(event.id);if(!p)return;
   p.workSeatId='';p.working=false;p.workStartedAt=0;p.meditating=false;p.pose='';setBubble(p.id,'');
   const destination=new THREE.Vector3(event.x,0,event.z);
-  p.runMotion={points:[p.group.position.clone(),destination],started:performance.now(),duration:event.duration,jump:true};
+  const points=(event.path?.length?event.path:[{x:event.x,z:event.z}]).map(point=>new THREE.Vector3(point.x,0,point.z));
+  p.runMotion={points:[p.group.position.clone(),...points],started:performance.now(),duration:event.duration,jump:true};
   p.target.copy(destination);
   p.khoaDen=performance.now()+event.duration;
   if(p.id===selfId)targetWorld=null;
@@ -1753,8 +1756,8 @@ function batHoatCanh(p,canh,vaoSau=false){
   const duong=[p.group.position.clone()];
   if(Array.isArray(canh.path)&&canh.path.length){
     duong.push(...canh.path.map(diem=>new THREE.Vector3(diem.x,0,diem.z)));
-  }else if(canh.loai==='boss'&&!(p.group.position.x>10.4&&p.group.position.z< -4.7)){
-    duong.push(new THREE.Vector3(14.5,0,-3.7),new THREE.Vector3(14.5,0,-5.3));
+  }else if(canh.loai==='boss'){
+    duong.push(...taoLoTrinh({x:p.group.position.x,z:p.group.position.z},{x:canh.x,z:canh.z}).map(diem=>new THREE.Vector3(diem.x,0,diem.z)));
   }
   if(vaoSau||Date.now()>=canh.batDau){p.group.position.copy(dich);p.runMotion=null;}
   else p.runMotion={points:[...duong,dich],started:performance.now(),duration:Math.max(1,canh.batDau-Date.now()),jump:false};

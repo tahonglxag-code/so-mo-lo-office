@@ -26,6 +26,16 @@ const workSeats = [
   { id: 'desk-6', x: -15.45, z: 8.9 }
 ];
 const workMilestones = [9, 69, 99, 199, 299, 399, 499, 599, 699, 799, 899];
+function taoLoTrinhCoThoiGian(dau, cuoi, tocDo, thoiGianToiThieu = 700) {
+  const path = taoLoTrinh(dau, cuoi);
+  let truoc = dau;
+  const quangDuong = path.reduce((tong, diem) => {
+    const doDai = Math.hypot(diem.x - truoc.x, diem.z - truoc.z);
+    truoc = diem;
+    return tong + doDai;
+  }, 0);
+  return { path, duration: Math.max(thoiGianToiThieu, quangDuong / tocDo * 1000) };
+}
 setInterval(() => {
   for (const [code, room] of rooms) {
     if (!room.pendingMoves?.size) continue;
@@ -209,15 +219,17 @@ function startWorkTimer(code, player) {
     const room = rooms.get(code);
     if (!room?.has(player.id) || !player.working || !player.workSeatId) return;
     releaseWorkSeat(code, player);
-    player.x = 0;
-    player.z = 0;
+    const dich = { x: 0, z: 0 };
+    const loTrinh = taoLoTrinhCoThoiGian(player, dich, 5.2, 1800);
+    player.x = dich.x;
+    player.z = dich.z;
     player.lastActivity = Date.now();
-    player.lockedUntil = player.lastActivity + 1800;
+    player.lockedUntil = player.lastActivity + loTrinh.duration;
     player.auraUntil = player.lastActivity + 300000;
     room.pendingMoves.delete(player.id);
     const hero = { id: player.id, name: player.name, until: player.auraUntil };
     room.heroes = [...activeHeroes(room), hero];
-    io.to(code).emit('work-complete', { id: player.id, x: player.x, z: player.z, duration: 1800, auraUntil: player.auraUntil });
+    io.to(code).emit('work-complete', { id: player.id, x: player.x, z: player.z, path: loTrinh.path, duration: loTrinh.duration, auraUntil: player.auraUntil });
     io.to(code).emit('work-hero', hero);
   }, 9999000));
 }
@@ -384,14 +396,20 @@ io.on('connection', socket => {
     if ([...room.values()].some(p => p.buongWc === buong && !nhom.includes(p))) {
       return socket.emit('feed', { text: 'Buồng này đang có người.' });
     }
-    const duration = 2600;
     const cuaZ = ban ? -6.95 : -11.3;
     for (const [i,p] of nhom.entries()) {
       ghiThaoTac(code,p);
       releaseWorkSeat(code,p);
       p.buongWc = buong;
-      p.x = -18.4;
-      p.z = cuaZ + (ban ? (i-.5)*.94 : 0);
+      const zDich = cuaZ + (ban ? (i-.5)*.94 : 0);
+      const dich = {x:-18.2,z:zDich};
+      const loTrinhNgoai = taoLoTrinh(p,{x:-16,z:zDich});
+      const path = [...loTrinhNgoai,{x:-17.1,z:zDich},dich];
+      let truoc=p;
+      const quangDuong=path.reduce((tong,diem)=>{const doDai=Math.hypot(diem.x-truoc.x,diem.z-truoc.z);truoc=diem;return tong+doDai;},0);
+      const duration=Math.max(2600,quangDuong/7*1000);
+      p.x = dich.x;
+      p.z = dich.z;
       p.yaw = -Math.PI/2;
       p.lockedUntil = lucDi + duration;
       p.pose = 'toilet';
@@ -399,7 +417,6 @@ io.on('connection', socket => {
       p.bubble = 'đang đi toilet...';
       p.bubbleUntil = lucDi + 6500;
       room.pendingMoves.delete(p.id);
-      const path = [{x:-16,z:cuaZ},{x:-17.1,z:cuaZ},{x:p.x,z:p.z}];
       io.to(code).emit('self-action', {id:p.id,action:'toilet',buong,x:p.x,z:p.z,yaw:p.yaw,path,line:p.bubble,duration,at:lucDi});
       setTimeout(() => {
         if (room.get(p.id) === p && p.buongWc === buong && p.lockedUntil === lucDi + duration) roomKhoiWc(code,p);
@@ -434,14 +451,20 @@ io.on('connection', socket => {
       return;
     }
     if (action === 'money' || action === 'run') releaseWorkSeat(code, player);
-    const duration = action === 'run' ? 900 : action === 'money' ? 5000 : 4000;
+    let duration = action === 'run' ? 900 : action === 'money' ? 5000 : 4000;
     let line = '';
     let path = [];
     if (action === 'run') {
       const distance = 5.6;
-      player.x = Math.max(-maxX, Math.min(maxX, player.x - Math.sin(player.yaw) * distance));
-      player.z = Math.max(-maxZ, Math.min(maxZ, player.z - Math.cos(player.yaw) * distance));
-      path = [{ x: player.x, z: player.z }];
+      const origine = {x:player.x,z:player.z};
+      const destination = { x: Math.max(-maxX, Math.min(maxX, player.x - Math.sin(player.yaw) * distance)), z: Math.max(-maxZ, Math.min(maxZ, player.z - Math.cos(player.yaw) * distance)) };
+      path = taoLoTrinh(origine,destination);
+      const last = path.at(-1) || player;
+      player.x = last.x;
+      player.z = last.z;
+      let truoc=origine;
+      const quangDuong=path.reduce((tong,diem)=>{const doDai=Math.hypot(diem.x-truoc.x,diem.z-truoc.z);truoc=diem;return tong+doDai;},0);
+      duration=Math.max(900,quangDuong/11*1000);
     } else if (action === 'meditate') {
       line = 'lương bất biến giữa dòng deadline vạn biến';
       player.bubble = line;
@@ -470,8 +493,9 @@ io.on('connection', socket => {
     player.working = false;
     player.lastActivity = Date.now();
     clearTimeout(player.idleTimer);
-    socket.emit('work-result', { ok: true, seat });
-    io.to(code).emit('work-move', { id: player.id, seat, duration: Math.max(700, Math.hypot(player.x - seat.x, player.z - seat.z) / 5.2 * 1000) });
+    const loTrinh = taoLoTrinhCoThoiGian(player, seat, 5.2);
+    socket.emit('work-result', { ok: true, seat, path: loTrinh.path, duration: loTrinh.duration });
+    io.to(code).emit('work-move', { id: player.id, seat, path: loTrinh.path, duration: loTrinh.duration });
   });
 
   socket.on('hoat-canh', data => {
@@ -514,16 +538,10 @@ io.on('connection', socket => {
       const yaw=gheNhau?gheNhau[i].yaw:loai==='boss'?0:Math.PI;
       let path=[];
       let thoiGianDi=0;
-      if(loai==='boss'&&p.x>10.4&&p.x<18.6&&p.z>1.2){
-        path=[{x:14.5,z:9.8},{x:8.9,z:9.8},{x:8.9,z:-3.55},{x:14.5,z:-3.55},{x,z}];
-      }else if(loai==='boss'&&!(p.x>10.4&&p.x<18.6&&p.z>-10.7&&p.z<-4.7)){
-        path=[{x:14.5,z:-3.55},{x:14.5,z:-5.35},{x,z}];
-      }else if(loai==='boss')path=[{x,z}];
       if(loai==='boss'){
-        let truoc=p;
-        let quangDuong=0;
-        for(const diem of path){quangDuong+=Math.hypot(diem.x-truoc.x,diem.z-truoc.z);truoc=diem;}
-        thoiGianDi=Math.max(700,quangDuong/5.2*1000);
+        const loTrinh=taoLoTrinhCoThoiGian(p,{x,z},5.2);
+        path=loTrinh.path;
+        thoiGianDi=loTrinh.duration;
       }
       p.x=x;
       p.z=z;
@@ -560,7 +578,7 @@ io.on('connection', socket => {
     const z = banTho.z + 1.5;
     const from = {x:player.x,z:player.z,yaw:player.yaw};
     const cua = {x:14.5,z:-5.25};
-    const path = [{x:14.5,z:-3.55},{x:11.9,z:-3.55},{x:9.7,z:-5.7},{x:8.6,z:-8.35},{x,z}];
+    const path = taoLoTrinh({x:14.5,z:-3.55},{x,z});
     const batDauDiCua = 1600;
     const thoiGianDenCua = Math.max(500,Math.hypot(cua.x-from.x,cua.z-from.z)/5.8*1000);
     const batDauQuatCua = batDauDiCua + thoiGianDenCua + 180;
@@ -599,18 +617,9 @@ io.on('connection', socket => {
       player.hoatCanh=null;
       releaseWorkSeat(code, player);
       const {x,z,yaw,dangNgoi}=gheHop[index];
-      const path=[];
-      if(!(player.x>10.4&&player.x<18.6&&player.z>1.2&&player.z<8.6)){
-        if(player.x>10.4&&player.z<-4.7){path.push({x:14.5,z:-5.6},{x:14.5,z:-3.7});}
-        if(player.x<-16.1&&player.z<-6.1){path.push({x:-17.8,z:-6.8},{x:-17.8,z:-5.1});}
-        const last=path.at(-1)||player;
-        if(last.z<8.6)path.push({x:8.9,z:last.z},{x:8.9,z:9.8});
-        path.push({x:14.5,z:9.8},{x:14.5,z:7.7});
-      }
-      path.push({x,z});
-      let distance=0,previous=player;
-      for(const point of path){distance+=Math.hypot(point.x-previous.x,point.z-previous.z);previous=point;}
-      const duration=Math.max(700,distance/7*1000);
+      const loTrinh=taoLoTrinhCoThoiGian(player,{x,z},7);
+      const path=loTrinh.path;
+      const duration=loTrinh.duration;
       player.x=x;player.z=z;player.yaw=yaw;
       player.lockedUntil=Date.now()+duration;
       ghiThaoTac(code, player);

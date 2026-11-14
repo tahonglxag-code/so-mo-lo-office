@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
 import { io } from 'socket.io-client';
 import { taoChoHopGap } from '../hop-gap-layout.js';
+import { doanDiDuoc } from '../public/office-navigation.js';
 
 const port = 40583;
 const origin = `http://127.0.0.1:${port}`;
@@ -15,6 +16,7 @@ const guiXacNhan = (socket, event, value) => new Promise((resolve, reject) => {
   socket.timeout(5000).emit(event, value, (error, response) => error ? reject(error) : resolve(response));
 });
 const sockets = [];
+const positions = new Map();
 
 try {
   let response;
@@ -41,7 +43,22 @@ try {
     const info = await joined;
     assert.ok(ack.ok);
     roomCode = info.room;
+    positions.set(socket.id, info.players.find(player => player.id === socket.id));
   }
+
+  const workResult = doiSuKien(sockets[0], 'work-result');
+  const workMove = doiSuKien(sockets[1], 'work-move');
+  sockets[0].emit('work');
+  const work = await workResult;
+  const workEvent = await workMove;
+  assert.ok(work.ok && work.path.length);
+  assert.deepEqual(workEvent.path, work.path);
+  let workPrevious = positions.get(sockets[0].id);
+  for (const point of work.path) {
+    assert.ok(doanDiDuoc(workPrevious, point));
+    workPrevious = point;
+  }
+  assert.ok(Math.hypot(workPrevious.x-work.seat.x, workPrevious.z-work.seat.z)<.7);
 
   const hopGap = doiSuKien(sockets[0], 'urgent-meeting');
   sockets[0].emit('urgent-meeting');
@@ -62,7 +79,11 @@ try {
   assert.ok(loTrinh.path.length >= 1);
   assert.ok(loTrinh.duration >= 700);
   assert.ok(loTrinh.batDau >= Date.now() - 100);
-  if (loTrinh.path.length > 1) assert.ok(loTrinh.path.some(point => point.z === -3.55));
+  let bossPrevious = hop.players.find(player=>player.id===sockets[1].id);
+  for (const point of [...loTrinh.path,{x:14.5,z:-7.15}]) {
+    assert.ok(doanDiDuoc(bossPrevious,point));
+    bossPrevious=point;
+  }
   await wait(Math.max(0, loTrinh.batDau - Date.now()) + 100);
 
   const batSep = doiSuKien(sockets[0], 'boss-rebel');
@@ -79,7 +100,12 @@ try {
   assert.ok(rebel.batDauQuatCua < rebel.batDauMoCua);
   assert.ok(rebel.batDauMoCua < rebel.batDauDiTho);
   assert.ok(rebel.batDauDiTho + rebel.thoiGianDiTho < rebel.duration);
-  assert.ok(rebel.path.length >= 4);
+  assert.ok(rebel.path.length >= 3);
+  let rebelPrevious = {x:14.5,z:-3.55};
+  for (const point of rebel.path) {
+    assert.ok(doanDiDuoc(rebelPrevious,point));
+    rebelPrevious=point;
+  }
   assert.ok(Math.abs(rebel.x - 8.6) < .01 && Math.abs(rebel.z + 10.15) < .01);
   assert.equal(thongBao.text, '🔥 Hop 2 bật SẾP');
   const end = await doiSuKien(sockets[0], 'boss-rebel-end', 7500);
@@ -88,7 +114,7 @@ try {
   const normalAction = doiSuKien(sockets[0], 'self-action');
   sockets[1].emit('self-action', 'meditate');
   assert.equal((await normalAction).action, 'meditate');
-  console.log(JSON.stringify({ layout: '50 unique positions, six chairs plus alternating standing spaces', urgentMeeting: 'eight players seated and standing around the conference table', privateMeeting: 'target walks through the boss-room doorway', bossRebel: 'authorized player completes six-second event and returns to normal actions' }, null, 2));
+  console.log(JSON.stringify({ layout: '50 unique positions, six chairs plus alternating standing spaces', work: 'work action sends a wall-safe route to the desk', urgentMeeting: 'eight players seated and standing around the conference table', privateMeeting: 'target walks through the boss-room doorway', bossRebel: 'authorized player completes six-second event and returns to normal actions' }, null, 2));
 } finally {
   for (const socket of sockets) socket.disconnect();
   server.kill('SIGTERM');
