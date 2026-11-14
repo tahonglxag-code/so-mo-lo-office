@@ -92,10 +92,23 @@ dialog#wolf-create-modal,dialog#wolf-incoming-modal{border:2px solid #745e7c;bor
 .wolf-deal-table{position:relative;display:grid;place-items:center;min-height:clamp(180px,32vh,270px);margin:14px 0 8px;border-radius:18px;background:radial-gradient(ellipse,#e8d6ab 0,#d3c2a8 45%,#b0a6a0 100%);overflow:hidden}
 .wolf-deck{position:absolute;left:50%;top:50%;width:76px;height:108px;display:grid;place-items:center;border:3px solid #fff5db;border-radius:12px;background:repeating-linear-gradient(135deg,#60364e 0 8px,#70455d 8px 16px);box-shadow:0 7px 0 #3f2939,0 14px 24px #30263388;color:#ffe19a;font-size:34px;transform:translate(-50%,-50%);animation:wolf-shuffle .55s ease-in-out infinite alternate}
 .wolf-deck::before,.wolf-deck::after{content:"";position:absolute;inset:4px;border:1px solid #f8dda0;border-radius:8px;transform:translate(-5px,-4px);z-index:-1;background:#684057}.wolf-deck::after{transform:translate(-9px,-8px)}
-.wolf-deal-cards{position:absolute;inset:12px;display:grid;grid-template-columns:repeat(5,minmax(38px,1fr));align-content:center;justify-items:center;gap:8px}
-.wolf-deal-card{width:clamp(42px,8vw,68px);height:clamp(62px,12vw,94px);display:grid;place-items:center;border:2px solid #fff1c8;border-radius:9px;background:repeating-linear-gradient(135deg,#633d59 0 6px,#805770 6px 12px);box-shadow:0 4px 9px #30263370;color:#ffe19a;font-size:clamp(16px,3vw,24px);opacity:0;transform:translateY(48px) scale(.45) rotate(-12deg)}
+.wolf-deal-cards{position:absolute;inset:12px;display:grid;grid-template-columns:repeat(auto-fit,minmax(42px,1fr));align-content:center;justify-items:center;gap:8px}
+.wolf-deal-card{width:min(100%,68px);height:clamp(66px,10vw,88px);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:4px 2px;border:2px solid #fff1c8;border-radius:10px;background:linear-gradient(155deg,#fff6df,#e8d4bc);box-shadow:0 4px 9px #30263370;color:#493344;opacity:0;transform:translateY(48px) scale(.45) rotate(-12deg);border-radius:10px}
 .wolf-deal-screen.is-dealing .wolf-deal-card{animation:wolf-card-deal .46s cubic-bezier(.18,.8,.22,1) forwards;animation-delay:var(--deal-delay)}
-.wolf-deal-card small{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#fff7e8;font-size:clamp(8px,1.3vw,11px)}
+.wolf-deal-screen.is-dealing .wolf-deck{display:none}
+.wolf-deal-card:disabled{cursor:default;opacity:1;transform:none;filter:saturate(.76);box-shadow:0 2px 5px #30263355}
+.wolf-deal-card.is-own-pick{border-color:#78d6a4;background:linear-gradient(155deg,#f2fff5,#c9f1d4);box-shadow:0 0 0 3px #58bd7c55,0 4px 9px #30263370}
+.wolf-deal-card.is-pending{border-color:#e7bc5f;filter:brightness(1.08)}
+.wolf-card-art{display:grid;place-items:center;width:clamp(34px,5vw,47px);height:clamp(38px,6vw,52px)}
+.wolf-card-art svg{width:100%;height:100%;overflow:visible}
+.wolf-card-art .wolf-ear{fill:#6d473b;stroke:#3c2930;stroke-width:2.5;stroke-linejoin:round}
+.wolf-card-art .wolf-head{fill:#b8875c;stroke:#3c2930;stroke-width:2.5;stroke-linejoin:round}
+.wolf-card-art .wolf-brow,.wolf-card-art .wolf-mouth{fill:none;stroke:#3c2930;stroke-width:3;stroke-linecap:round;stroke-linejoin:round}
+.wolf-card-art .wolf-eye{fill:#f6e8c4;stroke:#3c2930;stroke-width:1.5}
+.wolf-card-art .wolf-muzzle{fill:#f3dfbb;stroke:#3c2930;stroke-width:2}
+.wolf-card-art .wolf-nose{fill:#35242d}
+.wolf-card-art .wolf-fang{fill:#fff8e7;stroke:#49313b;stroke-width:1;stroke-linejoin:round}
+.wolf-card-name{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#493344;font-size:clamp(8px,1.2vw,11px);font-weight:1000;line-height:1.05}
 .wolf-role-card{position:absolute;left:50%;top:50%;width:min(260px,62vw);min-height:145px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;padding:16px;border:3px solid #f7d779;border-radius:16px;background:linear-gradient(150deg,#fff8df,#e6d3e9);box-shadow:0 8px 25px #291d3188;color:#382b40;opacity:0;transform:translate(-50%,-50%) rotateY(90deg) scale(.7)}
 .wolf-deal-screen.is-revealed .wolf-deck,.wolf-deal-screen.is-revealed .wolf-deal-cards{opacity:0;transition:opacity .2s}
 .wolf-deal-screen.is-revealed .wolf-role-card{animation:wolf-card-flip .55s cubic-bezier(.2,.8,.2,1) forwards}
@@ -105,7 +118,7 @@ dialog#wolf-create-modal,dialog#wolf-incoming-modal{border:2px solid #745e7c;bor
 @keyframes wolf-shuffle{from{transform:translate(-54%,-50%) rotate(-7deg)}to{transform:translate(-46%,-50%) rotate(7deg)}}
 @keyframes wolf-card-deal{to{opacity:1;transform:translateY(0) scale(1) rotate(0)}}
 @keyframes wolf-card-flip{to{opacity:1;transform:translate(-50%,-50%) rotateY(0) scale(1)}}
-@media(max-width:520px){.wolf-deal-cards{grid-template-columns:repeat(4,minmax(34px,1fr));gap:5px}.wolf-deal-card{width:40px;height:60px}.wolf-deal-table{min-height:210px}}
+@media(max-width:520px){.wolf-deal-cards{grid-template-columns:repeat(auto-fit,minmax(38px,1fr));gap:5px}.wolf-deal-card{width:min(100%,48px);height:62px;padding:3px 1px}.wolf-card-art{width:36px;height:40px}.wolf-deal-table{min-height:210px}}
 
 @media(max-width:760px){
   .room-tag{font-size:12px;font-weight:1000;color:#fff;background:#382b40ed;border:2px solid #fff8ed;text-shadow:0 1px 2px #201725;box-shadow:0 2px 5px #20172580}
