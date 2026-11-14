@@ -1,5 +1,6 @@
 import express from 'express';
 import { banTho } from './public/ban-tho.js';
+import { taoChoHopGap } from './hop-gap-layout.js';
 import { TAM_BAN_MA_SOI, trongVungBanMaSoi } from './public/ma-soi-layout.js';
 import { taoQuanLyMaSoi } from './ma-soi.js';
 import { createServer } from 'node:http';
@@ -493,7 +494,7 @@ io.on('connection', socket => {
     }
     const batDau=now+900;
     const ketThuc=loai==='inspect'?batDau+5000:loai==='drink'?batDau+2000:0;
-    const khoaDen=ketThuc||(batDau+3000);
+    const khoaDen=loai==='boss'?now+30000:ketThuc||(batDau+3000);
     const tamBia={x:-.05,z:8.2};
     const gheNhau=loai==='drink'?khach.map((_,i)=>{
       const goc=2*Math.PI*i/khach.length+(khach.length===4?Math.PI/4:0);
@@ -509,25 +510,72 @@ io.on('connection', socket => {
       const x=loai==='inspect'?(i%10- (Math.min(khach.length,10)-1)/2)*1.6:gheNhau?gheNhau[i].x:14.5;
       const z=loai==='inspect'?3.5-Math.floor(i/10)*1.35:gheNhau?gheNhau[i].z:-7.15;
       const yaw=gheNhau?gheNhau[i].yaw:loai==='boss'?0:Math.PI;
+      let path=[];
+      let thoiGianDi=0;
+      if(loai==='boss'&&p.x>10.4&&p.x<18.6&&p.z>1.2){
+        path=[{x:14.5,z:9.8},{x:8.9,z:9.8},{x:8.9,z:-3.55},{x:14.5,z:-3.55},{x,z}];
+      }else if(loai==='boss'&&!(p.x>10.4&&p.x<18.6&&p.z>-10.7&&p.z<-4.7)){
+        path=[{x:14.5,z:-3.55},{x:14.5,z:-5.35},{x,z}];
+      }else if(loai==='boss')path=[{x,z}];
+      if(loai==='boss'){
+        let truoc=p;
+        let quangDuong=0;
+        for(const diem of path){quangDuong+=Math.hypot(diem.x-truoc.x,diem.z-truoc.z);truoc=diem;}
+        thoiGianDi=Math.max(700,quangDuong/5.2*1000);
+      }
       p.x=x;
       p.z=z;
       p.yaw=yaw;
       p.pose='';
       p.poseUntil=0;
-      p.lockedUntil=khoaDen;
-      p.hoatCanh={loai,batDau,ketThuc,khoaDen,x,z,yaw,...boTri};
+      const thoiDiemBatDau=loai==='boss'?now+thoiGianDi:batDau;
+      const thoiDiemKhoa=loai==='boss'?thoiDiemBatDau+30000:khoaDen;
+      p.lockedUntil=thoiDiemKhoa;
+      p.hoatCanh={loai,batDau:thoiDiemBatDau,ketThuc,khoaDen:thoiDiemKhoa,x,z,yaw,path,duration:thoiGianDi,...boTri};
       room.pendingMoves.delete(p.id);
       if(ketThuc)setTimeout(()=>{
         if(p.hoatCanh?.batDau!==batDau)return;
         p.hoatCanh=null;
         io.to(code).emit('het-hoat-canh',p.id);
       },ketThuc-now).unref();
-      return {id:p.id,x,z,yaw};
+      return {id:p.id,x,z,yaw,path,duration:thoiGianDi,batDau:thoiDiemBatDau,khoaDen:thoiDiemKhoa};
     });
     if(loai==='inspect')room.thanhTraDen=ketThuc+900;
-    io.to(code).emit('hoat-canh',{loai,batDau,ketThuc,khoaDen,nguoi,...boTri});
+    const batDauThuc=loai==='boss'?Math.max(...nguoi.map(p=>p.batDau)):batDau;
+    io.to(code).emit('hoat-canh',{loai,batDau:batDauThuc,ketThuc,khoaDen,nguoi,...boTri});
     const ten=loai==='inspect'?'🚨 Thanh tra':loai==='boss'?'📋 Họp riêng':'🍻 Rủ nhậu';
     io.to(code).emit('feed',{text:loai==='inspect'?`🚨 ${nguoiGoi.name} gọi thanh tra đến`:loai==='boss'?`📋 ${khach[0]?.name||nguoiGoi.name} họp riêng với SẾP`:`${ten} · ${khach.map(p=>p.name).join(', ')}`});
+  });
+
+  socket.on('boss-rebel', () => {
+    const code = socket.data.room;
+    const room = rooms.get(code);
+    const player = room?.get(socket.id);
+    const now = Date.now();
+    if (!player || player.maSoi || player.hoatCanh?.loai !== 'boss' || now < player.hoatCanh.batDau || player.pose === 'boss-rebel') return;
+    const duration = 6000;
+    const x = banTho.x;
+    const z = banTho.z + 1.5;
+    const path = [{x:14.5,z:-5.25},{x:14.5,z:-3.55},{x:11.9,z:-3.55},{x:9.7,z:-5.7},{x:8.6,z:-8.35},{x,z}];
+    const batDauRoi = 2200;
+    const thoiGianRoi = 3100;
+    player.hoatCanh = null;
+    player.x = x;
+    player.z = z;
+    player.yaw = 0;
+    player.lockedUntil = now + duration;
+    player.pose = 'boss-rebel';
+    player.poseUntil = player.lockedUntil;
+    room.pendingMoves.delete(player.id);
+    io.to(code).emit('boss-rebel', {id:player.id,startedAt:now,duration,path,batDauRoi,thoiGianRoi,x,z,yaw:0});
+    io.to(code).emit('feed', {text:`🔥 ${player.name} bật SẾP rồi chạy đi lạy bàn Thần Tài`});
+    setTimeout(() => {
+      if (room.get(player.id) !== player || player.pose !== 'boss-rebel' || player.poseUntil !== now + duration) return;
+      player.pose = '';
+      player.poseUntil = 0;
+      player.lockedUntil = 0;
+      io.to(code).emit('boss-rebel-end', {id:player.id});
+    }, duration).unref();
   });
 
   socket.on('urgent-meeting', () => {
@@ -536,11 +584,13 @@ io.on('connection', socket => {
     if (!room?.has(socket.id) || room.get(socket.id).maSoi) return;
     if(Date.now()<(room.get(socket.id).lockedUntil||0))return;
     if(Date.now()<(room.meetingUntil||0))return socket.emit('feed',{text:'Mọi người đang di chuyển vào phòng họp.'});
-    const players = [...room.values()].filter(player=>!player.maSoi).map((player, index) => {
+    const nguoiHop=[...room.values()].filter(player=>!player.maSoi);
+    const gheHop=taoChoHopGap(nguoiHop.length);
+    const players = nguoiHop.map((player, index) => {
       if(player.hoatCanh)io.to(code).emit('het-hoat-canh',player.id);
       player.hoatCanh=null;
       releaseWorkSeat(code, player);
-      const x=11.2+(index%8)*.8,z=2+Math.floor(index/8)*.8;
+      const {x,z,yaw,dangNgoi}=gheHop[index];
       const path=[];
       if(!(player.x>10.4&&player.x<18.6&&player.z>1.2&&player.z<8.6)){
         if(player.x>10.4&&player.z<-4.7){path.push({x:14.5,z:-5.6},{x:14.5,z:-3.7});}
@@ -553,13 +603,13 @@ io.on('connection', socket => {
       let distance=0,previous=player;
       for(const point of path){distance+=Math.hypot(point.x-previous.x,point.z-previous.z);previous=point;}
       const duration=Math.max(700,distance/7*1000);
-      player.x=x;player.z=z;player.yaw=0;
+      player.x=x;player.z=z;player.yaw=yaw;
       player.lockedUntil=Date.now()+duration;
       ghiThaoTac(code, player);
       player.bubble='';player.bubbleUntil=0;
       room.pendingMoves.delete(player.id);
       scheduleIdleLine(code,player);
-      return {id:player.id,x,z,yaw:0,path,duration};
+      return {id:player.id,x,z,yaw,path,duration,dangNgoi};
     });
     const duration=Math.max(...players.map(p=>p.duration));
     room.meetingUntil=Date.now()+duration;
