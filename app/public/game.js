@@ -1945,7 +1945,7 @@ function veHieuUngBatSep(now){
   if(player){
     if(t<1.35){
       const lat=Math.max(0,1-Math.abs(t-.6)/.75);
-      for(const tay of player.group.userData.tay){tay.rotation.x=-2.25*lat;tay.userData.khuYu.rotation.x=.28*lat;}
+      for(const tay of player.group.userData.tay){tay.rotation.x=2.25*lat;tay.userData.khuYu.rotation.x=-.28*lat;}
     }
     if(t>=effect.batDauDiCua/1000&&!effect.daDiCua){
       effect.daDiCua=true;
