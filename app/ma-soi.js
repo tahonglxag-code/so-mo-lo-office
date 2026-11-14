@@ -303,8 +303,8 @@ export function taoQuanLyMaSoi(io,rooms,helpers) {
       if(tatCaNguoiChoiDaRoi(game))giaiTan(io,game);
       return;
     }
+    if(p)p.dangKetNoi=false;
     if(!p||!p.song||game.giaiDoan==='finished')return;
-    p.dangKetNoi=false;
     const deaths=danhDauChet(io,game,[p.id],'disconnect');
     phatSuKien(io,game,`${p.ten} đã bị loại khỏi ván Ma Sói.`,{nguoiChet:deaths.map(q=>q.id)});
     if(kiemTraThang(io,game))return;
