@@ -1962,8 +1962,8 @@ function veHieuUngBatSep(now){
       effect.daDiTho=true;
       player.runMotion={points:[new THREE.Vector3(effect.cua.x,0,effect.cua.z),...effect.path.map(diem=>new THREE.Vector3(diem.x,0,diem.z))],started:effect.started+effect.batDauDiTho,duration:effect.thoiGianDiTho,jump:false,yawCuoi:0};
     }
-    if(t>=5.05){
-      const cui=Math.sin(Math.max(0,Math.min(1,(t-5.05)/.8))*Math.PI);
+    if(t>=5.2){
+      const cui=Math.sin(Math.max(0,Math.min(1,(t-5.2)/.78))*Math.PI);
       player.body.rotation.x=-Math.PI/2*cui;
       player.body.position.y=.22*cui;
       for(const tay of player.group.userData.tay){tay.rotation.x=-.65*cui;tay.userData.khuYu.rotation.x=.35*cui;}
