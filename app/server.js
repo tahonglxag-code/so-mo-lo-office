@@ -559,7 +559,7 @@ io.on('connection', socket => {
     const from = {x:player.x,z:player.z,yaw:player.yaw};
     const cua = {x:14.5,z:-5.25};
     const path = [{x:14.5,z:-3.55},{x:11.9,z:-3.55},{x:9.7,z:-5.7},{x:8.6,z:-8.35},{x,z}];
-    const batDauDiCua = 1200;
+    const batDauDiCua = 1600;
     const thoiGianDenCua = Math.max(500,Math.hypot(cua.x-from.x,cua.z-from.z)/5.8*1000);
     const batDauQuatCua = batDauDiCua + thoiGianDenCua + 180;
     const batDauMoCua = batDauQuatCua + 300;
@@ -571,7 +571,7 @@ io.on('connection', socket => {
     player.poseUntil = player.lockedUntil;
     room.pendingMoves.delete(player.id);
     io.to(code).emit('boss-rebel', {id:player.id,startedAt:now,duration,from,cua,path,batDauDiCua,thoiGianDenCua,batDauQuatCua,batDauMoCua,batDauDiTho,thoiGianDiTho,x,z,yaw:0});
-    io.to(code).emit('feed', {text:`🔥 ${player.name} bật SẾP rồi chạy`});
+    io.to(code).emit('feed', {text:`🔥 ${player.name} bật SẾP`});
     setTimeout(() => {
       if (room.get(player.id) !== player || player.pose !== 'boss-rebel' || player.poseUntil !== now + duration) return;
       player.x = x;
