@@ -2,7 +2,7 @@ import * as THREE from '/three.module.js';
 import {tinhGocMay,tinhGocMayMaSoi} from './goc-may.js';
 import {dinhDangLichSuMaSoi} from './ma-soi-lich-su.js';
 import {TAM_BAN_MA_SOI,SO_GHE_TOI_DA_MA_SOI,taoViTriGheMaSoi} from './ma-soi-layout.js';
-import {laDemMaSoi,laNguoiChoiMaSoi,laThanhVienVanMaSoi} from './ma-soi-anh-sang.js';
+import {laDemMaSoi,laNguoiChoiMaSoi,laThanhVienVanMaSoi,duocChonNangLucMaSoi} from './ma-soi-anh-sang.js';
 import {CSS3DRenderer,CSS3DObject} from '/css3d.js';
 
 import {banTho} from './ban-tho.js';
@@ -175,8 +175,9 @@ function nameLabel(text, color) {
 }
 
 function speechBubble(text, color = '#37293e') {
-  const fontSize = 44;
-  const lineHeight = 52;
+  const mobile=innerWidth<760;
+  const fontSize = mobile?52:44;
+  const lineHeight = mobile?62:52;
   const maxTextWidth = 560;
   const padX = 30;
   const padY = 20;
@@ -213,7 +214,7 @@ function speechBubble(text, color = '#37293e') {
   const contentWidth = Math.max(110, ...lines.map(line => context.measureText(line).width));
   const logicalWidth = Math.ceil(contentWidth + padX * 2);
   const logicalHeight = lines.length * lineHeight + padY * 2;
-  const scale = 2;
+  const scale = mobile?3:2;
   canvas.width = logicalWidth * scale;
   canvas.height = logicalHeight * scale;
   context.scale(scale, scale);
@@ -225,10 +226,17 @@ function speechBubble(text, color = '#37293e') {
   context.roundRect(4, 4, logicalWidth - 8, logicalHeight - 8, 24);
   context.fill();
   context.stroke();
-  context.fillStyle = color;
+  context.fillStyle = mobile?'#24192b':color;
   context.textAlign = 'center';
   context.textBaseline = 'middle';
-  lines.forEach((line, index) => context.fillText(line, logicalWidth / 2, padY + lineHeight * index + lineHeight / 2, maxTextWidth));
+  context.lineJoin='round';
+  context.lineWidth=mobile?4:0;
+  context.strokeStyle='#fff8ed';
+  lines.forEach((line, index) => {
+    const y=padY+lineHeight*index+lineHeight/2;
+    if(mobile)context.strokeText(line,logicalWidth/2,y,maxTextWidth);
+    context.fillText(line,logicalWidth/2,y,maxTextWidth);
+  });
   const texture = new THREE.CanvasTexture(canvas);
   texture.colorSpace = THREE.SRGBColorSpace;
   const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: texture, transparent: true, depthTest: false }));
@@ -999,6 +1007,13 @@ function removePlayer(id) {
   if(selectedId===id){selectedId='';document.querySelector('#target-name').textContent='chưa chọn ai';}
 }
 
+function khoiPhucNhanVatSauMaSoi(id){
+  const p=players.get(id);if(!p)return;
+  const data={id:p.id,name:p.name,avatar:p.avatar,x:p.group.position.x,z:p.group.position.z,yaw:p.group.rotation.y,working:p.working,workSeatId:p.workSeatId,workStartedAt:p.workStartedAt};
+  removePlayer(id);
+  createPlayer(data);
+}
+
 function selectPlayer(id) {
   if(id===selfId)return toast('Chọn một người chơi khác để tương tác nhé.');
   if(players.get(id)?.maSoi)return toast('Người chơi đang tham gia Ma Sói.');
@@ -1285,7 +1300,7 @@ function veBangMaSoi(){
   if(riengMaSoi?.loai==='seer-result'){
     const result=document.createElement('p');result.textContent=`Kết quả soi: ${riengMaSoi.ketQua}`;wolfRoleDescription.append(result);
   }
-  if(riengMaSoi?.loai==='role'){
+  if(duocChonNangLucMaSoi(trangThaiMaSoi.giaiDoan,riengMaSoi?.loai)){
     const targets=riengMaSoi.danhSach||[];
     const sel=document.createElement('select');sel.id='wolf-target-select';sel.innerHTML='<option value="">Chọn người chơi</option>';
     if(riengMaSoi.vai==='guard'||riengMaSoi.vai==='cupid'){
@@ -1389,14 +1404,10 @@ socket.on('wolf-finished',event=>{
   taoHieuUngThangMaSoi(event.ketQua,event.vaiTro);
   capNhatGiaoDienMaSoi();
 });
+socket.on('wolf-player-exited',event=>khoiPhucNhanVatSauMaSoi(event.id));
 socket.on('wolf-exited',()=>{
   daThoatVanMaSoi=true;
-  const p=players.get(selfId);
-  if(p){
-    if(p.wolfDead||p.wolfLoss||p.wolfForm||p.wolfCelebration){const data={id:p.id,name:p.name,avatar:p.avatar,x:p.group.position.x,z:p.group.position.z,yaw:p.group.rotation.y};removePlayer(p.id);createPlayer(data);}
-    else{p.maSoi=false;p.pose='';p.meditating=false;p.body.scale.set(1,1,1);p.body.position.set(0,0,0);p.body.rotation.set(0,0,0);}
-  }
-  if(hieuUngThangMaSoi){scene.remove(hieuUngThangMaSoi);hieuUngThangMaSoi.traverse(o=>{o.geometry?.dispose();o.material?.map?.dispose();o.material?.dispose();});hieuUngThangMaSoi=null;}
+  khoiPhucNhanVatSauMaSoi(selfId);
   document.querySelector('#app').classList.remove('wolf-participant');
   capNhatGiaoDienMaSoi();
 });

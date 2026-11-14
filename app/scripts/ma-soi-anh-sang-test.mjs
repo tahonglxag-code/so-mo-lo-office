@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import {laDemMaSoi,laNguoiChoiMaSoi,laThanhVienVanMaSoi} from '../public/ma-soi-anh-sang.js';
+import {laDemMaSoi,laNguoiChoiMaSoi,laThanhVienVanMaSoi,duocChonNangLucMaSoi} from '../public/ma-soi-anh-sang.js';
 
 const cacGiaiDoanDem=['night','night-role','wolf-chat','wolf-choice'];
 const cacGiaiDoanNgay=['dealing','cards','discussion','vote','finished','invite'];
@@ -20,5 +20,9 @@ assert.equal(laNguoiChoiMaSoi(danhSach,'choi-1','finished'),false);
 assert.equal(laNguoiChoiMaSoi(danhSach,'choi-1','invite'),false);
 assert.equal(laThanhVienVanMaSoi(danhSach,'choi-1'),true);
 assert.equal(laThanhVienVanMaSoi(danhSach,'xem-1'),false);
+assert.equal(duocChonNangLucMaSoi('night-role','role'),true);
+for(const giaiDoan of cacGiaiDoanNgay)assert.equal(duocChonNangLucMaSoi(giaiDoan,'role'),false,`${giaiDoan} khong duoc hien lua chon nang luc ban dem`);
+assert.equal(duocChonNangLucMaSoi('discussion','role'),false);
+assert.equal(duocChonNangLucMaSoi('vote','role'),false);
 
-console.log(JSON.stringify({ketQua:'PASS',giaiDoanDem:cacGiaiDoanDem,khachXem:'giu giao dien phong, khong bi bat doc lich su va khong bi lam toi',giaiDoanNgay:cacGiaiDoanNgay},null,2));
+console.log(JSON.stringify({ketQua:'PASS',giaiDoanDem:cacGiaiDoanDem,khachXem:'giu giao dien phong, khong bi bat doc lich su va khong bi lam toi',giaiDoanNgay:cacGiaiDoanNgay,chonNangLuc:'chi hien trong luot night-role'},null,2));

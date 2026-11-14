@@ -161,6 +161,7 @@ try{
   assert.equal(rejoined.maSoi,true);
   assert.equal(reconnectSocket.inbox.filter(e=>e.event==='wolf-state').at(-1).data.rieng,null);
   room8.werewolf.giaiDoan='finished';
+  for(const player of room8.werewolf.nguoi.values())if(!player.dangKetNoi)room8.werewolf.raVan.add(player.id);
   const exiting=eightCards.find(entry=>entry.card?.vai==='seer').socket;
   exiting.fire('wolf-leave');
   assert.equal(locked8.has(exiting.id),false);
@@ -168,7 +169,17 @@ try{
   assert.equal(exiting.inbox.at(-1).event,'wolf-exited');
   assert.equal(room8.werewolf.raVan.has(exiting.id),true);
   assert.equal(sockets8.get('eight-8').inbox.some(e=>e.event==='wolf-public'&&e.data.giaiDoan==='finished'),true);
-  console.log(JSON.stringify({result:'PASS',invites:'selected players only',roleDistribution:'5–15-player tables valid',privateRoles:'not broadcast',gameLocks:locked.size,singleWolf:'target killed after night resolves',earlyNightAction:'advanced immediately',multiWolfDisagreement:'no bite after 30s chat and 5s choice; seer and witch actions continue',publicDiscussion:'reaches all room members',outsiders:'remain unlocked and available as interaction targets during the game',historyExit:'leaves the ended game and unlocks the player without clearing room history',disconnect:'dead seat retained; same-session reconnect is locked out as spectator'},null,2));
+  for(const socket of sockets8.values())assert.equal(socket.inbox.some(e=>e.event==='wolf-player-exited'&&e.data.id===exiting.id),true);
+  const finishedGame=room8.werewolf;
+  const disconnectAfterEnd=eightCards.find(entry=>entry.card?.vai==='wolf').socket;
+  manager8.onDisconnect(disconnectAfterEnd,room8);
+  assert.equal(finishedGame.raVan.has(disconnectAfterEnd.id),true);
+  assert.equal(sockets8.get('eight-8').inbox.some(e=>e.event==='wolf-player-exited'&&e.data.id===disconnectAfterEnd.id),true);
+  for(const entry of eightCards)if(!finishedGame.raVan.has(entry.socket.id))entry.socket.fire('wolf-leave');
+  assert.equal(room8.werewolf,null);
+  assert.equal(locked8.size,0);
+  assert.equal([...sockets8.values()].every(socket=>socket.inbox.some(e=>e.event==='wolf-dissolved')),true);
+  console.log(JSON.stringify({result:'PASS',invites:'selected players only',roleDistribution:'5–15-player tables valid',privateRoles:'not broadcast',gameLocks:locked.size,singleWolf:'target killed after night resolves',earlyNightAction:'advanced immediately',multiWolfDisagreement:'no bite after 30s chat and 5s choice; seer and witch actions continue',publicDiscussion:'reaches all room members',outsiders:'remain unlocked and available as interaction targets during the game',historyExit:'leaves the ended game and unlocks the player without clearing room history',earlyDissolution:'all participants leaving ends history immediately, clears room effect and unlocks spectators',disconnect:'dead seat retained; same-session reconnect is locked out as spectator'},null,2));
 }finally{
   globalThis.setTimeout=originalSetTimeout;
   globalThis.clearTimeout=originalClearTimeout;

@@ -85,6 +85,7 @@ function ketThucGame(io, game, winner) {
   if(game.giaiDoan==='finished')return;
   game.giaiDoan='finished'; game.vaiDangGoi=''; game.ketQua=winner;
   game.mocKetThuc=now()+180000; game.giaiTanLuc=game.mocKetThuc;
+  for(const p of game.nguoi.values())if(!p.dangKetNoi)game.raVan.add(p.id);
   for(const p of game.nguoi.values())p.hangGhe=true;
   themLichSu(game,{loai:'phan-vai',nguoi:[...game.nguoi.values()].map(p=>({ten:p.ten,vai:vaiTro[p.vai].ten,phe:vaiTro[p.vai].phe})),capDoi:[...game.capDoi].filter(([id])=>id<game.capDoi.get(id)).map(([id,partner])=>[layNguoi(game,id)?.ten,layNguoi(game,partner)?.ten])});
   const winningPlayers=conSong(game).filter(p=>winner==='wolves'?p.vai==='wolf':winner==='villagers'?p.vai!=='wolf':false),winners=winningPlayers.map(p=>p.ten);
@@ -92,6 +93,7 @@ function ketThucGame(io, game, winner) {
   phatSuKien(io,game,winner==='draw'?'⚖️ Ván Ma Sói kết thúc hòa!':winner==='wolves'?'🐺 Phe Ma Sói chiến thắng!':'🏆 Phe Dân làng chiến thắng!',{ketQua:winner});
   congKhai(io,game.roomId,'wolf-finished',{ketQua:winner,danhSach:congKhaiNguoi(game),vaiTro:[...game.nguoi.values()].map(p=>({id:p.id,vai:p.vai,song:p.song})),lichSu:game.lichSu,giaiTanLuc:game.giaiTanLuc});
   phatTrangThai(io,game);
+  if(game.nguoi.size&&[...game.nguoi.keys()].every(id=>game.raVan.has(id))){giaiTan(io,game);return;}
   hen(game,()=>giaiTan(io,game),180000);
 }
 
@@ -251,6 +253,7 @@ export function taoQuanLyMaSoi(io,rooms,helpers) {
   function getGame(socket) {const room=rooms.get(socket.data.room);return room?.werewolf||null;}
   function validPlayer(game,socket) {const p=game&&layNguoi(game,socket.id);return p?.dangKetNoi?p:null;}
   function sendState(socket) {const game=getGame(socket);if(game)guiRieng(io,socket.id,'wolf-state',congKhaiTrangThai(game,socket.id));}
+  function tatCaNguoiChoiDaRoi(game) {return Boolean(game.nguoi.size&&[...game.nguoi.keys()].every(id=>game.raVan.has(id)));}
   function ketThucLoiMoi(game) {
     if(!game?.moi||game.room.werewolf!==game)return;
     const accepted=[...game.moi.phanHoi].filter(([,answer])=>answer==='yes').map(([id])=>id);
@@ -274,6 +277,7 @@ export function taoQuanLyMaSoi(io,rooms,helpers) {
       }
     }
     const existing=game.nguoi.get(socket.id)||[...game.nguoi.values()].find(p=>p.session&&p.session===room.get(socket.id)?.sessionId);
+    if(existing&&game.raVan.has(existing.id))return;
     if(existing&&existing.id!==socket.id){
       const player=room.get(socket.id);if(player){player.maSoi=true;player.maSoiSpectator=true;game.spectators.add(socket.id);}
       game.lockPlayer(socket.id,true,{x:1.8,z:-11.1,yaw:0});
@@ -293,6 +297,12 @@ export function taoQuanLyMaSoi(io,rooms,helpers) {
       if(game.moi.phanHoi.size>=game.moi.duocMoi.size+1)ketThucLoiMoi(game);
     }
     const p=game.nguoi.get(socket.id);game.online.delete(socket.id);
+    if(game.giaiDoan==='finished'){
+      if(p){p.dangKetNoi=false;game.lockPlayer(socket.id,false,p.viTriCu);game.raVan.add(socket.id);congKhai(io,game.roomId,'wolf-player-exited',{id:socket.id,maTran:game.maTran});}
+      if(game.spectators.delete(socket.id))game.lockPlayer(socket.id,false);
+      if(tatCaNguoiChoiDaRoi(game))giaiTan(io,game);
+      return;
+    }
     if(!p||!p.song||game.giaiDoan==='finished')return;
     p.dangKetNoi=false;
     const deaths=danhDauChet(io,game,[p.id],'disconnect');
@@ -392,12 +402,12 @@ export function taoQuanLyMaSoi(io,rooms,helpers) {
     socket.on('wolf-leave',()=>{
       const game=getGame(socket);const player=game?.room.get(socket.id);if(!game||!player||game.giaiDoan!=='finished')return;
       const participant=game.nguoi.get(socket.id);
-      if(participant){participant.dangKetNoi=false;game.lockPlayer(socket.id,false,participant.viTriCu);}
+      if(participant){participant.dangKetNoi=false;game.lockPlayer(socket.id,false,participant.viTriCu);game.raVan.add(socket.id);congKhai(io,game.roomId,'wolf-player-exited',{id:socket.id,maTran:game.maTran});}
       if(game.spectators.delete(socket.id))game.lockPlayer(socket.id,false);
-      game.raVan.add(socket.id);
       game.online.set(socket.id,true);
       phatTrangThai(io,game);
       guiRieng(io,socket.id,'wolf-exited',{roomId:game.roomId,maTran:game.maTran});
+      if(tatCaNguoiChoiDaRoi(game))giaiTan(io,game);
     });
     socket.on('wolf-stop-discussion',()=>{
       const game=getGame(socket);const p=validPlayer(game,socket);if(!p||!p.song||game.giaiDoan!=='discussion')return;

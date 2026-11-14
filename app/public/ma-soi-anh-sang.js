@@ -11,3 +11,7 @@ export function laNguoiChoiMaSoi(danhSach,id,giaiDoan){
 export function laThanhVienVanMaSoi(danhSach,id){
   return Boolean(danhSach?.some(nguoi=>nguoi.id===id));
 }
+
+export function duocChonNangLucMaSoi(giaiDoan,loaiRieng){
+  return giaiDoan==='night-role'&&loaiRieng==='role';
+}
