@@ -1147,15 +1147,21 @@ let choVeLaiMaSoi=false;
 let wolfTargetOwn='';
 let vongChiaBaiDangHien=0;
 let henAnTheVaiTro;
+let henDongBoChiaBai;
 
 function anManChiaBai(){
-  clearTimeout(henAnTheVaiTro);henAnTheVaiTro=null;wolfDealScreen.hidden=true;wolfDealScreen.classList.remove('is-dealing','is-revealed');wolfDealCards.replaceChildren();wolfRoleCard.hidden=true;
+  clearTimeout(henAnTheVaiTro);clearTimeout(henDongBoChiaBai);henAnTheVaiTro=null;henDongBoChiaBai=null;wolfDealScreen.hidden=true;wolfDealScreen.classList.remove('is-dealing','is-revealed');wolfDealCards.replaceChildren();wolfRoleCard.hidden=true;
+}
+
+function yeuCauDongBoChiaBai(){
+  if(trangThaiMaSoi?.giaiDoan!=='dealing')return;
+  wolfDealMessage.textContent='Đang đồng bộ lá bài với máy chủ…';socket.emit('wolf-sync');henDongBoChiaBai=setTimeout(yeuCauDongBoChiaBai,7000);
 }
 
 function hienManChiaBai(event={}){
   if(event.maTran&&event.maTran===vongChiaBaiDangHien)return;
   vongChiaBaiDangHien=event.maTran||vongChiaBaiDangHien+1;
-  clearTimeout(henAnTheVaiTro);wolfDealTitle.textContent='Ván Ma Sói bắt đầu';wolfDealMessage.textContent='Đang xào bài và chia mỗi người một lá…';wolfRoleCard.hidden=true;wolfDealCards.replaceChildren();wolfDealScreen.hidden=false;wolfDealScreen.classList.remove('is-revealed');wolfDealScreen.classList.add('is-dealing');
+  clearTimeout(henAnTheVaiTro);clearTimeout(henDongBoChiaBai);henDongBoChiaBai=setTimeout(yeuCauDongBoChiaBai,7000);wolfDealTitle.textContent='Ván Ma Sói bắt đầu';wolfDealMessage.textContent='Đang xào bài và chia mỗi người một lá…';wolfRoleCard.hidden=true;wolfDealCards.replaceChildren();wolfDealScreen.hidden=false;wolfDealScreen.classList.remove('is-revealed');wolfDealScreen.classList.add('is-dealing');
   const playersInGame=event.nguoi||[];
   const khoangCach=Math.min(650,Math.max(230,2800/Math.max(1,playersInGame.length)));
   playersInGame.forEach((player,index)=>{
@@ -1166,7 +1172,7 @@ function hienManChiaBai(event={}){
 
 function hienTheVaiTro(data){
   if(data?.loai!=='card')return;
-  wolfDealTitle.textContent='Bài của bạn đã được chia';wolfDealMessage.textContent='Hãy đọc vai trò của mình. Đồng hồ bắt đầu từ bây giờ.';wolfRoleCardTitle.textContent=data.moTa?.ten||'Vai trò của bạn';wolfRoleCardTeam.textContent=data.moTa?.phe?`Phe ${data.moTa.phe}`:'';wolfRoleCardDescription.textContent=data.moTa?.moTa||'';wolfRoleCard.hidden=false;wolfDealScreen.hidden=false;wolfDealScreen.classList.remove('is-dealing');wolfDealScreen.classList.add('is-revealed');
+  clearTimeout(henDongBoChiaBai);henDongBoChiaBai=null;wolfDealTitle.textContent='Bài của bạn đã được chia';wolfDealMessage.textContent='Hãy đọc vai trò của mình. Đồng hồ bắt đầu từ bây giờ.';wolfRoleCardTitle.textContent=data.moTa?.ten||'Vai trò của bạn';wolfRoleCardTeam.textContent=data.moTa?.phe?`Phe ${data.moTa.phe}`:'';wolfRoleCardDescription.textContent=data.moTa?.moTa||'';wolfRoleCard.hidden=false;wolfDealScreen.hidden=false;wolfDealScreen.classList.remove('is-dealing');wolfDealScreen.classList.add('is-revealed');
   clearTimeout(henAnTheVaiTro);henAnTheVaiTro=setTimeout(()=>{wolfDealScreen.hidden=true;wolfDealScreen.classList.remove('is-revealed');wolfRoleCard.hidden=true;},1800);
 }
 
@@ -1325,7 +1331,7 @@ function maSoiThongBao(text){
   addFeed(text);
 }
 
-socket.on('wolf-state',state=>{phienBanTrangThaiMaSoi++;trangThaiMaSoi=state;capNhatSoGheMaSoi(state.giaiDoan==='invite'?0:state.danhSach?.length||0);if(state.giaiDoan==='dealing'&&laNguoiChoiMaSoi(state.danhSach,selfId,state.giaiDoan)&&wolfDealScreen.hidden)hienManChiaBai({maTran:state.maTran,nguoi:state.danhSach});veBangMaSoi();});
+socket.on('wolf-state',state=>{phienBanTrangThaiMaSoi++;trangThaiMaSoi=state;capNhatSoGheMaSoi(state.giaiDoan==='invite'?0:state.danhSach?.length||0);if(state.giaiDoan==='dealing'&&laNguoiChoiMaSoi(state.danhSach,selfId,state.giaiDoan)){if(wolfDealScreen.hidden)hienManChiaBai({maTran:state.maTran,nguoi:state.danhSach});}else{clearTimeout(henDongBoChiaBai);henDongBoChiaBai=null;if(state.rieng?.vai&&!wolfDealScreen.hidden&&riengMaSoi?.loai!=='card'){riengMaSoi={loai:'card',vai:state.rieng.vai,moTa:state.rieng.vaiMoTa,mocKetThuc:state.mocKetThuc};hienTheVaiTro(riengMaSoi);}else if(state.giaiDoan!=='cards'&&!wolfDealScreen.hidden)anManChiaBai();}veBangMaSoi();});
 socket.on('wolf-public',state=>{phienBanTrangThaiMaSoi++;trangThaiMaSoi={...(trangThaiMaSoi||{}),...state,rieng:trangThaiMaSoi?.rieng};veBangMaSoi();});
 socket.on('wolf-private',data=>{riengMaSoi=data;if(data.loai==='card')trangThaiMaSoi={...(trangThaiMaSoi||{}),giaiDoan:'cards',mocKetThuc:data.mocKetThuc,rieng:data};if(data.loai==='wolf-agreement'&&riengMaSoi)riengMaSoi.luaChon=data.luaChon;veBangMaSoi();if(data.loai==='card')hienTheVaiTro(data);});
 socket.on('wolf-private-result',data=>{riengMaSoi={loai:'seer-result',ketQua:data.ketQua};veBangMaSoi();});
@@ -1334,7 +1340,7 @@ socket.on('wolf-invite-state',state=>{trangThaiMaSoi={...(trangThaiMaSoi||{}),gi
 socket.on('wolf-invite',invite=>{document.querySelector('#wolf-incoming-title').textContent=`🐺 ${invite.chu} đang mời bạn chơi Ma Sói!`;wolfIncomingModal.dataset.deadline=invite.ketThuc;wolfIncomingModal.showModal();});
 socket.on('wolf-error',data=>toast(data.text||'Không thể bắt đầu Ma Sói.'));
 socket.on('wolf-lock',event=>{const p=players.get(event.id);if(!p)return;p.maSoi=event.locked;p.group.position.set(event.x,0,event.z);p.target.set(event.x,0,event.z);p.yaw=event.yaw;p.group.rotation.y=event.yaw;p.runMotion=null;if(event.locked){p.pose='wolf-seat';p.meditating=true;}else{p.pose='';p.meditating=false;p.body.scale.set(1,1,1);p.body.position.set(0,0,0);p.body.rotation.set(0,0,0);for(const arm of p.group.userData.tay){arm.rotation.set(0,0,0);arm.userData.khuYu.rotation.set(0,0,0);}for(const leg of p.group.userData.chan){leg.rotation.set(0,0,0);leg.userData.goi.rotation.set(0,0,0);}}if(event.id===selfId){keys.clear();targetWorld=null;document.querySelector('#app').classList.toggle('wolf-participant',event.locked);}});
-socket.on('wolf-start',event=>{trangThaiMaSoi={...(trangThaiMaSoi||{}),giaiDoan:'dealing',mocKetThuc:event.mocKetThuc,danhSach:event.nguoi||[]};capNhatSoGheMaSoi(event.nguoi?.length||0);capNhatGiaoDienMaSoi();if(laNguoiChoiMaSoi(event.nguoi,selfId,'dealing'))hienManChiaBai(event);maSoiThongBao('Ván Ma Sói bắt đầu: đang xào bài và chia vai.');});
+socket.on('wolf-start',event=>{riengMaSoi=null;trangThaiMaSoi={...(trangThaiMaSoi||{}),giaiDoan:'dealing',mocKetThuc:event.mocKetThuc,danhSach:event.nguoi||[]};capNhatSoGheMaSoi(event.nguoi?.length||0);capNhatGiaoDienMaSoi();if(laNguoiChoiMaSoi(event.nguoi,selfId,'dealing'))hienManChiaBai(event);maSoiThongBao('Ván Ma Sói bắt đầu: đang xào bài và chia vai.');});
 socket.on('wolf-relocate',event=>{const p=players.get(event.id);if(p){p.group.position.set(event.x,0,event.z);p.target.set(event.x,0,event.z);}});
 socket.on('wolf-discussion-message',data=>maSoiThongBao(`${data.name}: ${data.text}`));
 socket.on('wolf-chat-message',data=>maSoiThongBao(`🐺 ${data.name}: ${data.text}`));

@@ -229,7 +229,8 @@ function batDauGame(io,game,ids) {
   });
   chiaVai(game);game.giaiDoan='dealing';game.mocKetThuc=now()+3200+Math.max(0,unique.length-5)*160;game.chu=unique[0];
   congKhai(io,game.roomId,'wolf-start',{nguoi:congKhaiNguoi(game),mocKetThuc:game.mocKetThuc,maTran:game.maTran});
-  phatTrangThai(io,game);hen(game,()=>batDauChiaVai(io,game),game.mocKetThuc-now());return true;
+  const thoiGianChia=game.mocKetThuc-now();
+  phatTrangThai(io,game);hen(game,()=>batDauChiaVai(io,game),thoiGianChia);hen(game,()=>batDauChiaVai(io,game),thoiGianChia+5000);return true;
 }
 
 function giaiTan(io,game) {
@@ -312,6 +313,13 @@ export function taoQuanLyMaSoi(io,rooms,helpers) {
       game.moi.phanHoi.set(socket.id,answer);
       congKhai(io,game.roomId,'wolf-invite-state',{chu:game.moi.chu,ketThuc:game.moi.ketThuc,phanHoi:[...game.moi.phanHoi].map(([id,phanHoi])=>({id,phanHoi}))});
       phatTrangThai(io,game);
+    });
+    socket.on('wolf-sync',()=>{
+      const game=getGame(socket);if(!game)return;
+      if(game.giaiDoan==='dealing'&&now()>=game.mocKetThuc)batDauChiaVai(io,game);
+      const p=validPlayer(game,socket);
+      if(game.giaiDoan==='cards'&&p?.vai){guiRieng(io,socket.id,'wolf-private',{loai:'card',vai:p.vai,moTa:vaiTro[p.vai],mocKetThuc:game.mocKetThuc});return;}
+      sendState(socket);
     });
     socket.on('wolf-ready',()=>{const game=getGame(socket);const p=validPlayer(game,socket);if(!p||!p.song||game.giaiDoan!=='cards'||game.daHieu.has(socket.id))return;game.daHieu.add(socket.id);});
     socket.on('wolf-night-action',data=>{
