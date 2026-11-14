@@ -109,10 +109,12 @@ dialog#wolf-create-modal,dialog#wolf-incoming-modal{border:2px solid #745e7c;bor
 
 @media(max-width:760px){
   .room-tag{font-size:12px;font-weight:1000;color:#fff;background:#382b40ed;border:2px solid #fff8ed;text-shadow:0 1px 2px #201725;box-shadow:0 2px 5px #20172580}
-  #app.ma-soi-active .dock{grid-template-columns:minmax(0,1fr);grid-template-rows:minmax(0,1fr)}
+  #app.ma-soi-active{--dock-height:58vh}
+  #app.ma-soi-active .world-wrap{bottom:0}
+  #app.ma-soi-active .dock{height:var(--dock-height);grid-template-columns:minmax(0,1fr);grid-template-rows:minmax(0,2.6fr) minmax(118px,1fr);background:linear-gradient(180deg,transparent 0%,rgba(150,150,150,.18) 42%,rgba(100,80,110,.25) 100%);border-top:0}
   #app.ma-soi-active #room-chat{display:none}
-  #app.ma-soi-active #wolf-ui{grid-column:1;grid-row:1;grid-template-columns:minmax(0,1fr);grid-template-rows:minmax(0,1fr) minmax(0,2fr);height:100%;gap:5px}
-  #app.ma-soi-active .wolf-role-panel{grid-column:1;grid-row:1}
-  #app.ma-soi-active .wolf-chat-panel{grid-column:1;grid-row:2}
-  #app.ma-soi-active .wolf-log{max-height:none}
+  #app.ma-soi-active #wolf-ui{grid-column:1;grid-row:1;grid-template-columns:minmax(0,1fr);grid-template-rows:minmax(0,2.6fr) minmax(118px,1fr);height:100%;gap:5px}
+  #app.ma-soi-active .wolf-chat-panel{grid-column:1;grid-row:1;background:rgba(255,246,233,.76);backdrop-filter:blur(1px)}
+  #app.ma-soi-active .wolf-role-panel{grid-column:1;grid-row:2;background:rgba(255,246,233,.9)}
+  #app.ma-soi-active .wolf-log{max-height:none;background:rgba(245,235,244,.76);text-shadow:0 1px 1px #fff}
 }
