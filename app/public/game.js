@@ -51,7 +51,6 @@ let trangThaiNhac = null;
 let trinhPhat = null;
 let sanSangNhac = false;
 const players = new Map();
-const keys = new Set();
 const moneyBills = [];
 const workDisplays = new Map();
 let moneyTexture = null;
@@ -907,7 +906,6 @@ function guiThaoTac(){
   socket.emit('thao-tac');
 }
 document.addEventListener('pointerdown',guiThaoTac,true);
-document.addEventListener('keydown',guiThaoTac,true);
 canvas.addEventListener('pointerdown', event => {
   const rect = canvas.getBoundingClientRect();
   pointer.x = (event.clientX - rect.left) / rect.width * 2 - 1;
@@ -1378,7 +1376,7 @@ socket.on('wolf-event',event=>{maSoiThongBao(event.text);if(event.giaiDoan&&tran
 socket.on('wolf-invite-state',state=>{trangThaiMaSoi={...(trangThaiMaSoi||{}),giaiDoan:'invite',mocKetThuc:state.ketThuc,moi:{chu:state.chu,ketThuc:state.ketThuc,danhSach:state.phanHoi||[]}};veBangMaSoi();});
 socket.on('wolf-invite',invite=>{document.querySelector('#wolf-incoming-title').textContent=`🐺 ${invite.chu} đang mời bạn chơi Ma Sói!`;wolfIncomingModal.dataset.deadline=invite.ketThuc;wolfIncomingModal.showModal();});
 socket.on('wolf-error',data=>toast(data.text||'Không thể bắt đầu Ma Sói.'));
-socket.on('wolf-lock',event=>{const p=players.get(event.id);if(!p)return;p.maSoi=event.locked;p.group.position.set(event.x,0,event.z);p.target.set(event.x,0,event.z);p.yaw=event.yaw;p.group.rotation.y=event.yaw;p.runMotion=null;if(event.locked){p.pose='wolf-seat';p.meditating=true;}else{p.pose='';p.meditating=false;p.body.scale.set(1,1,1);p.body.position.set(0,0,0);p.body.rotation.set(0,0,0);for(const arm of p.group.userData.tay){arm.rotation.set(0,0,0);arm.userData.khuYu.rotation.set(0,0,0);}for(const leg of p.group.userData.chan){leg.rotation.set(0,0,0);leg.userData.goi.rotation.set(0,0,0);}}if(event.id===selfId){keys.clear();targetWorld=null;document.querySelector('#app').classList.toggle('wolf-participant',event.locked);}});
+socket.on('wolf-lock',event=>{const p=players.get(event.id);if(!p)return;p.maSoi=event.locked;p.group.position.set(event.x,0,event.z);p.target.set(event.x,0,event.z);p.yaw=event.yaw;p.group.rotation.y=event.yaw;p.runMotion=null;if(event.locked){p.pose='wolf-seat';p.meditating=true;}else{p.pose='';p.meditating=false;p.body.scale.set(1,1,1);p.body.position.set(0,0,0);p.body.rotation.set(0,0,0);for(const arm of p.group.userData.tay){arm.rotation.set(0,0,0);arm.userData.khuYu.rotation.set(0,0,0);}for(const leg of p.group.userData.chan){leg.rotation.set(0,0,0);leg.userData.goi.rotation.set(0,0,0);}}if(event.id===selfId){targetWorld=null;document.querySelector('#app').classList.toggle('wolf-participant',event.locked);}});
 socket.on('wolf-start',event=>{daThoatVanMaSoi=false;vaiTroRiengMaSoi=null;riengMaSoi=null;trangThaiMaSoi={...(trangThaiMaSoi||{}),giaiDoan:'dealing',mocKetThuc:0,soLa:event.soLa,danhSach:event.nguoi||[],laDaChon:event.laDaChon||[]};capNhatSoGheMaSoi(event.nguoi?.length||0);capNhatGiaoDienMaSoi();if(laNguoiChoiMaSoi(event.nguoi,selfId,'dealing'))hienManChiaBai(event);maSoiThongBao('Ván Ma Sói bắt đầu: mỗi người chọn một lá bài.');});
 socket.on('wolf-relocate',event=>{const p=players.get(event.id);if(p){p.group.position.set(event.x,0,event.z);p.target.set(event.x,0,event.z);}});
 socket.on('wolf-discussion-message',data=>{maSoiThongBao(`${data.name}: ${data.text}`);setBubble(data.id,data.text);});
@@ -1529,16 +1527,6 @@ function moDiWc(){
 hopDiWc.addEventListener('close',()=>{
   if(hopDiWc.returnValue==='di')socket.emit('di-wc',{ban:dsBanWc.querySelector(':checked')?.value||''});
 });
-const actionKeys={KeyZ:'bonk',KeyX:'punch',KeyC:'smirk',KeyB:'bow',KeyV:'shock',KeyM:'meditate',KeyN:'toilet'};
-document.addEventListener('keydown',event=>{
-  if(hopDiWc.open||hopRuNhau.open)return;
-  if(['INPUT','TEXTAREA','SELECT'].includes(document.activeElement?.tagName))return;
-  if(['KeyW','KeyA','KeyS','KeyD','ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(event.code)){
-    event.preventDefault();keys.add(({ArrowUp:'KeyW',ArrowDown:'KeyS',ArrowLeft:'KeyA',ArrowRight:'KeyD'})[event.code]||event.code);
-  }
-  if(actionKeys[event.code])document.querySelector(`[data-action="${actionKeys[event.code]}"]`)?.click();
-});
-document.addEventListener('keyup',event=>keys.delete(({ArrowUp:'KeyW',ArrowDown:'KeyS',ArrowLeft:'KeyA',ArrowRight:'KeyD'})[event.code]||event.code));
 canvas.addEventListener('pointermove',event=>{
   if(event.buttons!==1)return;
   const rect=canvas.getBoundingClientRect();
@@ -2610,8 +2598,8 @@ function frame(now) {
   renderer.toneMappingExposure=THREE.MathUtils.lerp(1.15,.92,mucDemHienTai);
   const me=players.get(selfId);
   if(me) {
-    let dx=(keys.has('KeyD')?1:0)-(keys.has('KeyA')?1:0);
-    let dz=(keys.has('KeyS')?1:0)-(keys.has('KeyW')?1:0);
+    let dx=0;
+    let dz=0;
     if(me.maSoi){dx=0;dz=0;targetWorld=null;}
     const running=animateRun(me,now);
     if(!running&&targetWorld){const tx=targetWorld.x-me.group.position.x,tz=targetWorld.z-me.group.position.z;const d=Math.hypot(tx,tz);if(d>.35){dx=tx/d;dz=tz/d;}else targetWorld=null;}
