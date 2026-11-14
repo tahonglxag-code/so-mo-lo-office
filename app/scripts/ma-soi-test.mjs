@@ -60,6 +60,7 @@ try{
   assert.equal(sockets.get('player-5').inbox.some(e=>e.event==='wolf-invite'),false);
   for(const id of invited)sockets.get(id).fire('wolf-answer','yes');
   advance(15000);
+  [host,...invited.map(id=>sockets.get(id))].forEach((socket,index)=>socket.fire('wolf-pick-card',index));
   advance(3200);
   const roleCards=[host,...invited.map(id=>sockets.get(id))].map(socket=>socket.inbox.find(e=>e.event==='wolf-private'&&e.data.loai==='card')?.data);
   assert.equal(roleCards.filter(Boolean).length,5);
@@ -104,19 +105,25 @@ try{
     const targets=destination==='WOLF8'?[...sockets8.values()].filter(socket=>socket.data.room===destination):[sockets8.get(destination)].filter(Boolean);
     for(const socket of targets)socket.inbox.push({event,data});
   }})};
-  for(let i=0;i<8;i++){
+  for(let i=0;i<10;i++){
     const id=`eight-${i}`;room8.set(id,{id,name:`Eight ${i}`,avatar:'fish',x:i,z:0,yaw:0,sessionId:`00000000-0000-4000-8000-${String(i).padStart(12,'0')}`});
     const handlers=new Map(),socket={id,data:{room:'WOLF8'},inbox:[],on:(name,fn)=>handlers.set(name,fn),fire:(name,data)=>handlers.get(name)?.(data)};sockets8.set(id,socket);
   }
-  const manager8=taoQuanLyMaSoi(io8,new Map([['WOLF8',room8]]),{lockPlayer:()=>{},clearArea:()=>{}});
+  const locked8=new Set();
+  const manager8=taoQuanLyMaSoi(io8,new Map([['WOLF8',room8]]),{lockPlayer:(id,on,pos)=>{const player=room8.get(id);if(on){locked8.add(id);if(player)player.maSoi=true;}else{locked8.delete(id);if(player)player.maSoi=false;}if(player&&pos)Object.assign(player,pos);},clearArea:()=>{}});
   for(const socket of sockets8.values())connections8.get('connection')(socket);
-  sockets8.get('eight-0').fire('wolf-create',[...sockets8.keys()].slice(1));
-  for(const socket of [...sockets8.values()].slice(1))socket.fire('wolf-answer','yes');
+  sockets8.get('eight-0').fire('wolf-create',[...sockets8.keys()].slice(1,8));
+  for(const socket of [...sockets8.values()].slice(1,8))socket.fire('wolf-answer','yes');
   advance(15000);
+  [...sockets8.values()].slice(0,8).forEach((socket,index)=>socket.fire('wolf-pick-card',index));
   advance(3680);
   const eightCards=[...sockets8.values()].map(socket=>({socket,card:socket.inbox.find(e=>e.event==='wolf-private'&&e.data.loai==='card')?.data}));
   assert.equal(eightCards.filter(entry=>entry.card).length,8);
   assert.equal(eightCards.filter(entry=>entry.card?.vai==='wolf').length,2);
+  assert.equal(room8.get('eight-8').maSoi||false,false);
+  assert.equal(room8.get('eight-9').maSoi||false,false);
+  assert.equal(locked8.has('eight-8'),false);
+  assert.equal(locked8.has('eight-9'),false);
   advance(10000);
   const guard8=eightCards.find(entry=>entry.card?.vai==='guard').socket;
   guard8.fire('wolf-night-action',{target:guard8.inbox.find(e=>e.event==='wolf-private'&&e.data.loai==='role'&&e.data.vai==='guard').data.danhSach[0].id});
@@ -138,6 +145,12 @@ try{
   witch8.fire('wolf-night-action',{target:poisonTarget.id,loai:'poison'});
   assert.equal(room8.werewolf.nguoi.get(poisonTarget.id).nguyenNhan,'poison');
   assert.equal(room8.werewolf.giaiDoan,'discussion');
+  const discussionId=[...room8.werewolf.nguoi.values()].find(player=>player.song).id;
+  const discussionPlayer=sockets8.get(discussionId);
+  discussionPlayer.fire('wolf-discussion','Mọi người nghe rõ không?');
+  for(const socket of sockets8.values())assert.equal(socket.inbox.some(e=>e.event==='wolf-discussion-message'&&e.data.id===discussionPlayer.id&&e.data.text==='Mọi người nghe rõ không?'),true);
+  assert.equal(manager8.filterTargets(room8,[...room8.values()]).some(player=>player.id==='eight-8'),true);
+  assert.equal(manager8.filterTargets(room8,[...room8.values()]).some(player=>player.id==='eight-0'),false);
   const villager=eightCards.find(entry=>entry.card?.vai==='villager'),oldPlayer=room8.get(villager.socket.id);
   manager8.onDisconnect(villager.socket,room8);
   assert.equal(room8.werewolf.nguoi.get(villager.socket.id).song,false);
@@ -147,7 +160,15 @@ try{
   sockets8.set(reconnectId,reconnectSocket);connections8.get('connection')(reconnectSocket);manager8.onJoin(reconnectSocket,room8);
   assert.equal(rejoined.maSoi,true);
   assert.equal(reconnectSocket.inbox.filter(e=>e.event==='wolf-state').at(-1).data.rieng,null);
-  console.log(JSON.stringify({result:'PASS',invites:'selected players only',roleDistribution:'5–15-player tables valid',privateRoles:'not broadcast',gameLocks:locked.size,singleWolf:'target killed after night resolves',earlyNightAction:'advanced immediately',multiWolfDisagreement:'no bite after 30s chat and 5s choice; seer and witch actions continue',disconnect:'dead seat retained; same-session reconnect is locked out as spectator'},null,2));
+  room8.werewolf.giaiDoan='finished';
+  const exiting=eightCards.find(entry=>entry.card?.vai==='seer').socket;
+  exiting.fire('wolf-leave');
+  assert.equal(locked8.has(exiting.id),false);
+  assert.equal(room8.get(exiting.id).maSoi,false);
+  assert.equal(exiting.inbox.at(-1).event,'wolf-exited');
+  assert.equal(room8.werewolf.raVan.has(exiting.id),true);
+  assert.equal(sockets8.get('eight-8').inbox.some(e=>e.event==='wolf-public'&&e.data.giaiDoan==='finished'),true);
+  console.log(JSON.stringify({result:'PASS',invites:'selected players only',roleDistribution:'5–15-player tables valid',privateRoles:'not broadcast',gameLocks:locked.size,singleWolf:'target killed after night resolves',earlyNightAction:'advanced immediately',multiWolfDisagreement:'no bite after 30s chat and 5s choice; seer and witch actions continue',publicDiscussion:'reaches all room members',outsiders:'remain unlocked and available as interaction targets during the game',historyExit:'leaves the ended game and unlocks the player without clearing room history',disconnect:'dead seat retained; same-session reconnect is locked out as spectator'},null,2));
 }finally{
   globalThis.setTimeout=originalSetTimeout;
   globalThis.clearTimeout=originalClearTimeout;

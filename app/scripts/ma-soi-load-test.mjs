@@ -40,6 +40,7 @@ async function runLevel(size){
     for(const player of clients){const started=Date.now();const info=await ack(player,'room-check');maxAckMs=Math.max(maxAckMs,Date.now()-started);if(!info.ok||info.players.length<size)throw new Error('Room check mismatch.');roomPlayerCount=Math.max(roomPlayerCount,info.players.length);}
     const started=event(outside[0],'wolf-start',30000);
     for(const target of clients.slice(1,15))target.on('wolf-invite',()=>target.emit('wolf-answer','yes'));
+    participants.forEach((socket,index)=>socket.on('wolf-start',()=>socket.emit('wolf-pick-card',index)));
     for(const socket of participants)socket.on('wolf-private',()=>{});
     const cardResults=Promise.all(participants.map(socket=>event(socket,'wolf-private',30000,data=>data.loai==='card')));
     host.emit('wolf-create',clients.slice(1,15).map(socket=>socket.id));
@@ -62,8 +63,11 @@ async function runLevel(size){
     const acts=[];for(const socket of clients)socket.on('act',value=>acts.push(value));
     observer.emit('act',{action:'throw',item:'❤️',target:participants[0].id});await wait(400);
     blockedTarget=acts.some(value=>value.to===participants[0].id)?0:1;
-    if(blockedMoves!==0||!freeMoves||!officeChat||!blockedTarget||!movedAwayFromTable||publicLeaks||disconnects.length)throw new Error(JSON.stringify({blockedMoves,freeMoves,officeChat,blockedTarget,movedAwayFromTable,publicLeaks,disconnects}));
-    return {level:size,connections:roomPlayerCount,werewolfPlayers:15,outsidePlayers:size-15,roleCards:cards.length,wolves:wolfCount,blockedMoves,freeMoves,officeChat,blockedTarget,movedAwayFromTable,publicRoleLeaks:publicLeaks,unexpectedDisconnects:disconnects.length,maxRoomCheckAckMs:maxAckMs,renderCpuRam:'not measured locally'};
+    await wait(550);
+    const freeSelfAction=event(host,'self-action',3000,value=>value.id===observer.id);observer.emit('self-action','meditate');await freeSelfAction;
+    const freeTargetAction=event(host,'act',3000,value=>value.from===observer.id&&value.to===outside[1].id);observer.emit('act',{action:'throw',item:'❤️',target:outside[1].id});await freeTargetAction;
+    if(blockedMoves!==0||!freeMoves||!officeChat||!blockedTarget||!freeSelfAction||!freeTargetAction||!movedAwayFromTable||publicLeaks||disconnects.length)throw new Error(JSON.stringify({blockedMoves,freeMoves,officeChat,blockedTarget,freeSelfAction:Boolean(freeSelfAction),freeTargetAction:Boolean(freeTargetAction),movedAwayFromTable,publicLeaks,disconnects}));
+    return {level:size,connections:roomPlayerCount,werewolfPlayers:15,outsidePlayers:size-15,roleCards:cards.length,wolves:wolfCount,blockedMoves,freeMoves,officeChat,blockedTarget,freeSelfAction:true,freeTargetAction:true,movedAwayFromTable,publicRoleLeaks:publicLeaks,unexpectedDisconnects:disconnects.length,maxRoomCheckAckMs:maxAckMs,renderCpuRam:'not measured locally'};
   }finally{clients.forEach(socket=>socket.disconnect());await wait(250);}
 }
 

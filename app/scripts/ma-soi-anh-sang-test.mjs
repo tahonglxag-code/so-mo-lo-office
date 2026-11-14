@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import {laDemMaSoi,laNguoiChoiMaSoi} from '../public/ma-soi-anh-sang.js';
+import {laDemMaSoi,laNguoiChoiMaSoi,laThanhVienVanMaSoi} from '../public/ma-soi-anh-sang.js';
 
 const cacGiaiDoanDem=['night','night-role','wolf-chat','wolf-choice'];
 const cacGiaiDoanNgay=['dealing','cards','discussion','vote','finished','invite'];
@@ -18,5 +18,7 @@ for(const giaiDoan of [...cacGiaiDoanDem,...cacGiaiDoanNgay.filter(giaiDoan=>gia
 }
 assert.equal(laNguoiChoiMaSoi(danhSach,'choi-1','finished'),false);
 assert.equal(laNguoiChoiMaSoi(danhSach,'choi-1','invite'),false);
+assert.equal(laThanhVienVanMaSoi(danhSach,'choi-1'),true);
+assert.equal(laThanhVienVanMaSoi(danhSach,'xem-1'),false);
 
-console.log(JSON.stringify({ketQua:'PASS',giaiDoanDem:cacGiaiDoanDem,khachXem:'luon giu anh sang binh thuong va bang tuong tac phong',giaiDoanNgay:cacGiaiDoanNgay},null,2));
+console.log(JSON.stringify({ketQua:'PASS',giaiDoanDem:cacGiaiDoanDem,khachXem:'giu giao dien phong, khong bi bat doc lich su va khong bi lam toi',giaiDoanNgay:cacGiaiDoanNgay},null,2));

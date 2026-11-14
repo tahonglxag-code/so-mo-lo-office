@@ -8,6 +8,6 @@ export function tinhGocMay(x,z,fov,tyLe){
 }
 
 export function tinhGocMayMaSoi(){
-  const tam={x:TAM_BAN_MA_SOI.x,y:1.1,z:TAM_BAN_MA_SOI.z};
+  const tam={x:TAM_BAN_MA_SOI.x,y:innerWidth<760 ? .25 : 1.1,z:TAM_BAN_MA_SOI.z};
   return {tam,viTri:{x:TAM_BAN_MA_SOI.x,y:14.5,z:TAM_BAN_MA_SOI.z+12}};
 }
