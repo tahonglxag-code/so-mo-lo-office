@@ -6,6 +6,7 @@ import {laDemMaSoi,laNguoiChoiMaSoi,laThanhVienVanMaSoi,duocChonNangLucMaSoi} fr
 import {CSS3DRenderer,CSS3DObject} from '/css3d.js';
 
 import {banTho} from './ban-tho.js';
+import {taoLoTrinh,buocDiAnToan} from './office-navigation.js';
 
 const socket = io({ transports: ['websocket', 'polling'] });
 const sessionId=(()=>{let id=localStorage.getItem('somlo-session');if(!id){id=crypto.randomUUID();localStorage.setItem('somlo-session',id);}return id;})();
@@ -706,6 +707,7 @@ function animal(type, tint = null, macVest = false) {
     body.userData.longRan=fur;
     body.userData.caoDauRan=-headShift;
     const snakeHead = new THREE.Group();
+    snakeHead.userData.dauRan=true;
     snakeHead.position.y = -headShift;
     body.add(snakeHead);
     sphere(snakeHead,0,1.91,-.08,.43,.39,.39,fur,20);
@@ -805,7 +807,7 @@ function animal(type, tint = null, macVest = false) {
   }
   body.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true;}});
   let dau;
-  if(type==='snake') dau=body.children.find(o=>o.isGroup);
+  if(type==='snake') dau=body.children.find(o=>o.userData.dauRan);
   else if(type!=='fish'){
     dau=new THREE.Group();dau.position.y=1.3;body.add(dau);
     for(const o of [...body.children])if(o!==dau&&o.position.y>=1){body.remove(o);o.position.y-=1.3;dau.add(o);}
@@ -841,11 +843,7 @@ function taoPhongSep(){
   dau.traverse(mesh=>{
     if(!mesh.isMesh||!mesh.material?.color||mesh.material.color.r+mesh.material.color.g+mesh.material.color.b<1.3)return;
     const goc=mesh.material;
-    const mauDo=goc.clone();
-    mauDo.map=null;
-    mauDo.color.copy(goc.color);
-    if(mauDo.emissive)mauDo.emissive.set('#8f0008');
-    mesh.material=mauDo;
+    const mauDo=new THREE.MeshBasicMaterial({color:goc.color.clone(),toneMapped:false});
     sep.userData.vatLieuDau.push({mesh,goc,mauDo,mauGoc:goc.color.clone()});
   });
   for(const ben of [-1,1]){
@@ -888,6 +886,14 @@ office();
 const raycaster = new THREE.Raycaster();
 const pointer = new THREE.Vector2();
 let targetWorld = null;
+let targetPath=[];
+function datDiemDen(x,z){
+  const me=players.get(selfId);
+  if(!me)return;
+  targetPath=taoLoTrinh({x:me.group.position.x,z:me.group.position.z},{x,z});
+  targetWorld=targetPath.shift()||new THREE.Vector3(x,0,z);
+  if(!(targetWorld instanceof THREE.Vector3))targetWorld=new THREE.Vector3(targetWorld.x,0,targetWorld.z);
+}
 const nguoiBatKhoiWc=new Map();
 const cotKhoiWc=new Map();
 let vatLieuKhoiWc;
@@ -955,7 +961,7 @@ canvas.addEventListener('pointerdown', event => {
   if(hit) selectPlayer(hit.object.userData.playerId);
   else {
     const floorHit=raycaster.intersectObject(ground,false)[0];
-    if(floorHit) targetWorld=floorHit.point.clone();
+    if(floorHit) datDiemDen(floorHit.point.x,floorHit.point.z);
   }
 });
 
@@ -1576,7 +1582,7 @@ canvas.addEventListener('pointermove',event=>{
   pointer.x=(event.clientX-rect.left)/rect.width*2-1;
   pointer.y=-((event.clientY-rect.top)/rect.height*2-1);
   raycaster.setFromCamera(pointer,camera);
-  const hit=raycaster.intersectObject(ground,false)[0]; if(hit)targetWorld=hit.point.clone();
+  const hit=raycaster.intersectObject(ground,false)[0]; if(hit)datDiemDen(hit.point.x,hit.point.z);
 });
 
 const bangAnhHung=document.createElement('div');
@@ -1913,8 +1919,9 @@ function veHieuUngBatSep(now){
   const lua=Math.max(0,Math.min(1,(t-.9)/.75));
   if(quangDoDauSep)quangDoDauSep.material.opacity=lua*.3;
   for(const muc of sep.userData.vatLieuDau||[]){
+    if(lua>0&&muc.mesh.material!==muc.mauDo)muc.mesh.material=muc.mauDo;
     muc.mauDo.color.copy(muc.mauGoc).lerp(new THREE.Color('#ed101b'),lua);
-    if(muc.mauDo.emissive)muc.mauDo.emissive.setRGB(.42*lua,0,0);
+    if(lua>.9)muc.mauDo.color.set('#ed101b');
   }
   if(luaSep){
     const cao=Math.max(0,Math.min(1,(t-1.55)/.45));
@@ -2020,7 +2027,7 @@ socket.on('act',event=>{
     from.khoaDen=now+event.approach+event.duration;
     if(to)to.khoaDen=from.khoaDen;
     if(from.id===selfId||to?.id===selfId)targetWorld=null;
-    from.runMotion={points:[from.group.position.clone(),new THREE.Vector3(event.x,0,event.z)],started:now,duration:event.approach,jump:false};
+    from.runMotion={points:[from.group.position.clone(),...(event.path||[{x:event.x,z:event.z}]).map(point=>new THREE.Vector3(point.x,0,point.z))],started:now,duration:event.approach,jump:false};
     from.hanhDong={loai:event.action,batDau:now+event.approach,ketThuc:now+event.approach+(event.action==='shock'?420:event.duration),yaw:event.yaw};
     from.yaw=event.yaw;
   }
@@ -2765,10 +2772,10 @@ function frame(now) {
     let dz=0;
     if(me.maSoi){dx=0;dz=0;targetWorld=null;}
     const running=animateRun(me,now);
-    if(!running&&targetWorld){const tx=targetWorld.x-me.group.position.x,tz=targetWorld.z-me.group.position.z;const d=Math.hypot(tx,tz);if(d>.35){dx=tx/d;dz=tz/d;}else targetWorld=null;}
+    if(!running&&targetWorld){const tx=targetWorld.x-me.group.position.x,tz=targetWorld.z-me.group.position.z;const d=Math.hypot(tx,tz);if(d>.24){dx=tx/d;dz=tz/d;}else if(targetPath.length)targetWorld=targetPath.shift();else targetWorld=null;}
     if(!running&&me.workSeatId&&!me.working){dx=0;dz=0;}
     if(now<(me.khoaDen||0)){dx=0;dz=0;}
-    if(!running&&(dx||dz)){const mag=Math.hypot(dx,dz);dx/=mag;dz/=mag;me.group.position.x=THREE.MathUtils.clamp(me.group.position.x+dx*5.2*dt,-18.4,18.4);me.group.position.z=THREE.MathUtils.clamp(me.group.position.z+dz*5.2*dt,-11.5,11.5);me.group.rotation.y=Math.atan2(-dx,-dz);}
+    if(!running&&(dx||dz)){const mag=Math.hypot(dx,dz);dx/=mag;dz/=mag;const buoc=buocDiAnToan({x:me.group.position.x,z:me.group.position.z},{x:me.group.position.x+dx*5.2*dt,z:me.group.position.z+dz*5.2*dt});me.group.position.x=buoc.x;me.group.position.z=buoc.z;me.group.rotation.y=Math.atan2(-dx,-dz);}
     if(socket.connected&&!me.raHang&&!me.muaVo&&now>=(me.khoaDen||0)&&now-lastMove>100){socket.volatile.emit('move',{x:me.group.position.x,z:me.group.position.z,yaw:me.group.rotation.y});lastMove=now;}
     const goc=me.maSoi?tinhGocMayMaSoi():tinhGocMay(me.group.position.x,me.group.position.z,camera.fov,camera.aspect);
     camera.position.set(goc.viTri.x,goc.viTri.y,goc.viTri.z);camera.lookAt(goc.tam.x,goc.tam.y,goc.tam.z);
