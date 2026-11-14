@@ -32,6 +32,7 @@ function congKhaiTrangThai(game, id) {
   return {
     roomId:game.roomId, maTran:game.maTran, giaiTanLuc:game.giaiTanLuc||0,
     giaiDoan:game.giaiDoan, ngay:game.ngay, mocKetThuc:game.mocKetThuc||0,
+    lichSu:game.giaiDoan==='finished'?game.lichSu:undefined,
     vaiDangGoi:game.vaiDangGoi||'', danhSach:congKhaiNguoi(game),
     soLa:game.giaiDoan==='dealing'?game.nguoi.size:0,
     laDaChon:game.giaiDoan==='dealing'?[...game.chonLa].map(([la,playerId])=>({la,id:playerId,ten:layNguoi(game,playerId)?.ten||'Người chơi'})):[],
@@ -250,6 +251,13 @@ export function taoQuanLyMaSoi(io,rooms,helpers) {
   function getGame(socket) {const room=rooms.get(socket.data.room);return room?.werewolf||null;}
   function validPlayer(game,socket) {const p=game&&layNguoi(game,socket.id);return p?.dangKetNoi?p:null;}
   function sendState(socket) {const game=getGame(socket);if(game)guiRieng(io,socket.id,'wolf-state',congKhaiTrangThai(game,socket.id));}
+  function ketThucLoiMoi(game) {
+    if(!game?.moi||game.room.werewolf!==game)return;
+    const accepted=[...game.moi.phanHoi].filter(([,answer])=>answer==='yes').map(([id])=>id);
+    game.moi=null;
+    if(accepted.length<5){phatSuKien(io,game,'Không đủ 5 người tham gia. Ván Ma Sói đã được hủy.');return giaiTan(io,game);}
+    if(!batDauGame(io,game,accepted)){phatSuKien(io,game,'Không thể bắt đầu ván.');giaiTan(io,game);}
+  }
   function onJoin(socket,room) {
     const game=room.werewolf;
     if(!game)return;
@@ -282,6 +290,7 @@ export function taoQuanLyMaSoi(io,rooms,helpers) {
     if(game.moi?.duocMoi.has(socket.id)){
       game.moi.duocMoi.delete(socket.id);game.moi.phanHoi.delete(socket.id);
       congKhai(io,game.roomId,'wolf-invite-state',{chu:game.moi.chu,ketThuc:game.moi.ketThuc,phanHoi:[...game.moi.phanHoi].map(([id,phanHoi])=>({id,phanHoi}))});
+      if(game.moi.phanHoi.size>=game.moi.duocMoi.size+1)ketThucLoiMoi(game);
     }
     const p=game.nguoi.get(socket.id);game.online.delete(socket.id);
     if(!p||!p.song||game.giaiDoan==='finished')return;
@@ -302,11 +311,7 @@ export function taoQuanLyMaSoi(io,rooms,helpers) {
       for(const id of inviteIds){const player=room.get(id);guiRieng(io,id,'wolf-invite',{chu:creator.name,avatar:creator.avatar,ketThuc:game.moi.ketThuc});}
       congKhai(io,game.roomId,'wolf-invite-state',{chu:socket.id,ketThuc:game.moi.ketThuc,phanHoi:[{id:socket.id,phanHoi:'yes'}]});
       hen(game,()=>{
-        if(game.room.werewolf!==game)return;
-        const accepted=[...game.moi.phanHoi].filter(([,answer])=>answer==='yes').map(([id])=>id);
-        game.moi=null;
-        if(accepted.length<5){phatSuKien(io,game,'Không đủ 5 người tham gia. Ván Ma Sói đã được hủy.');return giaiTan(io,game);}
-        if(!batDauGame(io,game,accepted)){phatSuKien(io,game,'Không thể bắt đầu ván.');return giaiTan(io,game);}
+        ketThucLoiMoi(game);
       },15000);
     });
     socket.on('wolf-answer',answer=>{
@@ -314,6 +319,7 @@ export function taoQuanLyMaSoi(io,rooms,helpers) {
       if(!game.online.has(socket.id)||!game.moi.duocMoi.has(socket.id)||game.moi.phanHoi.has(socket.id)||!game.room.has(socket.id))return;
       game.moi.phanHoi.set(socket.id,answer);
       congKhai(io,game.roomId,'wolf-invite-state',{chu:game.moi.chu,ketThuc:game.moi.ketThuc,phanHoi:[...game.moi.phanHoi].map(([id,phanHoi])=>({id,phanHoi}))});
+      if(game.moi.phanHoi.size>=game.moi.duocMoi.size+1){ketThucLoiMoi(game);return;}
       phatTrangThai(io,game);
     });
     socket.on('wolf-sync',()=>{

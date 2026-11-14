@@ -131,3 +131,24 @@ dialog#wolf-create-modal,dialog#wolf-incoming-modal{border:2px solid #745e7c;bor
   #app.ma-soi-active .wolf-role-panel{grid-column:1;grid-row:2;background:rgba(255,246,233,.9)}
   #app.ma-soi-active .wolf-log{max-height:none;background:rgba(245,235,244,.76);text-shadow:0 1px 1px #fff}
 }
+
+#app.ma-soi-active .dock{height:min(32vh,320px);min-height:230px;grid-template-rows:minmax(0,1fr)}
+#app.ma-soi-active #wolf-ui{grid-template-columns:minmax(0,3fr) minmax(0,2fr) minmax(0,4fr)}
+.wolf-role-description-panel{display:flex;flex-direction:column;gap:5px;min-width:0;min-height:0;overflow:auto;background:#fff6e9ed;border:1px solid #745e7c;border-radius:14px;padding:7px 9px;box-shadow:0 2px 5px #382b4030;font-size:12px;line-height:1.4;overscroll-behavior:contain}
+.wolf-role-description-panel>strong{font-size:13px;font-weight:1000;color:#4d3854}
+#wolf-role-description p{margin:4px 0;overflow-wrap:anywhere}
+#wolf-private{display:flex;flex-direction:column;justify-content:center;gap:5px}
+#wolf-actions{flex:0 0 auto}
+#app.ma-soi-finished .dock{height:min(72dvh,760px);min-height:min(300px,58dvh)}
+@media(max-width:760px){
+  #app.ma-soi-active .dock{height:min(70dvh,720px);min-height:0;grid-template-rows:minmax(0,1fr)}
+  #app.ma-soi-active #wolf-ui{grid-template-columns:minmax(0,1fr);grid-template-rows:minmax(120px,.85fr) minmax(205px,1.15fr);height:100%;gap:5px}
+  #app.ma-soi-active .wolf-chat-panel{grid-column:1;grid-row:1}
+  #app.ma-soi-active .wolf-role-panel{grid-column:1;grid-row:2}
+  #app.ma-soi-active .wolf-role-description-panel{display:none}
+  #app.ma-soi-active .mobile-pad{display:none}
+  #wolf-status,#wolf-private{font-size:12px}
+  #wolf-private select{font-size:13px;padding:7px}
+  #wolf-actions button{font-size:12px;padding:6px 9px}
+  #app.ma-soi-finished .dock{height:min(66dvh,680px);min-height:min(270px,50dvh)}
+}
