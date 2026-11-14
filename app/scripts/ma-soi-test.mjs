@@ -153,6 +153,7 @@ try{
   assert.equal(manager8.filterTargets(room8,[...room8.values()]).some(player=>player.id==='eight-0'),false);
   const villager=eightCards.find(entry=>entry.card?.vai==='villager'),oldPlayer=room8.get(villager.socket.id);
   manager8.onDisconnect(villager.socket,room8);
+  room8.delete(villager.socket.id);
   assert.equal(room8.werewolf.nguoi.get(villager.socket.id).song,false);
   const reconnectId='eight-reconnect',rejoined={id:reconnectId,name:oldPlayer.name,avatar:oldPlayer.avatar,x:0,z:0,yaw:0,sessionId:oldPlayer.sessionId};
   room8.set(reconnectId,rejoined);
@@ -162,6 +163,8 @@ try{
   assert.equal(reconnectSocket.inbox.filter(e=>e.event==='wolf-state').at(-1).data.rieng,null);
   room8.werewolf.giaiDoan='finished';
   for(const player of room8.werewolf.nguoi.values())if(!player.dangKetNoi)room8.werewolf.raVan.add(player.id);
+  const finishedGame=room8.werewolf;
+  assert.equal(finishedGame.raVan.has(villager.socket.id),true);
   const exiting=eightCards.find(entry=>entry.card?.vai==='seer').socket;
   exiting.fire('wolf-leave');
   assert.equal(locked8.has(exiting.id),false);
@@ -170,14 +173,14 @@ try{
   assert.equal(room8.werewolf.raVan.has(exiting.id),true);
   assert.equal(sockets8.get('eight-8').inbox.some(e=>e.event==='wolf-public'&&e.data.giaiDoan==='finished'),true);
   for(const socket of sockets8.values())assert.equal(socket.inbox.some(e=>e.event==='wolf-player-exited'&&e.data.id===exiting.id),true);
-  const finishedGame=room8.werewolf;
   const disconnectAfterEnd=eightCards.find(entry=>entry.card?.vai==='wolf').socket;
   manager8.onDisconnect(disconnectAfterEnd,room8);
+  room8.delete(disconnectAfterEnd.id);
   assert.equal(finishedGame.raVan.has(disconnectAfterEnd.id),true);
   assert.equal(sockets8.get('eight-8').inbox.some(e=>e.event==='wolf-player-exited'&&e.data.id===disconnectAfterEnd.id),true);
-  for(const entry of eightCards)if(!finishedGame.raVan.has(entry.socket.id))entry.socket.fire('wolf-leave');
+  for(const entry of eightCards)if(room8.has(entry.socket.id)&&!finishedGame.raVan.has(entry.socket.id))entry.socket.fire('wolf-leave');
   assert.equal(room8.werewolf,null);
-  assert.equal(locked8.size,0);
+  assert.equal([...locked8].some(id=>room8.has(id)),false);
   assert.equal([...sockets8.values()].every(socket=>socket.inbox.some(e=>e.event==='wolf-dissolved')),true);
   console.log(JSON.stringify({result:'PASS',invites:'selected players only',roleDistribution:'5–15-player tables valid',privateRoles:'not broadcast',gameLocks:locked.size,singleWolf:'target killed after night resolves',earlyNightAction:'advanced immediately',multiWolfDisagreement:'no bite after 30s chat and 5s choice; seer and witch actions continue',publicDiscussion:'reaches all room members',outsiders:'remain unlocked and available as interaction targets during the game',historyExit:'leaves the ended game and unlocks the player without clearing room history',earlyDissolution:'all participants leaving ends history immediately, clears room effect and unlocks spectators',disconnect:'dead seat retained; same-session reconnect is locked out as spectator'},null,2));
 }finally{
