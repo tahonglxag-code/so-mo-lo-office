@@ -1539,11 +1539,6 @@ document.addEventListener('keydown',event=>{
   if(actionKeys[event.code])document.querySelector(`[data-action="${actionKeys[event.code]}"]`)?.click();
 });
 document.addEventListener('keyup',event=>keys.delete(({ArrowUp:'KeyW',ArrowDown:'KeyS',ArrowLeft:'KeyA',ArrowRight:'KeyD'})[event.code]||event.code));
-document.querySelectorAll('#mobile-pad [data-key]').forEach(button=>{
-  const key={forward:'KeyW',backward:'KeyS',left:'KeyA',right:'KeyD'}[button.dataset.key];
-  button.addEventListener('pointerdown',event=>{event.preventDefault();keys.add(key);button.setPointerCapture(event.pointerId);});
-  for(const type of ['pointerup','pointercancel','lostpointercapture'])button.addEventListener(type,()=>keys.delete(key));
-});
 canvas.addEventListener('pointermove',event=>{
   if(event.buttons!==1)return;
   const rect=canvas.getBoundingClientRect();
