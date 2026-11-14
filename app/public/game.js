@@ -689,7 +689,11 @@ function animal(type, tint = null, macVest = false) {
       coil.position.set(0, y, .05);
       body.add(coil);
     }
-    taperedTube(body,[[.66,.17,.08],[.84,.17,.18],[1.06,.23,.3]],.13,.012,fur);
+    const duoiRan=new THREE.Group();
+    duoiRan.position.set(.66,.17,.08);
+    taperedTube(duoiRan,[[0,0,0],[.18,0,.1],[.4,.06,.22]],.13,.012,fur);
+    body.add(duoiRan);
+    body.userData.duoiRan=duoiRan;
     const middleHeight = .77;
     const shortenedHeight = middleHeight * 2 / 3;
     const headShift = middleHeight - shortenedHeight;
@@ -807,6 +811,7 @@ function animal(type, tint = null, macVest = false) {
     for(const o of [...body.children])if(o!==dau&&o.position.y>=1){body.remove(o);o.position.y-=1.3;dau.add(o);}
   }
   root.userData.dau=dau;
+  root.userData.duoiRan=body.userData.duoiRan;
   root.userData.tay=[];body.traverse(o=>{if(o.userData.tay)root.userData.tay.push(o);});
   root.userData.chan=body.children.filter(o=>o.userData.chan);
   root.userData.body = body;
@@ -832,6 +837,17 @@ function taoPhongSep(){
   sep.position.set(14.5,0,-9.65);
   sep.rotation.y=Math.PI;
   const dau=sep.userData.dau;
+  sep.userData.vatLieuDau=[];
+  dau.traverse(mesh=>{
+    if(!mesh.isMesh||!mesh.material?.color||mesh.material.color.r+mesh.material.color.g+mesh.material.color.b<1.3)return;
+    const goc=mesh.material;
+    const mauDo=goc.clone();
+    mauDo.map=null;
+    mauDo.color.copy(goc.color);
+    if(mauDo.emissive)mauDo.emissive.set('#8f0008');
+    mesh.material=mauDo;
+    sep.userData.vatLieuDau.push({mesh,goc,mauDo,mauGoc:goc.color.clone()});
+  });
   for(const ben of [-1,1]){
     faceLine(dau,[[ben*.31,.27,-.56],[ben*.23,.23,-.63],[ben*.09,.17,-.65]],mats.dark,.04);
   }
@@ -1869,6 +1885,8 @@ function ketThucHieuUngBatSep(){
   if(banSep){banSep.position.set(14.5,1,-8.55);banSep.rotation.set(0,0,0);}
   if(luaSep)luaSep.scale.setScalar(0);
   if(quangDoDauSep)quangDoDauSep.material.opacity=0;
+  for(const muc of sep.userData.vatLieuDau||[]){muc.mesh.material=muc.goc;muc.mauDo.dispose();}
+  sep.userData.vatLieuDau=[];
   const cua=cuaHop.get('PHÒNG SẾP');
   if(cua){clearTimeout(cua.userData.dong);cua.position.copy(hieuUngBatSep.cuaViTri);cua.rotation.set(0,0,0);}
   for(const kyTu of kyTuBay)kyTu.visible=false;
@@ -1879,6 +1897,8 @@ function ketThucHieuUngBatSep(){
     player.body.rotation.set(0,0,0);
     player.body.position.y=0;
     for(const tay of player.group.userData.tay){tay.rotation.x=0;tay.userData.khuYu.rotation.x=0;}
+    for(const chan of player.group.userData.chan){chan.rotation.set(0,0,0);chan.userData.goi.rotation.set(0,0,0);}
+    if(player.group.userData.duoiRan)player.group.userData.duoiRan.rotation.set(0,0,0);
     if(player.id===selfId)targetWorld=null;
   }
   hieuUngBatSep=null;
@@ -1890,34 +1910,60 @@ function veHieuUngBatSep(now){
   if(!effect)return;
   const t=(now-effect.started)/1000;
   if(t>=effect.duration/1000){ketThucHieuUngBatSep();return;}
-  const lua=Math.max(0,Math.min(1,(t-1.35)/.9));
-  if(quangDoDauSep)quangDoDauSep.material.opacity=lua*.78;
-  if(luaSep){
-    const cao=Math.max(0,Math.min(1,(t-1.7)/.65));
-    const nhip=1+.1*Math.sin(now*.025);
-    luaSep.scale.set(.75+nhip*.25,Math.max(.001,cao*2.3*nhip),.75+nhip*.25);
+  const lua=Math.max(0,Math.min(1,(t-.9)/.75));
+  if(quangDoDauSep)quangDoDauSep.material.opacity=lua*.3;
+  for(const muc of sep.userData.vatLieuDau||[]){
+    muc.mauDo.color.copy(muc.mauGoc).lerp(new THREE.Color('#ed101b'),lua);
+    if(muc.mauDo.emissive)muc.mauDo.emissive.setRGB(.42*lua,0,0);
   }
-  const lat=Math.max(0,Math.min(1,t/2.2));
-  banSep.position.set(14.5,1+Math.sin(lat*Math.PI)*4.6,-8.55+lat*3.1);
-  banSep.rotation.set(Math.PI*4*lat,0,Math.sin(lat*Math.PI)*.35);
-  if(t>=2.2){banSep.position.set(14.5,1,-5.45);banSep.rotation.set(Math.PI*4,0,.52);}
+  if(luaSep){
+    const cao=Math.max(0,Math.min(1,(t-1.55)/.45));
+    const nhip=1+.1*Math.sin(now*.025);
+    luaSep.scale.set(.95+nhip*.2,Math.max(.001,cao*3.1*nhip),.95+nhip*.2);
+  }
+  const lat=Math.max(0,Math.min(1,t/1.5));
+  banSep.position.set(14.5+2.35*lat,1+Math.sin(lat*Math.PI)*1.5,-8.55+Math.sin(lat*Math.PI)*.45);
+  banSep.rotation.set(Math.PI*4*lat,Math.PI*2*lat,Math.sin(lat*Math.PI)*.28);
+  if(t>=1.5){banSep.position.set(16.85,.72,-8.55);banSep.rotation.set(Math.PI*4,Math.PI*2,.28);}
   const cua=cuaHop.get('PHÒNG SẾP');
   if(cua){
-    const bay=Math.max(0,Math.min(1,(t-2.08)/.85));
+    const bay=Math.max(0,Math.min(1,(t-effect.batDauMoCua/1000)/.48));
     cua.position.copy(effect.cuaViTri);
-    cua.position.x+=1.45*bay;
-    cua.position.y=2.7*bay*(1-bay);
-    cua.position.z+=.28*bay;
-    cua.rotation.set(bay*Math.PI*1.3,-bay*Math.PI*2.5,bay*1.1);
+    cua.position.x+=1.7*bay;
+    cua.position.y=2.35*bay*(1-bay);
+    cua.position.z+=.4*bay;
+    cua.rotation.set(bay*Math.PI*1.55,-bay*Math.PI*2.8,bay*1.35);
   }
   const player=players.get(effect.id);
   if(player){
-    if(t<1.5){
-      const lat=Math.max(0,1-Math.abs(t-.65)/.85);
+    if(t<1.35){
+      const lat=Math.max(0,1-Math.abs(t-.6)/.75);
       for(const tay of player.group.userData.tay){tay.rotation.x=-2.25*lat;tay.userData.khuYu.rotation.x=.28*lat;}
     }
-    if(t>=5.15){
-      const cui=Math.sin(Math.max(0,Math.min(1,(t-5.15)/.85))*Math.PI);
+    if(t>=effect.batDauDiCua/1000&&!effect.daDiCua){
+      effect.daDiCua=true;
+      player.runMotion={points:[player.group.position.clone(),new THREE.Vector3(effect.cua.x,0,effect.cua.z)],started:effect.started+effect.batDauDiCua,duration:effect.thoiGianDenCua,jump:false};
+    }
+    const quat=Math.max(0,Math.min(1,(t-effect.batDauQuatCua/1000)/.42));
+    if(player.avatar==='snake'&&player.group.userData.duoiRan){
+      const nhip=Math.sin(quat*Math.PI);
+      player.group.userData.duoiRan.rotation.y=1.8*nhip;
+      player.group.userData.duoiRan.rotation.z=-1.25*nhip;
+    }else if(quat){
+      for(const chan of player.group.userData.chan){
+        const ben=chan.position.x>0?1:-1;
+        const latchan=Math.max(0,1-Math.abs(quat-.48)/.48);
+        chan.rotation.x=-1.65*latchan*ben;
+        chan.userData.goi.rotation.x=-.7*latchan;
+      }
+      if(quat>=1)for(const chan of player.group.userData.chan){chan.rotation.set(0,0,0);chan.userData.goi.rotation.set(0,0,0);}
+    }
+    if(t>=effect.batDauDiTho/1000&&!effect.daDiTho){
+      effect.daDiTho=true;
+      player.runMotion={points:[new THREE.Vector3(effect.cua.x,0,effect.cua.z),...effect.path.map(diem=>new THREE.Vector3(diem.x,0,diem.z))],started:effect.started+effect.batDauDiTho,duration:effect.thoiGianDiTho,jump:false,yawCuoi:0};
+    }
+    if(t>=5.05){
+      const cui=Math.sin(Math.max(0,Math.min(1,(t-5.05)/.8))*Math.PI);
       player.body.rotation.x=-Math.PI/2*cui;
       player.body.position.y=.22*cui;
       for(const tay of player.group.userData.tay){tay.rotation.x=-.65*cui;tay.userData.khuYu.rotation.x=.35*cui;}
@@ -1933,15 +1979,19 @@ socket.on('boss-rebel',event=>{
   player.hoatCanh=null;
   player.pose='boss-rebel';
   player.khoaDen=now+event.duration;
-  player.target.set(event.x,0,event.z);
-  player.runMotion={points:[player.group.position.clone(),...(event.path||[{x:event.x,z:event.z}]).map(diem=>new THREE.Vector3(diem.x,0,diem.z))],started:now+event.batDauRoi,duration:event.thoiGianRoi,jump:false,yawCuoi:event.yaw};
+  player.group.position.set(event.from.x,0,event.from.z);
+  player.group.rotation.y=event.from.yaw||0;
+  player.target.set(event.from.x,0,event.from.z);
+  player.runMotion=null;
   if(player.id===selfId){targetWorld=null;nutBatSep.hidden=true;}
   const cua=cuaHop.get('PHÒNG SẾP');
   if(cua)clearTimeout(cua.userData.dong);
-  hieuUngBatSep={id:event.id,started:now,duration:event.duration,cuaViTri:cua?.position.clone()||new THREE.Vector3(13.805,0,-4.67)};
+  hieuUngBatSep={...event,id:event.id,started:now,duration:event.duration,cuaViTri:cua?.position.clone()||new THREE.Vector3(13.805,0,-4.67),daDiCua:false,daDiTho:false};
 });
 
 socket.on('boss-rebel-end',event=>{
+  const player=players.get(event.id);
+  if(player&&Number.isFinite(event.x)){player.group.position.set(event.x,0,event.z);player.target.set(event.x,0,event.z);player.group.rotation.y=event.yaw||0;player.runMotion=null;}
   if(hieuUngBatSep?.id===event.id)ketThucHieuUngBatSep();
 });
 
