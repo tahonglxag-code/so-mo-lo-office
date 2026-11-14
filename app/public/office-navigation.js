@@ -32,7 +32,8 @@ function diemGanNhat(point){
 export function taoLoTrinh(dau,cuoi){
   const start=diemGanNhat(dau),goal=diemGanNhat(cuoi);
   if(doanDiDuoc(start,goal))return[{x:goal.x,z:goal.z}];
-  const startKey=key(start.x,start.z),goalKey=key(goal.x,goal.z),[sx,sz]=unpack(startKey),[gx,gz]=unpack(goalKey),gridStart={x:sx*gioiHan.bang,z:sz*gioiHan.bang},gridGoal={x:gx*gioiHan.bang,z:gz*gioiHan.bang},open=new Map([[startKey,{...gridStart,g:0,f:Math.hypot(gridStart.x-gridGoal.x,gridStart.z-gridGoal.z)}]]),came=new Map(),cost=new Map([[startKey,0]]),closed=new Set();
+  const toaDoLuoi=(value,min,max)=>Math.max(Math.ceil(min/gioiHan.bang),Math.min(Math.floor(max/gioiHan.bang),Math.round(value/gioiHan.bang)))*gioiHan.bang;
+  const gridStart={x:toaDoLuoi(start.x,gioiHan.minX,gioiHan.maxX),z:toaDoLuoi(start.z,gioiHan.minZ,gioiHan.maxZ)},gridGoal={x:toaDoLuoi(goal.x,gioiHan.minX,gioiHan.maxX),z:toaDoLuoi(goal.z,gioiHan.minZ,gioiHan.maxZ)},startKey=key(gridStart.x,gridStart.z),goalKey=key(gridGoal.x,gridGoal.z),[sx,sz]=unpack(startKey),[gx,gz]=unpack(goalKey),open=new Map([[startKey,{...gridStart,g:0,f:Math.hypot(gridStart.x-gridGoal.x,gridStart.z-gridGoal.z)}]]),came=new Map(),cost=new Map([[startKey,0]]),closed=new Set();
   const neighbors=[[1,0],[-1,0],[0,1],[0,-1],[1,1],[1,-1],[-1,1],[-1,-1]];
   while(open.size){
     let currentKey='',current;

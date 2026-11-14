@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
 import { io } from 'socket.io-client';
 import { taoChoHopGap } from '../hop-gap-layout.js';
-import { doanDiDuoc } from '../public/office-navigation.js';
+import { doanDiDuoc, taoLoTrinh } from '../public/office-navigation.js';
 
 const port = 40583;
 const origin = `http://127.0.0.1:${port}`;
@@ -46,6 +46,13 @@ try {
     positions.set(socket.id, info.players.find(player => player.id === socket.id));
   }
 
+  let viTri = positions.get(sockets[0].id);
+  for (const point of taoLoTrinh(viTri,{x:14.5,z:5})) {
+    sockets[0].emit('move',{x:point.x,z:point.z,yaw:0});
+    viTri=point;
+    await wait(100);
+  }
+  await wait(100);
   const workResult = doiSuKien(sockets[0], 'work-result');
   const workMove = doiSuKien(sockets[1], 'work-move');
   sockets[0].emit('work');
@@ -53,12 +60,24 @@ try {
   const workEvent = await workMove;
   assert.ok(work.ok && work.path.length);
   assert.deepEqual(workEvent.path, work.path);
-  let workPrevious = positions.get(sockets[0].id);
+  let workPrevious = {x:14.5,z:5};
   for (const point of work.path) {
     assert.ok(doanDiDuoc(workPrevious, point));
     workPrevious = point;
   }
   assert.ok(Math.hypot(workPrevious.x-work.seat.x, workPrevious.z-work.seat.z)<.7);
+
+  const altarAction = doiSuKien(sockets[1], 'act');
+  sockets[0].emit('act',{action:'bow'});
+  const altar = await altarAction;
+  assert.ok(altar.altar && altar.approach>0 && altar.path.length);
+  let altarPrevious = work.seat;
+  for (const point of altar.path) {
+    assert.ok(doanDiDuoc(altarPrevious,point));
+    altarPrevious=point;
+  }
+  assert.ok(Math.hypot(altarPrevious.x-8.6,altarPrevious.z+9.65)<.7);
+  await wait(altar.approach+altar.duration+150);
 
   const hopGap = doiSuKien(sockets[0], 'urgent-meeting');
   sockets[0].emit('urgent-meeting');
@@ -114,7 +133,7 @@ try {
   const normalAction = doiSuKien(sockets[0], 'self-action');
   sockets[1].emit('self-action', 'meditate');
   assert.equal((await normalAction).action, 'meditate');
-  console.log(JSON.stringify({ layout: '50 unique positions, six chairs plus alternating standing spaces', work: 'work action sends a wall-safe route to the desk', urgentMeeting: 'eight players seated and standing around the conference table', privateMeeting: 'target walks through the boss-room doorway', bossRebel: 'authorized player completes six-second event and returns to normal actions' }, null, 2));
+  console.log(JSON.stringify({ layout: '50 unique positions, six chairs plus alternating standing spaces', work: 'player leaves the conference room and reaches the desk through the door route', altarBow: 'player moves from the desk to the altar before bowing', urgentMeeting: 'eight players seated and standing around the conference table', privateMeeting: 'target walks through the boss-room doorway', bossRebel: 'authorized player completes six-second event and returns to normal actions' }, null, 2));
 } finally {
   for (const socket of sockets) socket.disconnect();
   server.kill('SIGTERM');

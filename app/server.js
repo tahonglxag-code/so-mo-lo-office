@@ -489,11 +489,13 @@ io.on('connection', socket => {
     const occupied = new Set([...room.values()].map(item => item.workSeatId).filter(Boolean));
     const seat = workSeats.find(item => !occupied.has(item.id));
     if (!seat) return socket.emit('work-result', { error: 'Hết chỗ rồi, không thể làm việc, đây chính là thông điệp dũ chụ' });
+    const loTrinh = taoLoTrinhCoThoiGian(player, seat, 5.2);
+    const diemCuoi = loTrinh.path.at(-1) || player;
+    if (Math.hypot(diemCuoi.x-seat.x,diemCuoi.z-seat.z)>.7) return socket.emit('work-result', { error: 'Không tìm được đường đến bàn làm việc.' });
     player.workSeatId = seat.id;
     player.working = false;
     player.lastActivity = Date.now();
     clearTimeout(player.idleTimer);
-    const loTrinh = taoLoTrinhCoThoiGian(player, seat, 5.2);
     socket.emit('work-result', { ok: true, seat, path: loTrinh.path, duration: loTrinh.duration });
     io.to(code).emit('work-move', { id: player.id, seat, path: loTrinh.path, duration: loTrinh.duration });
   });
@@ -671,6 +673,10 @@ io.on('connection', socket => {
       const z = Math.max(-maxZ, Math.min(maxZ, target.z - Math.cos(huong) * cach));
       const path=taoLoTrinh(player,{x,z});
       const diemCuoi=path.at(-1)||{x,z};
+      if(Math.hypot(diemCuoi.x-x,diemCuoi.z-z)>.7){
+        socket.emit('feed',{text:layBanTho?'Không tìm được đường đến bàn Thần Tài.':'Không tìm được đường đến người chơi.'});
+        return;
+      }
       event.x=diemCuoi.x;event.z=diemCuoi.z;
       const route=[player,...path];
       const distance=route.slice(1).reduce((sum,point,index)=>sum+Math.hypot(point.x-route[index].x,point.z-route[index].z),0);

@@ -28,6 +28,16 @@ assert.ok(catVach(tuBanThanTaiDenPhongSep,-4.7));
 const viTriPhongHop={x:14.5,z:5};
 const tuPhongHopDenBanLamViec=[viTriPhongHop,...kiemTraLoTrinh(viTriPhongHop,{x:-15.45,z:1.4})];
 assert.ok(catVach(tuPhongHopDenBanLamViec,8.6));
+const gheLamViec=[11.4,1.4,3.9,6.4,8.9].map(z=>({x:-15.45,z}));
+for(const ghe of gheLamViec){
+  const loTrinh=kiemTraLoTrinh({x:14.5,z:5},ghe);
+  assert.ok(Math.hypot(loTrinh.at(-1).x-ghe.x,loTrinh.at(-1).z-ghe.z)<.7);
+}
+const dichBia={x:8.6,z:-9.65};
+for(const ghe of gheLamViec){
+  const loTrinh=kiemTraLoTrinh(ghe,dichBia);
+  assert.ok(Math.hypot(loTrinh.at(-1).x-dichBia.x,loTrinh.at(-1).z-dichBia.z)<.7);
+}
 const vaoToilet=[{x:14.5,z:5},...taoLoTrinh({x:14.5,z:5},{x:-16,z:-11.3})];
 vaoToilet.push({x:-17.1,z:-11.3},{x:-18.2,z:-11.3});
 let truoc={x:14.5,z:5};
@@ -37,4 +47,4 @@ assert.equal(diemDiDuoc(-6.8,-8.3),false);
 assert.equal(diemDiDuoc(10.4,-7.5),false);
 assert.equal(diemDiDuoc(14.5,-5.35),true);
 assert.deepEqual(buocDiAnToan({x:0,z:-8.3},{x:.8,z:-8.3}),{x:.8,z:-8.3});
-console.log(JSON.stringify({divider: vachPhai.length,bossDoor:vaoPhongSep.length,conferenceDoor:vaoPhongHop.length,altarToBossDoor:tuBanThanTaiDenPhongSep.length,conferenceToDesk:tuPhongHopDenBanLamViec.length,toiletDoor:vaoToilet.length,allSegmentsClear:true},null,2));
+console.log(JSON.stringify({divider: vachPhai.length,bossDoor:vaoPhongSep.length,conferenceDoor:vaoPhongHop.length,altarToBossDoor:tuBanThanTaiDenPhongSep.length,conferenceToDesk:tuPhongHopDenBanLamViec.length,allFiveWorkSeatsReachable:true,allFiveAltarRoutesReachable:true,toiletDoor:vaoToilet.length,allSegmentsClear:true},null,2));
