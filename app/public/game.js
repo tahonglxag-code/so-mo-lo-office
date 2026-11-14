@@ -125,8 +125,10 @@ function sphere(parent, x, y, z, sx, sy, sz, material, segments = 16) {
 function label(text, color = '#493650') {
   const c = document.createElement('canvas');
   const ctx = c.getContext('2d');
-  c.width = 512;
-  c.height = 128;
+  const scale = 2;
+  c.width = 1024;
+  c.height = 256;
+  ctx.scale(scale, scale);
   ctx.fillStyle = '#fff3dd';
   ctx.strokeStyle = '#725b73';
   ctx.lineWidth = 7;
@@ -151,8 +153,10 @@ function nameLabel(text, color) {
   const ctx = c.getContext('2d');
   ctx.font = '1000 48px Nunito, sans-serif';
   const width = Math.max(150, Math.min(720, Math.ceil(ctx.measureText(text).width + 50)));
-  c.width = width;
-  c.height = 100;
+  const scale = 2;
+  c.width = width * scale;
+  c.height = 100 * scale;
+  ctx.scale(scale, scale);
   ctx.font = '1000 48px Nunito, sans-serif';
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
@@ -165,7 +169,8 @@ function nameLabel(text, color) {
   const texture = new THREE.CanvasTexture(c);
   texture.colorSpace = THREE.SRGBColorSpace;
   const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: texture, transparent: true, depthTest: false }));
-  sprite.scale.set(width / 160, .64, 1);
+  const mobileScale = innerWidth < 760 ? 1.35 : 1;
+  sprite.scale.set(width / 160 * mobileScale, .64 * mobileScale, 1);
   return sprite;
 }
 
@@ -206,8 +211,12 @@ function speechBubble(text, color = '#37293e') {
   }
   if (!lines.length) lines.push(' ');
   const contentWidth = Math.max(110, ...lines.map(line => context.measureText(line).width));
-  canvas.width = Math.ceil(contentWidth + padX * 2);
-  canvas.height = lines.length * lineHeight + padY * 2;
+  const logicalWidth = Math.ceil(contentWidth + padX * 2);
+  const logicalHeight = lines.length * lineHeight + padY * 2;
+  const scale = 2;
+  canvas.width = logicalWidth * scale;
+  canvas.height = logicalHeight * scale;
+  context.scale(scale, scale);
   context.font = `900 ${fontSize}px Nunito, sans-serif`;
   context.fillStyle = '#fff3dd';
   context.strokeStyle = '#725b73';
@@ -223,7 +232,8 @@ function speechBubble(text, color = '#37293e') {
   const texture = new THREE.CanvasTexture(canvas);
   texture.colorSpace = THREE.SRGBColorSpace;
   const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: texture, transparent: true, depthTest: false }));
-  sprite.scale.set(canvas.width / 160, canvas.height / 160, 1);
+  const mobileScale = innerWidth < 760 ? 1.18 : 1;
+  sprite.scale.set(logicalWidth / 160 * mobileScale, logicalHeight / 160 * mobileScale, 1);
   return sprite;
 }
 
@@ -283,7 +293,8 @@ function makeRoomLabel(text, x, z) {
   const sprite = label(text, '#493650');
   sprite.material.depthTest = true;
   sprite.position.set(x, 2.35, z);
-  sprite.scale.set(3.8, .92, 1);
+  const mobileScale = innerWidth < 760 ? 1.25 : 1;
+  sprite.scale.set(3.8 * mobileScale, .92 * mobileScale, 1);
   scene.add(sprite);
 }
 

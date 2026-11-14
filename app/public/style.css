@@ -106,3 +106,13 @@ dialog#wolf-create-modal,dialog#wolf-incoming-modal{border:2px solid #745e7c;bor
 @keyframes wolf-card-deal{to{opacity:1;transform:translateY(0) scale(1) rotate(0)}}
 @keyframes wolf-card-flip{to{opacity:1;transform:translate(-50%,-50%) rotateY(0) scale(1)}}
 @media(max-width:520px){.wolf-deal-cards{grid-template-columns:repeat(4,minmax(34px,1fr));gap:5px}.wolf-deal-card{width:40px;height:60px}.wolf-deal-table{min-height:210px}}
+
+@media(max-width:760px){
+  .room-tag{font-size:12px;font-weight:1000;color:#fff;background:#382b40ed;border:2px solid #fff8ed;text-shadow:0 1px 2px #201725;box-shadow:0 2px 5px #20172580}
+  #app.ma-soi-active .dock{grid-template-columns:minmax(0,1fr);grid-template-rows:minmax(0,1fr)}
+  #app.ma-soi-active #room-chat{display:none}
+  #app.ma-soi-active #wolf-ui{grid-column:1;grid-row:1;grid-template-columns:minmax(0,1fr);grid-template-rows:minmax(0,1fr) minmax(0,2fr);height:100%;gap:5px}
+  #app.ma-soi-active .wolf-role-panel{grid-column:1;grid-row:1}
+  #app.ma-soi-active .wolf-chat-panel{grid-column:1;grid-row:2}
+  #app.ma-soi-active .wolf-log{max-height:none}
+}
