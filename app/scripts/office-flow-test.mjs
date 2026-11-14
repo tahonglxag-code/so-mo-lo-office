@@ -66,13 +66,22 @@ try {
   await wait(Math.max(0, loTrinh.batDau - Date.now()) + 100);
 
   const batSep = doiSuKien(sockets[0], 'boss-rebel');
+  const feedBatSep = doiSuKien(sockets[0], 'feed');
   sockets[1].emit('boss-rebel');
   const rebel = await batSep;
+  const thongBao = await feedBatSep;
   assert.equal(rebel.id, sockets[1].id);
   assert.equal(rebel.duration, 6000);
-  assert.equal(rebel.batDauRoi, 2200);
-  assert.ok(rebel.path.length >= 5);
+  assert.ok(rebel.from.x >= 10.4 && rebel.from.x <= 18.6);
+  assert.ok(rebel.from.z >= -10.7 && rebel.from.z <= -4.7);
+  assert.deepEqual(rebel.cua, { x: 14.5, z: -5.25 });
+  assert.ok(rebel.batDauDiCua < rebel.batDauQuatCua);
+  assert.ok(rebel.batDauQuatCua < rebel.batDauMoCua);
+  assert.ok(rebel.batDauMoCua < rebel.batDauDiTho);
+  assert.ok(rebel.batDauDiTho + rebel.thoiGianDiTho < rebel.duration);
+  assert.ok(rebel.path.length >= 4);
   assert.ok(Math.abs(rebel.x - 8.6) < .01 && Math.abs(rebel.z + 10.15) < .01);
+  assert.equal(thongBao.text, '🔥 Hop 2 bật SẾP rồi chạy');
   const end = await doiSuKien(sockets[0], 'boss-rebel-end', 7500);
   assert.equal(end.id, sockets[1].id);
 
