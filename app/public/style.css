@@ -154,3 +154,7 @@ dialog#wolf-create-modal,dialog#wolf-incoming-modal{border:2px solid #745e7c;bor
 #wolf-exit-button{flex:0 0 auto;padding:6px 12px;background:#f4d0d8;font-size:12px}
 .wolf-own-role{display:block;color:#553d5c;font-size:13px;font-weight:1000;line-height:1.25}
 @media(max-width:760px){#app.ma-soi-active .wolf-log{background:rgba(245,235,244,.58)}#app.ma-soi-active #wolf-private{min-height:0;max-height:none;overflow:auto}#wolf-history-panel header{align-items:flex-start}#wolf-history-panel header>div{flex-direction:column;align-items:flex-end;gap:4px}}
+#boss-rebel-button{position:absolute;z-index:7;left:50%;top:50%;transform:translate(-50%,-50%);padding:15px 30px;background:#dc3340;color:#fff;font-size:clamp(18px,3vw,30px);border:3px solid #ffe17b;box-shadow:0 5px 0 #842431,0 0 28px #ff4c5380;animation:boss-pulse .7s infinite alternate}
+#boss-rebel-button[hidden]{display:none}
+#boss-rebel-button:hover{transform:translate(-50%,-52%)}
+@keyframes boss-pulse{to{filter:brightness(1.22);box-shadow:0 5px 0 #842431,0 0 42px #ff4c53}}
