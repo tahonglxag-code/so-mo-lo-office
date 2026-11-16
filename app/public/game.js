@@ -994,6 +994,22 @@ function createPlayer(data) {
   return entry;
 }
 
+function taoNguoiMay(data){
+  if(players.has(data.id))return players.get(data.id);
+  const group=new THREE.Group(),body=new THREE.Group(),white=mat('#f8f8f6');
+  group.add(body);
+  sphere(body,0,.62,0,.36,.48,.25,white,16);
+  sphere(body,0,1.29,-.015,.29,.31,.27,white,16);
+  for(const side of [-1,1]){
+    const arm=new THREE.Mesh(new THREE.CapsuleGeometry(.095,.43,4,8),white);arm.position.set(side*.43,.65,0);arm.rotation.z=side*-.2;arm.castShadow=false;body.add(arm);
+    const leg=new THREE.Mesh(new THREE.CapsuleGeometry(.105,.4,4,8),white);leg.position.set(side*.16,.18,.015);leg.castShadow=false;body.add(leg);
+  }
+  group.userData.playerId=data.id;group.userData.tay=[];group.userData.chan=[];group.userData.body=body;group.position.set(data.x||0,0,data.z||0);group.rotation.y=data.yaw||0;
+  const name=nameLabel(data.ten||data.name,'#ffffff');name.position.set(0,2.13,0);group.add(name);scene.add(group);
+  const entry={id:data.id,name:data.ten||data.name,avatar:'bot',bot:true,maSoi:true,group,body,nameSprite:name,bubbleSprite:null,target:new THREE.Vector3(data.x||0,0,data.z||0),pose:'',poseUntil:0,working:false,workSeatId:'',meditating:false,auraUntil:0,auraSprite:null,auraRing:null};
+  players.set(data.id,entry);return entry;
+}
+
 function setBubble(id,text,thoiGian=6500) {
   const p=players.get(id); if(!p)return;
   clearTimeout(p.bubbleTimer);
@@ -1069,6 +1085,8 @@ function toast(text) {
   const el=document.querySelector('#toast'); el.textContent=text; el.classList.add('show');
   clearTimeout(toast.timer); toast.timer=setTimeout(()=>el.classList.remove('show'),2400);
 }
+
+function soNguoiTrongPhong(){return [...players.values()].filter(player=>!player.bot).length;}
 
 function addFeed(text,kind='') {
   const line=document.createElement('div'); line.textContent=text; if(kind)line.classList.add(kind);
@@ -1279,6 +1297,11 @@ function moBangMaSoi(){
   if(!hasJoinedRoom)return;
   if(trangThaiMaSoi){veBangMaSoi();return;}
   const list=document.querySelector('#wolf-invite-list');list.replaceChildren();
+  for(let index=1;index<=3;index++){
+    const row=document.createElement('label'),check=document.createElement('input');
+    check.type='checkbox';check.value=`bot:${index}`;check.dataset.machine='true';
+    row.className='wolf-bot-option';row.append(check,document.createTextNode(` Máy ${index} · người chơi tự động`));list.append(row);
+  }
   for(const p of players.values()){
     if(p.id===selfId||p.maSoi)continue;
     const row=document.createElement('label'),check=document.createElement('input');
@@ -1293,6 +1316,7 @@ function themMaSoiNut(container,text,action){
 }
 
 function capNhatDanhSachMaSoi(state){
+  for(const info of state.danhSach||[])if(info.bot)taoNguoiMay(info);
   for(const info of state.danhSach||[])if(!info.dangKetNoi&&!info.song)taoBongMaSoi(info);
   for(const player of players.values()){
     const info=state.danhSach?.find(item=>item.id===player.id);
@@ -1316,7 +1340,7 @@ function capNhatDongHoMaSoi(){
   const remain=Math.max(0,Math.ceil(((trangThaiMaSoi.giaiDoan==='finished'?trangThaiMaSoi.giaiTanLuc:trangThaiMaSoi.mocKetThuc)||0)-Date.now())/1000);
   const dongHo=trangThaiMaSoi.giaiDoan==='dealing'?'':` · ${remain}s`;
   wolfStatus.textContent=`${phases[trangThaiMaSoi.giaiDoan]||'Ván Ma Sói'}${dongHo} · ${trangThaiMaSoi.tongNguoiSong||0} người còn sống`;
-  if(trangThaiMaSoi.moi?.danhSach){const responses=trangThaiMaSoi.moi.danhSach.map(item=>`${players.get(item.id)?.name||item.id}: ${item.phanHoi==='yes'?'đồng ý':item.phanHoi==='no'?'từ chối':'chưa trả lời'}`).join(' · ');wolfStatus.textContent+=` · ${responses}`;}
+  if(trangThaiMaSoi.moi?.danhSach){const responses=trangThaiMaSoi.moi.danhSach.map(item=>`${players.get(item.id)?.name||item.ten||item.id}: ${item.phanHoi==='yes'?'đồng ý':item.phanHoi==='no'?'từ chối':'chưa trả lời'}`).join(' · ');wolfStatus.textContent+=` · ${responses}`;}
 }
 
 function veBangMaSoi(){
@@ -1384,7 +1408,7 @@ function veBangMaSoi(){
   }
   if(dangSong&&trangThaiMaSoi.giaiDoan==='cards')themMaSoiNut(wolfActions,'Đã hiểu',()=>socket.emit('wolf-ready'));
   if(dangSong&&trangThaiMaSoi.giaiDoan==='discussion'){
-    const stop=themMaSoiNut(wolfActions,`Ngừng thảo luận ${trangThaiMaSoi.daNgung?.length||0}/${trangThaiMaSoi.tongNguoiSong||0}`,()=>socket.emit('wolf-stop-discussion'));
+    const stop=themMaSoiNut(wolfActions,`Ngừng thảo luận ${trangThaiMaSoi.daNgung?.length||0}/${trangThaiMaSoi.tongNguoiThatSong??trangThaiMaSoi.tongNguoiSong??0}`,()=>socket.emit('wolf-stop-discussion'));
     stop.disabled=(trangThaiMaSoi.daNgung||[]).includes(selfId);
     document.querySelector('#wolf-chat-form').hidden=false;document.querySelector('#wolf-chat-input').placeholder='Thảo luận với người chơi còn sống';
   }else if(dangSong&&trangThaiMaSoi.giaiDoan==='vote'){
@@ -1410,8 +1434,8 @@ function maSoiThongBao(text){
   addFeed(text);
 }
 
-socket.on('wolf-state',state=>{if(state.giaiDoan!=='finished')daThoatVanMaSoi=false;if(state.rieng?.vai)vaiTroRiengMaSoi={vai:state.rieng.vai,moTa:state.rieng.vaiMoTa};phienBanTrangThaiMaSoi++;const lichSuCu=trangThaiMaSoi?.giaiDoan==='finished'&&trangThaiMaSoi?.maTran===state.maTran?trangThaiMaSoi.lichSu:undefined;trangThaiMaSoi={...state,lichSu:state.lichSu??lichSuCu??[]};capNhatSoGheMaSoi(state.giaiDoan==='invite'?0:state.danhSach?.length||0);if(state.giaiDoan==='dealing'&&laNguoiChoiMaSoi(state.danhSach,selfId,state.giaiDoan)){if(wolfDealScreen.hidden)hienManChiaBai({maTran:state.maTran,nguoi:state.danhSach,soLa:state.soLa,laDaChon:state.laDaChon});else veLaChonMaSoi(state);}else{if(state.rieng?.vai&&!wolfDealScreen.hidden&&riengMaSoi?.loai!=='card'){riengMaSoi={loai:'card',vai:state.rieng.vai,moTa:state.rieng.vaiMoTa,mocKetThuc:state.mocKetThuc};hienTheVaiTro(riengMaSoi);}else if(state.giaiDoan!=='cards'&&!wolfDealScreen.hidden)anManChiaBai();}veBangMaSoi();});
-socket.on('wolf-public',state=>{phienBanTrangThaiMaSoi++;trangThaiMaSoi={...(trangThaiMaSoi||{}),...state,rieng:trangThaiMaSoi?.rieng};veBangMaSoi();});
+socket.on('wolf-state',state=>{for(const info of state.danhSach||[])if(info.bot)taoNguoiMay(info);if(state.giaiDoan!=='finished')daThoatVanMaSoi=false;if(state.rieng?.vai)vaiTroRiengMaSoi={vai:state.rieng.vai,moTa:state.rieng.vaiMoTa};phienBanTrangThaiMaSoi++;const lichSuCu=trangThaiMaSoi?.giaiDoan==='finished'&&trangThaiMaSoi?.maTran===state.maTran?trangThaiMaSoi.lichSu:undefined;trangThaiMaSoi={...state,lichSu:state.lichSu??lichSuCu??[]};capNhatSoGheMaSoi(state.giaiDoan==='invite'?0:state.danhSach?.length||0);if(state.giaiDoan==='dealing'&&laNguoiChoiMaSoi(state.danhSach,selfId,state.giaiDoan)){if(wolfDealScreen.hidden)hienManChiaBai({maTran:state.maTran,nguoi:state.danhSach,soLa:state.soLa,laDaChon:state.laDaChon});else veLaChonMaSoi(state);}else{if(state.rieng?.vai&&!wolfDealScreen.hidden&&riengMaSoi?.loai!=='card'){riengMaSoi={loai:'card',vai:state.rieng.vai,moTa:state.rieng.vaiMoTa,mocKetThuc:state.mocKetThuc};hienTheVaiTro(riengMaSoi);}else if(state.giaiDoan!=='cards'&&!wolfDealScreen.hidden)anManChiaBai();}veBangMaSoi();});
+socket.on('wolf-public',state=>{for(const info of state.danhSach||[])if(info.bot)taoNguoiMay(info);phienBanTrangThaiMaSoi++;trangThaiMaSoi={...(trangThaiMaSoi||{}),...state,rieng:trangThaiMaSoi?.rieng};veBangMaSoi();});
 socket.on('wolf-card-pick-update',event=>{if(trangThaiMaSoi?.giaiDoan!=='dealing')return;const daChon=trangThaiMaSoi.laDaChon||[];if(!daChon.some(item=>item.la===event.la))daChon.push({la:event.la,id:event.id,ten:event.ten});trangThaiMaSoi={...trangThaiMaSoi,laDaChon:daChon,soLa:event.soLa};veLaChonMaSoi(trangThaiMaSoi);});
 socket.on('wolf-private',data=>{riengMaSoi=data;if(data.vai&&data.moTa)vaiTroRiengMaSoi={vai:data.vai,moTa:data.moTa};if(data.loai==='card')trangThaiMaSoi={...(trangThaiMaSoi||{}),giaiDoan:'cards',mocKetThuc:data.mocKetThuc,rieng:data};if(data.loai==='wolf-agreement'&&riengMaSoi)riengMaSoi.luaChon=data.luaChon;veBangMaSoi();if(data.loai==='card')hienTheVaiTro(data);});
 socket.on('wolf-private-result',data=>{riengMaSoi={loai:'seer-result',ketQua:data.ketQua};veBangMaSoi();});
@@ -1457,18 +1481,26 @@ socket.on('wolf-dissolved',()=>{
   if(hieuUngThangMaSoi){scene.remove(hieuUngThangMaSoi);hieuUngThangMaSoi.traverse(o=>{o.geometry?.dispose();o.material?.map?.dispose();o.material?.dispose();});hieuUngThangMaSoi=null;}
   for(const group of maSoiGhosts.values()){scene.remove(group);group.traverse(o=>{o.geometry?.dispose();if(o.material?.map)o.material.map.dispose();o.material?.dispose();});}
   maSoiGhosts.clear();
+  for(const p of [...players.values()])if(p.bot)removePlayer(p.id);
   for(const p of [...players.values()])if(p.wolfDead||p.wolfLoss||p.wolfForm||p.wolfCelebration){const data={id:p.id,name:p.name,avatar:p.avatar,x:p.group.position.x,z:p.group.position.z,yaw:p.group.rotation.y};removePlayer(p.id);createPlayer(data);}
   trangThaiMaSoi=null;riengMaSoi=null;choVeLaiMaSoi=false;capNhatSoGheMaSoi(0);capNhatAnhSangMaSoi(null);document.querySelector('#app').classList.remove('wolf-participant');capNhatGiaoDienMaSoi();capNhatNhanMaSoi('CHƠI MA SÓI');
 });
 document.querySelector('#wolf-create-form').addEventListener('submit',event=>{
   event.preventDefault();if(event.submitter?.value!=='gui'){wolfInviteModal.close();return;}
-  const ids=[...document.querySelectorAll('#wolf-invite-list input:checked')].map(input=>input.value);
-  if(ids.length<4||ids.length>14)return toast('Chọn tối thiểu 4 và tối đa 14 người.');
-  socket.emit('wolf-create',ids);wolfInviteModal.close();
+  const selected=[...document.querySelectorAll('#wolf-invite-list input:checked')];
+  const ids=selected.filter(input=>!input.dataset.machine).map(input=>input.value),bots=selected.filter(input=>input.dataset.machine).length;
+  if(ids.length+bots+1<(bots?4:5))return toast(`Cần đủ ít nhất ${bots?4:5} người chơi${bots?' khi có Máy':''}.`);
+  if(ids.length+bots+1>15||bots>3)return toast('Một ván tối đa 15 người và 3 Máy.');
+  socket.emit('wolf-create',{ids,bots});wolfInviteModal.close();
 });
 document.querySelector('#wolf-invite-list').addEventListener('change',event=>{
-  const checks=[...document.querySelectorAll('#wolf-invite-list input')],selected=checks.filter(input=>input.checked);
-  if(selected.length>=14)for(const input of checks)input.disabled=!input.checked;else for(const input of checks)input.disabled=false;
+  const checks=[...document.querySelectorAll('#wolf-invite-list input')],selected=checks.filter(input=>input.checked),humans=selected.filter(input=>!input.dataset.machine),bots=selected.filter(input=>input.dataset.machine);
+  const selectedMachines=bots.length;
+  for(const input of checks){
+    if(input.dataset.machine)input.disabled=!input.checked&&selectedMachines>=3;
+    else input.disabled=!input.checked&&humans.length+bots.length>=14;
+  }
+  document.querySelector('#wolf-create-note').textContent=`Bạn + ${humans.length} người thật + ${bots.length} Máy · cần ít nhất ${bots.length?4:5}, tối đa 15 người.`;
 });
 wolfIncomingModal.addEventListener('close',()=>{socket.emit('wolf-answer',wolfIncomingModal.returnValue==='yes'?'yes':'no');});
 document.querySelector('#wolf-chat-form').addEventListener('submit',event=>{
@@ -1529,7 +1561,7 @@ nutBatSep.addEventListener('click',()=>{
 const hopRuNhau=document.querySelector('#ru-nhau');
 const dsBanNhau=document.querySelector('#ban-nhau');
 function moRuNhau(){
-  if(players.size<2){toast('Cần ít nhất một người để rủ nhậu.');return;}
+  if(soNguoiTrongPhong()<2){toast('Cần ít nhất một người để rủ nhậu.');return;}
   hopRuNhau.returnValue='';
   dsBanNhau.replaceChildren();
   for(const p of players.values()){
@@ -1610,13 +1642,13 @@ socket.on('joined',data=>{
   for(const player of data.players)createPlayer(player);
   const me=players.get(selfId); if(me)me.group.scale.setScalar(1.08);
   document.querySelector('#room-label').textContent=`Phòng ${roomCode}`;
-  document.querySelector('#count-label').textContent=`${players.size}/50`;
+  document.querySelector('#count-label').textContent=`${soNguoiTrongPhong()}/50`;
   document.querySelector('#invite').disabled=false;
   
   const url=new URL(location.href);url.searchParams.set('room',roomCode);history.replaceState({},'',url);
 });
-socket.on('player-joined',data=>{createPlayer(data);document.querySelector('#count-label').textContent=`${players.size}/50`;addFeed(`${avatarIcons[data.avatar]} ${data.name} vừa vào văn phòng`,'join');});
-socket.on('player-left',id=>{const p=players.get(id);if(p)addFeed(`${p.name} đã rời văn phòng`,'leave');removePlayer(id);document.querySelector('#count-label').textContent=`${players.size}/50`;});
+socket.on('player-joined',data=>{createPlayer(data);document.querySelector('#count-label').textContent=`${soNguoiTrongPhong()}/50`;addFeed(`${avatarIcons[data.avatar]} ${data.name} vừa vào văn phòng`,'join');});
+socket.on('player-left',id=>{const p=players.get(id);if(p)addFeed(`${p.name} đã rời văn phòng`,'leave');removePlayer(id);document.querySelector('#count-label').textContent=`${soNguoiTrongPhong()}/50`;});
 socket.on('moves',updates=>{
   for(const data of updates){
     const p=players.get(data.id);if(!p)continue;
@@ -1935,6 +1967,7 @@ function veHieuUngBatSep(now){
   banSep.position.set(14.5+2.35*lat,1+Math.sin(lat*Math.PI)*1.5,-8.55+Math.sin(lat*Math.PI)*.45);
   banSep.rotation.set(Math.PI*4*lat,Math.PI*2*lat,Math.sin(lat*Math.PI)*.28);
   if(t>=1.5){banSep.position.set(16.85,.72,-8.55);banSep.rotation.set(Math.PI*4,Math.PI*2,.28);}
+  if(now-(effect.shadowRefreshAt||0)>=100){effect.shadowRefreshAt=now;renderer.shadowMap.needsUpdate=true;}
   const cua=cuaHop.get('PHÒNG SẾP');
   if(cua){
     const bay=Math.max(0,Math.min(1,(t-effect.batDauMoCua/1000)/.48));
@@ -1997,6 +2030,7 @@ socket.on('boss-rebel',event=>{
   const cua=cuaHop.get('PHÒNG SẾP');
   if(cua)clearTimeout(cua.userData.dong);
   hieuUngBatSep={...event,id:event.id,started:now,duration:event.duration,cuaViTri:cua?.position.clone()||new THREE.Vector3(13.805,0,-4.67),daDiCua:false,daDiTho:false};
+  renderer.shadowMap.needsUpdate=true;
 });
 
 socket.on('boss-rebel-end',event=>{
