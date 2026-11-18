@@ -51,6 +51,7 @@ function triggerDiscussionVote(testGame){
   const living=[...testGame.game.nguoi.values()].filter(player=>player.song);
   for(const player of living)testGame.sockets.get(player.id).fire('wolf-stop-discussion');
   assert.equal(testGame.game.giaiDoan,'vote');
+  assert.equal(testGame.game.mocKetThuc-clock,15000);
 }
 
 function voteFor(testGame,targetId){
@@ -59,16 +60,25 @@ function voteFor(testGame,targetId){
   advance(15000);
 }
 
+function advanceNight(testGame){
+  while(testGame.game.giaiDoan!=='discussion'){
+    if(testGame.game.giaiDoan==='wolf-chat')advance(30000);
+    else if(testGame.game.giaiDoan==='wolf-choice')advance(5000);
+    else if(testGame.game.giaiDoan==='night-role')advance(15000);
+    else throw new Error(`Unexpected phase while resolving night: ${testGame.game.giaiDoan}`);
+  }
+}
+
 function skipToDiscussion(testGame,firstNight){
-  if(firstNight){advance(10000);assert.equal(testGame.game.vaiDangGoi,'cupid');advance(10000);assert.equal(testGame.game.vaiDangGoi,'guard');}
-  advance(10000);
+  if(firstNight){advance(15000);assert.equal(testGame.game.vaiDangGoi,'cupid');advance(15000);assert.equal(testGame.game.vaiDangGoi,'guard');}
+  advance(15000);
   const wolves=testGame.cards.filter(card=>card.role==='wolf').map(card=>card.socket);
   const target=[...testGame.game.nguoi.values()].find(player=>player.song&&player.vai==='villager');
   assert.ok(target);
   const livingWolves=wolves.filter(wolf=>testGame.game.nguoi.get(wolf.id).song);
   if(livingWolves.length>1){
     assert.equal(testGame.game.giaiDoan,'wolf-chat');
-    advance(30000);
+    for(let second=0;second<35&&testGame.game.giaiDoan==='wolf-chat';second++)advance(1000);
     assert.equal(testGame.game.giaiDoan,'wolf-choice');
     for(const wolf of livingWolves)wolf.fire('wolf-wolf-target',target.id);
     livingWolves[0].fire('wolf-wolf-confirm');
@@ -77,9 +87,7 @@ function skipToDiscussion(testGame,firstNight){
     assert.equal(testGame.game.giaiDoan,'night-role');
     livingWolves[0].fire('wolf-night-action',{target:target.id});
   }
-  advance(10000);
-  if(testGame.game.vaiDangGoi==='witch')advance(10000);
-  assert.equal(testGame.game.giaiDoan,'discussion');
+  advanceNight(testGame);
   assert.equal(testGame.game.nguoi.get(target.id).song,false);
 }
 
@@ -87,12 +95,17 @@ try{
   const one=createGame(5,'ONEWOLF');
   advance(10000);
   assert.equal(one.game.vaiDangGoi,'guard');
-  advance(10000);
+  const guardTurn=one.players[0].inbox.filter(event=>event.event==='wolf-event'&&event.data.giaiDoan==='night-role'&&event.data.text==='Bảo vệ đã thức dậy.').at(-1).data;
+  assert.equal(guardTurn.mocKetThuc-guardTurn.at,15000);
+  const guardTimeLeft=one.game.mocKetThuc-clock;
+  advance(guardTimeLeft-1);
+  assert.equal(one.game.vaiDangGoi,'guard');
+  advance(1);
   assert.equal(one.game.vaiDangGoi,'wolf');
-  advance(10000);
+  advance(15000);
   assert.equal(one.game.giaiDoan,'night-role');
   assert.equal(one.game.vaiDangGoi,'seer');
-  advance(10000);
+  advance(15000);
   assert.equal(one.game.giaiDoan,'discussion');
   assert.ok(one.game.boQuaChiTiet.some(item=>item.vai==='wolf'&&item.lyDo==='het-thoi-gian'));
   assert.ok(!one.game.luaChon.has('wolf')||one.game.luaChon.get('wolf')==='');
@@ -123,7 +136,7 @@ try{
   assert.ok(formatted.includes('ĐÊM 2'));
   assert.ok(formatted.includes('ĐÊM 3'));
   assert.ok(formatted.includes('KẾT QUẢ CUỐI CÙNG'));
-  console.log(JSON.stringify({result:'PASS',singleWolfNoTarget:'10-second timeout skips attack; seer wakes; discussion and vote can finish with history',threeWolves:'unanimous choice works for 3 wolves; three nights and votes finish; full history emitted and formatted'},null,2));
+  console.log(JSON.stringify({result:'PASS',nightChoice:'15-second timeout skips an unchosen action; the vote lasts 15 seconds',threeWolves:'unanimous choice works for 3 wolves; three nights and votes finish; full history emitted and formatted'},null,2));
 }finally{
   globalThis.setTimeout=oldSetTimeout;
   globalThis.clearTimeout=oldClearTimeout;

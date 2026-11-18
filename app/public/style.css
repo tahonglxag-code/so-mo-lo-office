@@ -51,10 +51,12 @@ dialog#wolf-create-modal,dialog#wolf-incoming-modal{border:2px solid #745e7c;bor
 .wolf-role-panel,.wolf-chat-panel{display:flex;flex-direction:column;gap:4px}
 .wolf-role-panel>strong,.wolf-chat-panel>strong,.wolf-history-panel header{font-size:13px;font-weight:1000;color:#4d3854}
 #wolf-status{font-size:12px;font-weight:900;color:#674b69;line-height:1.3;overflow-wrap:anywhere}
-#wolf-private{flex:1;min-height:0;overflow:auto;font-size:12px;line-height:1.35;overscroll-behavior:contain}
-#wolf-private p{margin:3px 0}
-#wolf-private select{width:100%;margin:2px 0;padding:5px;font-size:12px}
-#wolf-actions{display:flex;flex-wrap:wrap;gap:5px;align-items:center}
+#wolf-private{flex:0 1 auto;min-height:0;max-height:min(38vh,220px);overflow:auto;font-size:12px;line-height:1.35;overscroll-behavior:contain}
+#wolf-private p{margin:2px 0}
+#wolf-private select{width:100%;margin:0;padding:5px;font-size:12px}
+#wolf-actions{display:flex;flex-wrap:wrap;gap:5px;align-items:center;margin-top:0}
+#wolf-status .wolf-countdown{display:inline-block;margin:0 2px;color:#c51f3a;font-size:1.9em;font-weight:1000;line-height:.9;vertical-align:baseline;text-shadow:0 1px 0 #fff}
+#wolf-private .wolf-confirmed{color:#287b56;font-weight:900}
 #wolf-actions button{padding:6px 9px;font-size:12px}
 .wolf-log{flex:1;min-height:0;max-height:none;overflow:auto;margin:0;padding:5px 7px;background:#f5ebf4;border-radius:9px;font-size:13px;overscroll-behavior:contain}
 .wolf-log div{padding:2px 0;overflow-wrap:anywhere}
@@ -74,6 +76,8 @@ dialog#wolf-create-modal,dialog#wolf-incoming-modal{border:2px solid #745e7c;bor
   .wolf-role-panel,.wolf-chat-panel{padding:5px;gap:3px}
   .wolf-role-panel>strong,.wolf-chat-panel>strong{font-size:11px}
   #wolf-status,#wolf-private{font-size:10px}
+  #wolf-status .wolf-countdown{font-size:1.7em}
+  #wolf-private{max-height:min(30vh,150px)}
   #wolf-private select{font-size:10px;padding:3px}
   #wolf-actions{gap:3px}
   #wolf-actions button{font-size:10px;padding:4px 6px}
@@ -136,7 +140,7 @@ dialog#wolf-create-modal,dialog#wolf-incoming-modal{border:2px solid #745e7c;bor
 .wolf-role-description-panel{display:flex;flex-direction:column;gap:5px;min-width:0;min-height:0;overflow:auto;background:#fff6e9ed;border:1px solid #745e7c;border-radius:14px;padding:7px 9px;box-shadow:0 2px 5px #382b4030;font-size:12px;line-height:1.4;overscroll-behavior:contain}
 .wolf-role-description-panel>strong{font-size:13px;font-weight:1000;color:#4d3854}
 #wolf-role-description p{margin:4px 0;overflow-wrap:anywhere}
-#wolf-private{display:flex;flex-direction:column;justify-content:center;gap:5px}
+#wolf-private{display:flex;flex-direction:column;justify-content:flex-start;gap:2px}
 #wolf-actions{flex:0 0 auto}
 #app.ma-soi-finished .dock{height:min(72dvh,760px);min-height:min(300px,58dvh)}
 @media(max-width:760px){
@@ -146,6 +150,7 @@ dialog#wolf-create-modal,dialog#wolf-incoming-modal{border:2px solid #745e7c;bor
   #app.ma-soi-active .wolf-role-panel{grid-column:1;grid-row:2}
   #app.ma-soi-active .wolf-role-description-panel{display:none}
   #wolf-status,#wolf-private{font-size:12px}
+  #wolf-private{justify-content:flex-start;gap:2px}
   #wolf-private select{font-size:13px;padding:7px}
   #wolf-actions button{font-size:12px;padding:6px 9px}
   #app.ma-soi-finished .dock{height:min(66dvh,680px);min-height:min(270px,50dvh)}

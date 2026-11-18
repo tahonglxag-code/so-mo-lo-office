@@ -42,7 +42,7 @@ function congKhaiTrangThai(game, id) {
     daBoPhieu:[...game.boPhieu.keys()], phieu:Object.fromEntries(game.phieu),
     moi:game.moi?{chu:game.moi.chu, ketThuc:game.moi.ketThuc, danhSach:[...game.moi.phanHoi].map(([playerId,phanHoi])=>({id:playerId,ten:game.getPlayer(playerId)?.name||game.getPlayer(playerId)?.ten||playerId,phanHoi}))}:null,
     ketQua:game.ketQua||null,
-    rieng:own&&game.giaiDoan!=='dealing'?{vai:own.vai, vaiMoTa:vaiTro[own.vai], tinhYeu:false, daHieu:game.daHieu.has(id), vayMoi:own.vai==='witch'?{cuu:game.thuocCuu,doc:game.thuocDoc}:null}:null
+    rieng:own&&game.giaiDoan!=='dealing'?{vai:own.vai, vaiMoTa:vaiTro[own.vai], tinhYeu:false, daHieu:game.daHieu.has(id), daXacNhan:game.daXacNhan.has(own.vai), vayMoi:own.vai==='witch'?{cuu:game.thuocCuu,doc:game.thuocDoc}:null}:null
   };
 }
 
@@ -184,7 +184,7 @@ function goiLuot(io,game,index=0) {
     return;
   }
   game.giaiDoan='night-role';
-  const end=now()+10000;game.mocKetThuc=end;phatSuKien(io,game,`${vaiTro[role].ten} đã thức dậy.`,{giaiDoan:'night-role',mocKetThuc:end});
+  const end=now()+15000;game.mocKetThuc=end;phatSuKien(io,game,`${vaiTro[role].ten} đã thức dậy.`,{giaiDoan:'night-role',mocKetThuc:end});
   for(const p of active){
     guiRieng(io,p.id,'wolf-private',{loai:'role',vai:role,moTa:vaiTro[role],mocKetThuc:end,dongDoi:role==='wolf'?active.filter(q=>q.id!==p.id).map(q=>q.ten):[],danhSach:conSong(game).filter(q=>q.id!==p.id&&!(role==='wolf'&&q.vai==='wolf')).map(q=>({id:q.id,ten:q.ten})),thuoc:role==='witch'?{cuu:game.thuocCuu,doc:game.thuocDoc}:null,biSoi:role==='seer'?game.ketQuaSoi:null});
   }
@@ -198,7 +198,7 @@ function goiLuot(io,game,index=0) {
     game.luotHen=hen(game,()=>tuChonVaiMay(io,game,role,index),900+randomInt(1800));
     return;
   }
-  game.luotHen=hen(game,()=>{if(!game.daXacNhan.has(role))ghiBoQua(game,role,'het-thoi-gian');game.daXacNhan.delete(role);goiLuot(io,game,index+1);},10000);
+  game.luotHen=hen(game,()=>{if(!game.daXacNhan.has(role))ghiBoQua(game,role,'het-thoi-gian');game.daXacNhan.delete(role);goiLuot(io,game,index+1);},15000);
 }
 
 function batDauDem(io,game) {
@@ -411,31 +411,31 @@ export function taoQuanLyMaSoi(io,rooms,helpers) {
       if(game.chonLa.size===game.nguoi.size)batDauChiaVai(io,game);
     });
     socket.on('wolf-ready',()=>{const game=getGame(socket);const p=validPlayer(game,socket);if(!p||!p.song||game.giaiDoan!=='cards'||game.daHieu.has(socket.id))return;game.daHieu.add(socket.id);});
-    socket.on('wolf-night-action',data=>{
-      const game=getGame(socket);const p=validPlayer(game,socket);if(!p||!p.song||!data||game.giaiDoan!=='night-role'||now()>game.mocKetThuc)return;
-      const role=game.vaiDangGoi;if(p.vai!==role)return;
+    socket.on('wolf-night-action',(data,ack=()=>{})=>{
+      const game=getGame(socket);const p=validPlayer(game,socket);if(!p||!p.song||!data||game.giaiDoan!=='night-role'||now()>game.mocKetThuc)return ack({ok:false});
+      const role=game.vaiDangGoi;if(p.vai!==role)return ack({ok:false});
       const target=layNguoi(game,data.target);
-      if(['cupid','guard','seer','hunter'].includes(role)&&(!target||!target.song||target.id===p.id&&!['guard','cupid'].includes(role)))return;
+      if(['cupid','guard','seer','hunter'].includes(role)&&(!target||!target.song||target.id===p.id&&!['guard','cupid'].includes(role)))return ack({ok:false});
       if(role==='cupid'){
-        if(game.ngay!==1)return;
-        const second=layNguoi(game,data.second);if(!second||!second.song||second.id===target.id)return;
+        if(game.ngay!==1)return ack({ok:false});
+        const second=layNguoi(game,data.second);if(!second||!second.song||second.id===target.id)return ack({ok:false});
         game.capDoi.set(target.id,second.id);game.capDoi.set(second.id,target.id);game.luaChon.set(role,[target.id,second.id]);
       } else if(role==='guard'){
-        if(target.id===game.baoVeGanNhat)return;
+        if(target.id===game.baoVeGanNhat)return ack({ok:false});
         game.luaChon.set('guard',target.id);game.baoVeGanNhat=target.id;
       } else if(role==='seer'){
         game.luaChon.set('seer',target.id);game.ketQuaSoi=target.vai==='wolf'?'SÓI':'KHÔNG PHẢI SÓI';guiRieng(io,p.id,'wolf-private-result',{loai:'seer',ketQua:game.ketQuaSoi});
       } else if(role==='hunter')game.luaChon.set('hunterShot',target.id);
       else if(role==='witch'){
         const kind=data.loai;
-        if(kind==='save'&&!game.thuocCuu)return;
-        if(kind==='poison'&&!game.thuocDoc)return;
-        if(!['save','poison','skip'].includes(kind))return;
-        if(['save','poison'].includes(kind)&&(!target||!target.song))return;
+        if(kind==='save'&&!game.thuocCuu)return ack({ok:false});
+        if(kind==='poison'&&!game.thuocDoc)return ack({ok:false});
+        if(!['save','poison','skip'].includes(kind))return ack({ok:false});
+        if(['save','poison'].includes(kind)&&(!target||!target.song))return ack({ok:false});
         game.luaChon.set('witch',{loai:kind,target:kind==='skip'?'':data.target||''});
-      } else if(role==='wolf'&&game.giaiDoan==='night-role'){game.luaChon.set('wolf',target.id);game.luuLuaChonSoi=[[p.id,target.id]];}
+      } else if(role==='wolf'&&game.giaiDoan==='night-role'){if(!target?.song||target.vai==='wolf')return ack({ok:false});game.luaChon.set('wolf',target.id);game.luuLuaChonSoi=[[p.id,target.id]];}
       game.daXacNhan.add(role);
-      phatSuKien(io,game,`${vaiTro[role].ten} đã chọn xong.`);goiLuot(io,game,game.viTriLuot+1);
+      ack({ok:true});phatSuKien(io,game,`${vaiTro[role].ten} đã chọn xong.`);goiLuot(io,game,game.viTriLuot+1);
     });
     socket.on('wolf-wolf-chat',text=>{
       const game=getGame(socket);const p=validPlayer(game,socket);if(!p||!p.song||p.vai!=='wolf'||game.giaiDoan!=='wolf-chat'||now()>game.mocKetThuc)return;
@@ -478,12 +478,12 @@ export function taoQuanLyMaSoi(io,rooms,helpers) {
       const humans=conSong(game).filter(player=>!player.bot).length;
       if(humans&&game.ngung.size>=Math.ceil(humans/2)){huyHen(game);batDauVote(io,game);}
     });
-    socket.on('wolf-vote',(id)=>{
-      const game=getGame(socket);const p=validPlayer(game,socket);if(!p||!p.song||game.giaiDoan!=='vote'||now()>game.mocKetThuc||game.boPhieu.has(p.id))return;
-      const target=id?layNguoi(game,id):null;if(id&&(!target?.song||target.id===p.id))return;
+    socket.on('wolf-vote',(id,ack=()=>{})=>{
+      const game=getGame(socket);const p=validPlayer(game,socket);if(!p||!p.song||game.giaiDoan!=='vote'||now()>game.mocKetThuc||game.boPhieu.has(p.id))return ack({ok:false});
+      const target=id?layNguoi(game,id):null;if(id&&(!target?.song||target.id===p.id))return ack({ok:false});
       game.boPhieu.add(p.id);game.phieu.set(p.id,id||'');
       congKhai(io,game.roomId,'wolf-vote-update',{from:p.id,to:id||'',name:p.ten,counts:Object.fromEntries([...game.phieu.values()].reduce((m,v)=>{if(v)m.set(v,(m.get(v)||0)+1);return m;},new Map()))});
-      phatTrangThai(io,game);
+      phatTrangThai(io,game);ack({ok:true});
     });
   });
   return {onJoin,onDisconnect,isPlayer:(room,id)=>Boolean(room?.werewolf?.nguoi.get(id)?.dangKetNoi),filterTargets:(room,players)=>players.filter(p=>!room?.werewolf?.nguoi.get(p.id)?.dangKetNoi),sendState};
