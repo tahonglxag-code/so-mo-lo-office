@@ -1337,7 +1337,8 @@ function capNhatDanhSachMaSoi(state){
 
 function capNhatDongHoMaSoi(){
   if(!trangThaiMaSoi)return;
-  const phases={invite:'Đang chờ phản hồi lời mời',dealing:'Mọi người đang chọn lá bài',cards:'Đọc vai trò',night:'Đêm đã xuống', 'night-role':`Lượt ${trangThaiMaSoi.vaiDangGoi||''}`,'wolf-chat':'Sói đang thảo luận','wolf-choice':'Sói thống nhất mục tiêu',discussion:'Thảo luận ban ngày',vote:'Bỏ phiếu loại',finished:'Ván đã kết thúc'};
+  const tenLuot={cupid:'ghép đôi',guard:'bảo vệ',wolf:'sói',hunter:'thợ săn',seer:'tiên tri',witch:'phù thủy'};
+  const phases={invite:'Đang chờ phản hồi lời mời',dealing:'Mọi người đang chọn lá bài',cards:'Đọc vai trò',night:'Đêm đã xuống','night-role':`Lượt ${tenLuot[trangThaiMaSoi.vaiDangGoi]||'người chơi'}`,'wolf-chat':'Sói đang thảo luận','wolf-choice':'Sói thống nhất mục tiêu',discussion:'Thảo luận ban ngày',vote:'Bỏ phiếu loại',finished:'Ván đã kết thúc'};
   const remain=Math.max(0,Math.ceil((((trangThaiMaSoi.giaiDoan==='finished'?trangThaiMaSoi.giaiTanLuc:trangThaiMaSoi.mocKetThuc)||0)-Date.now())/1000));
   wolfStatus.replaceChildren(document.createTextNode(phases[trangThaiMaSoi.giaiDoan]||'Ván Ma Sói'));
   if(trangThaiMaSoi.giaiDoan!=='dealing'){
