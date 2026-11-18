@@ -38,6 +38,8 @@ try{
   assert.equal(room.werewolf.giaiDoan,'dealing');
   assert.equal(room.werewolf.nguoi.size,4);
   assert.equal(room.werewolf.chonLa.size,3);
+  const firstRoundId=host.inbox.find(event=>event.event==='wolf-start').data.idVong;
+  assert.ok(firstRoundId);
   assert.deepEqual([...room.werewolf.may.values()].map(player=>player.name),['Máy 1','Máy 2','Máy 3']);
   assert.equal(host.inbox.some(event=>event.event==='wolf-invite'),false);
   const occupied=[...room.werewolf.chonLa.keys()];
@@ -70,7 +72,13 @@ try{
   assert.equal(game.giaiDoan,'finished');
   assert.ok(game.lichSu.some(event=>event.loai==='ket-qua'));
   assert.ok(host.inbox.some(event=>event.event==='wolf-finished'));
-  console.log(JSON.stringify({result:'PASS',soloWithThreeBots:'starts immediately at four players',botCards:'three random unique cards and one human card',botNames:['Máy 1','Máy 2','Máy 3'],nightActions:'automatically resolved',discussion:'bots stay silent; one of one living real players can end discussion',voting:'all living bots cast a vote',gameEnd:'automated round proceeds to winner and history'},null,2));
+  host.fire('wolf-leave');
+  assert.equal(room.werewolf,null);
+  host.fire('wolf-create',{ids:[],bots:3});
+  const secondGame=room.werewolf,secondRoundId=host.inbox.filter(event=>event.event==='wolf-start').at(-1).data.idVong;
+  assert.equal(secondGame.maTran,1);
+  assert.notEqual(secondRoundId,firstRoundId);
+  console.log(JSON.stringify({result:'PASS',soloWithThreeBots:'starts immediately at four players',botCards:'three random unique cards and one human card',botNames:['Máy 1','Máy 2','Máy 3'],nightActions:'automatically resolved',discussion:'bots stay silent; one of one living real players can end discussion',voting:'all living bots cast a vote',gameEnd:'automated round proceeds to winner and history',consecutiveGames:'new round identifier remains unique when maTran resets to 1'},null,2));
 }finally{
   for(const timer of timers.values())timer.cancelled=true;
   timers.clear();globalThis.setTimeout=originalSetTimeout;globalThis.clearTimeout=originalClearTimeout;Date.now=originalNow;

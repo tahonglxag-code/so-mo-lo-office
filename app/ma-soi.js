@@ -32,7 +32,7 @@ function congKhaiNguoi(game) { return [...game.nguoi.values()].map(p => ({ id:p.
 function congKhaiTrangThai(game, id) {
   const own=layNguoi(game,id);
   return {
-    roomId:game.roomId, maTran:game.maTran, giaiTanLuc:game.giaiTanLuc||0,
+    roomId:game.roomId, maTran:game.maTran, idVong:game.idVong||'', giaiTanLuc:game.giaiTanLuc||0,
     giaiDoan:game.giaiDoan, ngay:game.ngay, mocKetThuc:game.mocKetThuc||0,
     lichSu:game.giaiDoan==='finished'?game.lichSu:undefined,
     vaiDangGoi:game.vaiDangGoi||'', danhSach:congKhaiNguoi(game),
@@ -276,7 +276,7 @@ function mayChonMucTieuSoi(game){
 function batDauGame(io,game,ids) {
   const unique=[...new Set(ids)].slice(0,15);
   if(unique.length<(game.may.size?4:5)||unique.some(id=>!game.online.has(id)))return false;
-  game.maTran+=1;
+  game.maTran+=1;game.idVong=`${Date.now().toString(36)}-${randomInt(0x100000000).toString(36)}`;
   game.clearArea?.(game.roomId,new Set(unique));
   game.nguoi.clear();game.capDoi.clear();game.ngay=0;game.lichSu=[];game.phieu.clear();game.boPhieu.clear();game.ngung.clear();game.raVan.clear();game.thuocCuu=true;game.thuocDoc=true;
   unique.forEach((id,index)=>{
@@ -287,7 +287,7 @@ function batDauGame(io,game,ids) {
     if(!player.bot)game.lockPlayer(id,true,seat);
   });
   chiaVai(game);game.chonLa=new Map();game.giaiDoan='dealing';game.mocKetThuc=0;game.chu=unique[0];
-  congKhai(io,game.roomId,'wolf-start',{nguoi:congKhaiNguoi(game),soLa:unique.length,laDaChon:[],maTran:game.maTran});
+  congKhai(io,game.roomId,'wolf-start',{nguoi:congKhaiNguoi(game),soLa:unique.length,laDaChon:[],maTran:game.maTran,idVong:game.idVong});
   for(const player of game.nguoi.values())if(player.bot){
     const available=game.vaiTheoLa.map((_,index)=>index).filter(index=>!game.chonLa.has(index));
     const la=chonNgauNhien(available);if(la===null)continue;

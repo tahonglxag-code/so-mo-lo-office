@@ -1222,7 +1222,7 @@ const wolfInviteModal=document.querySelector('#wolf-create-modal');
 const wolfIncomingModal=document.querySelector('#wolf-incoming-modal');
 let choVeLaiMaSoi=false;
 let wolfTargetOwn='';
-let vongChiaBaiDangHien=0;
+let vongChiaBaiDangHien='';
 let henAnTheVaiTro;
 
 function anManChiaBai(){
@@ -1250,8 +1250,9 @@ function veLaChonMaSoi(event={}){
 }
 
 function hienManChiaBai(event={}){
-  if(event.maTran&&event.maTran===vongChiaBaiDangHien)return;
-  vongChiaBaiDangHien=event.maTran||vongChiaBaiDangHien+1;
+  const idVong=event.idVong||`${event.maTran||''}`;
+  if(idVong&&idVong===vongChiaBaiDangHien)return;
+  vongChiaBaiDangHien=idVong||`local-${Date.now()}`;
   clearTimeout(henAnTheVaiTro);wolfDealTitle.textContent='Chọn lá bài của bạn';wolfRoleCard.hidden=true;wolfDealScreen.hidden=false;wolfDealScreen.classList.remove('is-revealed');wolfDealScreen.classList.add('is-dealing');veLaChonMaSoi(event);
 }
 
@@ -1434,7 +1435,7 @@ function maSoiThongBao(text){
   addFeed(text);
 }
 
-socket.on('wolf-state',state=>{for(const info of state.danhSach||[])if(info.bot)taoNguoiMay(info);if(state.giaiDoan!=='finished')daThoatVanMaSoi=false;if(state.rieng?.vai)vaiTroRiengMaSoi={vai:state.rieng.vai,moTa:state.rieng.vaiMoTa};phienBanTrangThaiMaSoi++;const lichSuCu=trangThaiMaSoi?.giaiDoan==='finished'&&trangThaiMaSoi?.maTran===state.maTran?trangThaiMaSoi.lichSu:undefined;trangThaiMaSoi={...state,lichSu:state.lichSu??lichSuCu??[]};capNhatSoGheMaSoi(state.giaiDoan==='invite'?0:state.danhSach?.length||0);if(state.giaiDoan==='dealing'&&laNguoiChoiMaSoi(state.danhSach,selfId,state.giaiDoan)){if(wolfDealScreen.hidden)hienManChiaBai({maTran:state.maTran,nguoi:state.danhSach,soLa:state.soLa,laDaChon:state.laDaChon});else veLaChonMaSoi(state);}else{if(state.rieng?.vai&&!wolfDealScreen.hidden&&riengMaSoi?.loai!=='card'){riengMaSoi={loai:'card',vai:state.rieng.vai,moTa:state.rieng.vaiMoTa,mocKetThuc:state.mocKetThuc};hienTheVaiTro(riengMaSoi);}else if(state.giaiDoan!=='cards'&&!wolfDealScreen.hidden)anManChiaBai();}veBangMaSoi();});
+socket.on('wolf-state',state=>{for(const info of state.danhSach||[])if(info.bot)taoNguoiMay(info);if(state.giaiDoan!=='finished')daThoatVanMaSoi=false;if(state.rieng?.vai)vaiTroRiengMaSoi={vai:state.rieng.vai,moTa:state.rieng.vaiMoTa};phienBanTrangThaiMaSoi++;const lichSuCu=trangThaiMaSoi?.giaiDoan==='finished'&&trangThaiMaSoi?.maTran===state.maTran?trangThaiMaSoi.lichSu:undefined;trangThaiMaSoi={...state,lichSu:state.lichSu??lichSuCu??[]};capNhatSoGheMaSoi(state.giaiDoan==='invite'?0:state.danhSach?.length||0);if(state.giaiDoan==='dealing'&&laNguoiChoiMaSoi(state.danhSach,selfId,state.giaiDoan)){if(wolfDealScreen.hidden)hienManChiaBai({maTran:state.maTran,idVong:state.idVong,nguoi:state.danhSach,soLa:state.soLa,laDaChon:state.laDaChon});else veLaChonMaSoi(state);}else{if(state.rieng?.vai&&!wolfDealScreen.hidden&&riengMaSoi?.loai!=='card'){riengMaSoi={loai:'card',vai:state.rieng.vai,moTa:state.rieng.vaiMoTa,mocKetThuc:state.mocKetThuc};hienTheVaiTro(riengMaSoi);}else if(state.giaiDoan!=='cards'&&!wolfDealScreen.hidden)anManChiaBai();}veBangMaSoi();});
 socket.on('wolf-public',state=>{for(const info of state.danhSach||[])if(info.bot)taoNguoiMay(info);phienBanTrangThaiMaSoi++;trangThaiMaSoi={...(trangThaiMaSoi||{}),...state,rieng:trangThaiMaSoi?.rieng};veBangMaSoi();});
 socket.on('wolf-card-pick-update',event=>{if(trangThaiMaSoi?.giaiDoan!=='dealing')return;const daChon=trangThaiMaSoi.laDaChon||[];if(!daChon.some(item=>item.la===event.la))daChon.push({la:event.la,id:event.id,ten:event.ten});trangThaiMaSoi={...trangThaiMaSoi,laDaChon:daChon,soLa:event.soLa};veLaChonMaSoi(trangThaiMaSoi);});
 socket.on('wolf-private',data=>{riengMaSoi=data;if(data.vai&&data.moTa)vaiTroRiengMaSoi={vai:data.vai,moTa:data.moTa};if(data.loai==='card')trangThaiMaSoi={...(trangThaiMaSoi||{}),giaiDoan:'cards',mocKetThuc:data.mocKetThuc,rieng:data};if(data.loai==='wolf-agreement'&&riengMaSoi)riengMaSoi.luaChon=data.luaChon;veBangMaSoi();if(data.loai==='card')hienTheVaiTro(data);});
