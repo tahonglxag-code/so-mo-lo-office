@@ -68,7 +68,8 @@ const veRadio=new CSS3DRenderer();
 veRadio.domElement.style.cssText='position:absolute;inset:0;pointer-events:none;overflow:hidden';
 document.querySelector('.world-wrap').append(veRadio.domElement);
 const bangRadio=new CSS3DObject(document.querySelector('#radio-panel'));
-bangRadio.position.set(-9.4,2.45,-12.7);
+bangRadio.position.set(20.05,2.45,5.1);
+bangRadio.rotation.y=-Math.PI/2;
 bangRadio.scale.setScalar(.014);
 canhRadio.add(bangRadio);
 const camera = new THREE.PerspectiveCamera(40, 1, 0.1, 240);
@@ -319,38 +320,51 @@ const cuaWc=new Map();
 const cuaHop=new Map();
 
 
-function enclosedRoom(xMin, xMax, zMin, zMax, title, doorX) {
+function enclosedRoom(xMin, xMax, zMin, zMax, title, doorAt, doorSide='south') {
   const vatLieu = new THREE.MeshStandardMaterial({color:'#f0f0f0',transparent:true,opacity:.18,roughness:.2,depthWrite:false,side:THREE.DoubleSide});
   const truocVach=scene.children.length;
-  const wallHeight = 2.6;
-  const wallY = wallHeight / 2;
-  const wallWidth = .26;
-  const doorWidth = 1.55;
-  box(scene, wallWidth, wallHeight, zMax - zMin, vatLieu, xMin, wallY, (zMin + zMax) / 2);
-  box(scene, wallWidth, wallHeight, zMax - zMin, vatLieu, xMax, wallY, (zMin + zMax) / 2);
-  box(scene, xMax - xMin, wallHeight, wallWidth, vatLieu, (xMin + xMax) / 2, wallY, zMin);
-  const leftWidth = doorX - doorWidth / 2 - xMin;
-  const rightWidth = xMax - (doorX + doorWidth / 2);
-  if (leftWidth > 0) box(scene, leftWidth, wallHeight, wallWidth, vatLieu, xMin + leftWidth / 2, wallY, zMax);
-  if (rightWidth > 0) box(scene, rightWidth, wallHeight, wallWidth, vatLieu, doorX + doorWidth / 2 + rightWidth / 2, wallY, zMax);
+  const wallHeight=2.6,wallY=wallHeight/2,wallWidth=.26,doorWidth=1.55;
+  box(scene,wallWidth,wallHeight,zMax-zMin,vatLieu,xMax,wallY,(zMin+zMax)/2);
+  box(scene,xMax-xMin,wallHeight,wallWidth,vatLieu,(xMin+xMax)/2,wallY,zMin);
+  let door;
+  if(doorSide==='west'){
+    box(scene,xMax-xMin,wallHeight,wallWidth,vatLieu,(xMin+xMax)/2,wallY,zMax);
+    const z1=Math.max(zMin,doorAt-doorWidth/2),z2=Math.min(zMax,doorAt+doorWidth/2);
+    if(z1>zMin)box(scene,wallWidth,wallHeight,z1-zMin,vatLieu,xMin,wallY,(zMin+z1)/2);
+    if(z2<zMax)box(scene,wallWidth,wallHeight,zMax-z2,vatLieu,xMin,wallY,(z2+zMax)/2);
+    box(scene,.14,wallHeight,.16,mats.trim,xMin,wallY,z1);
+    box(scene,.14,wallHeight,.16,mats.trim,xMin,wallY,z2);
+    box(scene,.16,.16,doorWidth+.14,mats.trim,xMin,wallHeight-.08,doorAt);
+    door=new THREE.Group();
+    door.position.set(xMin-.03,0,doorAt+doorWidth/2);
+    door.rotation.y=Math.PI/2;
+    box(door,doorWidth-.16,2.28,.12,vatLieu,(doorWidth-.16)/2,1.14,0);
+    box(door,.06,.13,.06,mats.dark,doorWidth*.34,1.12,-.08);
+  }else{
+    box(scene,wallWidth,wallHeight,zMax-zMin,vatLieu,xMin,wallY,(zMin+zMax)/2);
+    box(scene,xMax-xMin,wallHeight,wallWidth,vatLieu,(xMin+xMax)/2,wallY,zMax);
+    const leftWidth=doorAt-doorWidth/2-xMin,rightWidth=xMax-(doorAt+doorWidth/2);
+    if(leftWidth>0)box(scene,leftWidth,wallHeight,wallWidth,vatLieu,xMin+leftWidth/2,wallY,zMax);
+    if(rightWidth>0)box(scene,rightWidth,wallHeight,wallWidth,vatLieu,doorAt+doorWidth/2+rightWidth/2,wallY,zMax);
+    box(scene,.14,wallHeight,.16,mats.trim,doorAt-doorWidth/2,wallY,zMax);
+    box(scene,.14,wallHeight,.16,mats.trim,doorAt+doorWidth/2,wallY,zMax);
+    box(scene,doorWidth+.14,.16,.16,mats.trim,doorAt,wallHeight-.08,zMax);
+    door=new THREE.Group();
+    door.position.set(doorAt-doorWidth/2+.08,0,zMax+.03);
+    box(door,doorWidth-.16,2.28,.12,vatLieu,(doorWidth-.16)/2,1.14,0);
+    box(door,.06,.13,.06,mats.dark,doorWidth*.34,1.12,-.08);
+  }
   for(const o of scene.children.slice(truocVach))o.castShadow=false;
-  box(scene, .14, wallHeight, .16, mats.trim, doorX - doorWidth / 2, wallY, zMax);
-  box(scene, .14, wallHeight, .16, mats.trim, doorX + doorWidth / 2, wallY, zMax);
-  box(scene, doorWidth + .14, .16, .16, mats.trim, doorX, wallHeight - .08, zMax);
-  const door = new THREE.Group();
-  door.position.set(doorX - doorWidth / 2 + .08, 0, zMax + .03);
   scene.add(door);
-  box(door, doorWidth - .16, 2.28, .12, vatLieu, (doorWidth - .16) / 2, 1.14, 0);
-  box(door, .06, .13, .06, mats.dark, doorWidth * .34, 1.12, -.08);
+  door.userData.closedRotationY=doorSide==='west'?Math.PI/2:0;
+  door.userData.openRotationY=doorSide==='west'?0:Math.PI/2;
   cuaHop.set(title,door);
   if(title==='PHÒNG SẾP'){
     const mauBien=label(title,'#493650');
-    const bien=new THREE.Mesh(
-      new THREE.PlaneGeometry(1.48,.34),
-      new THREE.MeshBasicMaterial({map:mauBien.material.map,transparent:true})
-    );
+    const bien=new THREE.Mesh(new THREE.PlaneGeometry(1.48,.34),new THREE.MeshBasicMaterial({map:mauBien.material.map,transparent:true,side:THREE.DoubleSide}));
     mauBien.material.dispose();
-    bien.position.set(doorX,wallHeight+.04,zMax+.09);
+    if(doorSide==='west'){bien.rotation.y=Math.PI/2;bien.position.set(xMin-.1,wallHeight+.04,doorAt);}
+    else bien.position.set(doorAt,wallHeight+.04,zMax+.09);
     scene.add(bien);
   }else makeRoomLabel(title,(xMin+xMax)/2,(zMin+zMax)/2);
 }
@@ -400,16 +414,16 @@ function taoSanGoCafe(){
     for(let x=y%128?0:128;x<512;x+=128){ctx.fillStyle='#a87951';ctx.fillRect(x,y,3,64);}
   }
   const texture=new THREE.CanvasTexture(canvas);texture.colorSpace=THREE.SRGBColorSpace;
-  const san=new THREE.Mesh(new THREE.PlaneGeometry(7.8,8.05),new THREE.MeshStandardMaterial({map:texture,roughness:.87}));
-  san.rotation.x=-Math.PI/2;san.position.set(-10.65,-.068,-9.08);san.receiveShadow=true;scene.add(san);
+  const san=new THREE.Mesh(new THREE.PlaneGeometry(7.8,7.4),new THREE.MeshStandardMaterial({map:texture,roughness:.87}));
+  san.rotation.x=-Math.PI/2;san.position.set(14.5,-.068,5.1);san.receiveShadow=true;scene.add(san);
   denChieuCafe=new THREE.SpotLight('#ff4a9d',0,14,Math.PI/5,.8,1.1);
-  denChieuCafe.position.set(-10.65,7,-9.08);
-  const diemChieu=new THREE.Object3D();diemChieu.position.set(-10.65,0,-9.08);scene.add(diemChieu);denChieuCafe.target=diemChieu;scene.add(denChieuCafe);
+  denChieuCafe.position.set(14.5,7,5.1);
+  const diemChieu=new THREE.Object3D();diemChieu.position.set(14.5,0,5.1);scene.add(diemChieu);denChieuCafe.target=diemChieu;scene.add(denChieuCafe);
   chopSangCafe=new THREE.Mesh(new THREE.CylinderGeometry(.24,4.8,7,40,1,true),new THREE.MeshBasicMaterial({color:'#ff4a9d',transparent:true,opacity:.2,side:THREE.DoubleSide,depthWrite:false}));
-  chopSangCafe.position.set(-10.65,3.5,-9.08);chopSangCafe.visible=false;chopSangCafe.renderOrder=3;scene.add(chopSangCafe);
+  chopSangCafe.position.set(14.5,3.5,5.1);chopSangCafe.visible=false;chopSangCafe.renderOrder=3;scene.add(chopSangCafe);
 }
 function taoSofaCafe(){
-  const sofa=new THREE.Group();sofa.position.set(-13.78,0,-10.98);sofa.scale.set(1.55,1.15,1.18);scene.add(sofa);
+  const sofa=new THREE.Group();sofa.position.set(11.37,0,3.2);sofa.scale.set(1.55,1.15,1.18);scene.add(sofa);
   const khung=mat('#44434b'),nem=mat('#777880'),dem=mat('#b5b5ba'),go=mat('#383740');
   const khoiMem=(x,y,z,sx,sy,sz,vatLieu)=>{
     const m=new THREE.Mesh(new THREE.SphereGeometry(1,20,14),vatLieu);m.position.set(x,y,z);m.scale.set(sx,sy,sz);m.castShadow=true;m.receiveShadow=true;sofa.add(m);sofaParts.push(m);return m;
@@ -427,13 +441,13 @@ function taoSofaCafe(){
   for(const [x,z] of [[-.45,-1.78],[.48,-1.78],[-.45,1.78],[.48,1.78],[1.58,-1.7],[1.58,-.95]]){
     const chan=new THREE.Mesh(new THREE.CylinderGeometry(.07,.09,.25,10),go);chan.position.set(x,.14,z);sofa.add(chan);
   }
-  sofa.userData.sleepSpots=[{x:-13.78,z:-9.35,yaw:Math.PI},{x:-13.78,z:-10.35,yaw:Math.PI},{x:-13.78,z:-11.35,yaw:Math.PI},{x:-13.78,z:-12.35,yaw:Math.PI}];
+  sofa.userData.sleepSpots=[{x:11.37,z:4.83,yaw:Math.PI},{x:11.37,z:3.83,yaw:Math.PI},{x:11.37,z:2.83,yaw:Math.PI},{x:11.37,z:1.83,yaw:Math.PI}];
   sofa.userData.sleepSpot=sofa.userData.sleepSpots[0];
-  const ban=new THREE.Group();ban.position.set(-9.2,0,-8.35);scene.add(ban);
+  const ban=new THREE.Group();ban.position.set(15.95,0,5.83);scene.add(ban);
   box(ban,1.25,.12,.72,mat('#c58a50'),0,.48,0);
   const matBan=mat('#80563e');
   for(const x of [-.5,.5])for(const z of [-.26,.26])box(ban,.07,.46,.07,matBan,x,.23,z);
-  const den=new THREE.PointLight('#ffd99e',.7,4,1.7);den.position.set(-8.6,2.5,-7.8);scene.add(den);
+  const den=new THREE.PointLight('#ffd99e',.7,4,1.7);den.position.set(16.55,2.5,6.38);scene.add(den);
 }
 const gheSanh=[];
 const vatTheMaSoi=[];
@@ -486,69 +500,56 @@ function taoBanMaSoi(){
 }
 
 function office() {
-  const base = new THREE.Mesh(new THREE.BoxGeometry(40, .42, 26), mats.floor);
-  base.position.y = -.3;
-  base.receiveShadow = true;
-  scene.add(base);
-  for (let x = -18.75; x <= 18.75; x += 2.5) {
-    for (let z = -12.5; z <= 12.5; z += 2.5) {
-      const tile = new THREE.Mesh(new THREE.PlaneGeometry(2.48, 2.48), mats.tile);
-      tile.rotation.x = -Math.PI / 2;
-      tile.position.set(x, -.075, z);
-      tile.receiveShadow = true;
-      scene.add(tile);
-    }
+  const base=new THREE.Mesh(new THREE.BoxGeometry(40,.42,26),mats.floor);
+  base.position.y=-.3;base.receiveShadow=true;scene.add(base);
+  for(let x=-18.75;x<=18.75;x+=2.5)for(let z=-12.5;z<=12.5;z+=2.5){
+    const tile=new THREE.Mesh(new THREE.PlaneGeometry(2.48,2.48),mats.tile);
+    tile.rotation.x=-Math.PI/2;tile.position.set(x,-.075,z);tile.receiveShadow=true;scene.add(tile);
   }
-  const caoTuong=2.1*3;
-  const tamTuong=-.3+caoTuong/2;
-  box(scene, 40, caoTuong, .55, mats.wall, 0, tamTuong, -13.2);
-  box(scene, .55, caoTuong, 26, mats.wall, -20.2, tamTuong, 0);
-  box(scene, .55, caoTuong, 26, mats.wall, 20.2, tamTuong, 0);
-  box(scene, 40, .5, .55, mats.trim, 0, -.04, 13.2, false);
-  for (const z of [-8, -3, 2, 7]) {
-    box(scene, .16, .12, .16, mats.wallLight, -19.5, -.01, z, false);
-    box(scene, .16, .12, .16, mats.wallLight, 19.5, -.01, z, false);
+  const caoTuong=6.3,tamTuong=-.3+caoTuong/2;
+  box(scene,40,caoTuong,.55,mats.wall,0,tamTuong,-13.2);
+  box(scene,.55,caoTuong,26,mats.wall,-20.2,tamTuong,0);
+  box(scene,.55,caoTuong,26,mats.wall,20.2,tamTuong,0);
+  box(scene,40,.5,.55,mats.trim,0,-.04,13.2,false);
+  for(const z of [-8,-3,2,7]){
+    box(scene,.16,.12,.16,mats.wallLight,-19.5,-.01,z,false);
+    box(scene,.16,.12,.16,mats.wallLight,19.5,-.01,z,false);
   }
-  enclosedRoom(10.4, 18.6, -10.7, -4.7, 'PHÒNG SẾP', 14.5);
-  enclosedRoom(10.4, 18.6, 1.2, 8.6, 'PHÒNG HỌP', 14.5);
+  enclosedRoom(-14.6,-6.4,-10.7,-4.7,'PHÒNG SẾP',-7.7,'west');
+  enclosedRoom(10.4,18.6,-10.7,-4.7,'PHÒNG HỌP',12.8);
   taoKhuWc();
   taoSanGoCafe();
-  box(scene, .18, 1.4, 8.2, mats.wallLight, -14.55, .7, -9.05);
-  box(scene, 4.6, .72, 1.1, mats.wood, -9.8, .22, -10.05);
-  box(scene, 4.7, .13, 1.2, mats.woodLight, -9.8, .65, -10.05);
-  box(scene, 1.05, .36, .75, mats.dark, -11.1, .9, -10.05);
-  box(scene, 3.05, .13, .28, mats.wood, -10.45, 1.75, -11.55);
-  box(scene, 3.05, .13, .28, mats.wood, -10.45, 2.45, -11.55);
+  const dx=25.15,dz=14.18;
+  box(scene,4.6,.72,1.1,mats.wood,-9.8+dx,.22,-10.05+dz);
+  box(scene,4.7,.13,1.2,mats.woodLight,-9.8+dx,.65,-10.05+dz);
+  box(scene,1.05,.36,.75,mats.dark,-11.1+dx,.9,-10.05+dz);
+  box(scene,3.05,.13,.28,mats.wood,-10.45+dx,1.75,-11.55+dz);
+  box(scene,3.05,.13,.28,mats.wood,-10.45+dx,2.45,-11.55+dz);
   for(const x of [-11.75,-11.1,-10.45,-9.8,-9.15]){
-    box(scene,.045,.48,.045,mats.woodLight,x,.24,-9.47,false);
-    box(scene,.08,.34,.08,mats.dark,x,2.07,-11.37);
-    box(scene,.58,.055,.42,mats.cream,x,2.28,-11.37);
+    box(scene,.045,.48,.045,mats.woodLight,x+dx,.24,-9.47+dz,false);
+    box(scene,.08,.34,.08,mats.dark,x+dx,2.07,-11.37+dz);
+    box(scene,.58,.055,.42,mats.cream,x+dx,2.28,-11.37+dz);
   }
   for(const [x,y,z] of [[-11.5,2.04,-11.34],[-9.3,2.04,-11.34],[-8.4,2.74,-11.34]]){
-    const chai=new THREE.Mesh(new THREE.CylinderGeometry(.12,.16,.38,12),mats.wood);chai.position.set(x,y,z);scene.add(chai);
-    const nap=new THREE.Mesh(new THREE.CylinderGeometry(.14,.14,.06,12),mats.cream);nap.position.set(x,y+.21,z);scene.add(nap);
+    const chai=new THREE.Mesh(new THREE.CylinderGeometry(.12,.16,.38,12),mats.wood);chai.position.set(x+dx,y,z+dz);scene.add(chai);
+    const nap=new THREE.Mesh(new THREE.CylinderGeometry(.14,.14,.06,12),mats.cream);nap.position.set(x+dx,y+.21,z+dz);scene.add(nap);
   }
-  for (const x of [-11.5, -8.1]) box(scene, .12, .3, .12, mats.dark, x, .04, -9.85);
-  for(const x of [-11.2,-9.8,-8.4]){const ghe=stool(x,-8.95);ghe.rotation.y=Math.PI;}
-  for (const [x, z] of [[-11.2,-9.2],[-9,-9.2],[-11.2,-10.9],[-9,-10.9]]) {
-    const cup = new THREE.Mesh(new THREE.CylinderGeometry(.13,.17,.2,12), mats.cream);
-    cup.position.set(x,.84,z); cup.castShadow = true; scene.add(cup);
-    sphere(scene,x,.97,z,.025,.07,.025,mats.wood,8);
+  for(const x of [-11.5,-8.1])box(scene,.12,.3,.12,mats.dark,x+dx,.04,-9.85+dz);
+  for(const x of [-11.2,-9.8,-8.4]){const ghe=stool(x+dx,-8.95+dz);ghe.rotation.y=Math.PI;}
+  for(const [x,z] of [[-11.2,-9.2],[-9,-9.2],[-11.2,-10.9],[-9,-10.9]]){
+    const cup=new THREE.Mesh(new THREE.CylinderGeometry(.13,.17,.2,12),mats.cream);cup.position.set(x+dx,.84,z+dz);cup.castShadow=true;scene.add(cup);
+    sphere(scene,x+dx,.97,z+dz,.025,.07,.025,mats.wood,8);
   }
   taoSofaCafe();
   taoBanTho();
   taoPhongSep();
-  conferenceRoom(14.5, 5.1);
+  conferenceRoom(14.5,-7.7);
   taoBanMaSoi();
-  for (const [id,z] of [[1,11.4],[3,1.4],[4,3.9],[5,6.4],[6,8.9]]) workTable(z,`desk-${id}`);
-  for (const [x,z] of [[-15.3,-5.7],[-15.3,-4.2],[12.2,-4.2],[18.8,-4.2],[12.2,8.9],[18.8,8.9],[-18.5,11.8],[18.5,11.8]]) plant(x,z);
-  box(scene, .12, .85, 5.2, mats.wallLight, -6.8, .17, -8.3);
-  box(scene, .12, .85, 5.2, mats.wallLight, 6.8, .17, -8.3);
-  for(let i=0;i<4;i++){
-    const x=-3.5+i*2.3,z=8.2;
-    gheSanh.push({x,z,vat:stool(x,z)});
-  }
+  for(const [id,z] of [[1,11.4],[3,1.4],[4,3.9],[5,6.4],[6,8.9]])workTable(z,`desk-${id}`);
+  for(const [x,z] of [[-18.5,11.8],[-18.5,4],[-18.5,0],[18.8,10],[18.8,-2],[-3,11],[3,11],[18.5,11.8]])plant(x,z);
+  for(let i=0;i<4;i++){const x=-3.5+i*2.3,z=8.2;gheSanh.push({x,z,vat:stool(x,z)});}
 }
+
 function taoBanTho() {
   const ke = new THREE.Group();
   ke.position.set(banTho.x, 0, banTho.z);
@@ -890,16 +891,19 @@ function animal(type, tint = null, macVest = false) {
 }
 
 function taoTaiNghe(type){
-  const group=new THREE.Group(),nhua=mat('#49384c'),dem=mat('#d99c68');
-  const vong=new THREE.Mesh(new THREE.TorusGeometry(.32,.05,10,32,Math.PI),nhua);group.add(vong);
+  const group=new THREE.Group(),nhua=new THREE.MeshBasicMaterial({color:'#f01835',toneMapped:false,depthTest:false,depthWrite:false}),dem=new THREE.MeshBasicMaterial({color:'#ff394d',toneMapped:false,depthTest:false,depthWrite:false});
+  const vong=new THREE.Mesh(new THREE.TorusGeometry(.34,.065,12,36,Math.PI),nhua);vong.position.set(0,.025,-.08);group.add(vong);
   for(const side of [-1,1]){
-    const chup=new THREE.Mesh(new THREE.SphereGeometry(1,12,10),dem);chup.scale.set(.14,.2,.17);chup.position.set(side*.31,-.06,0);chup.castShadow=false;group.add(chup);
-    const lop=new THREE.Mesh(new THREE.SphereGeometry(1,12,10),nhua);lop.scale.set(.09,.14,.17);lop.position.set(side*.34,-.06,-.015);lop.castShadow=false;group.add(lop);
+    const chup=new THREE.Mesh(new THREE.SphereGeometry(1,16,12),dem);chup.scale.set(.16,.23,.2);chup.position.set(side*.34,-.065,-.22);chup.renderOrder=30;chup.castShadow=false;group.add(chup);
+    const lop=new THREE.Mesh(new THREE.SphereGeometry(1,16,12),nhua);lop.scale.set(.105,.17,.205);lop.position.set(side*.355,-.065,-.245);lop.renderOrder=31;lop.castShadow=false;group.add(lop);
   }
+  vong.renderOrder=29;
   if(type==='snake')group.position.set(0,2.05,-.06);
   else if(type==='fish')group.position.set(0,.99,-.03);
   else if(type==='sloth')group.position.set(0,-.22,-.5);
   else group.position.set(0,.22,-.15);
+  group.renderOrder=29;
+  group.traverse(mesh=>{if(mesh.isMesh)mesh.renderOrder=Math.max(mesh.renderOrder,29);});
   group.visible=false;return group;
 }
 function taoZzz(){
@@ -917,15 +921,15 @@ let hieuUngBatSep=null;
 const nutBatSep=document.querySelector('#boss-rebel-button');
 function taoPhongSep(){
   banSep=new THREE.Group();
-  banSep.position.set(14.5,1,-8.55);
+  banSep.position.set(-10.5,1,-8.55);
   box(banSep,3.25,.21,1.12,mats.wood,0,0,0);
   for(const x of [-1.32,1.32])box(banSep,.24,.94,.95,mats.wood,x,-.53,0);
   scene.add(banSep);
-  stool(14.5,-9.65);
-  stool(14.5,-7.15);
+  stool(-10.5,-9.65);
+  stool(-10.5,-7.15);
   sep=animal('cow',null,true);
   sep.scale.setScalar(2);
-  sep.position.set(14.5,0,-9.65);
+  sep.position.set(-10.5,0,-9.65);
   sep.rotation.y=Math.PI;
   const dau=sep.userData.dau;
   sep.userData.vatLieuDau=[];
@@ -2063,13 +2067,13 @@ function veSep(now){
 function ketThucHieuUngBatSep(){
   if(!hieuUngBatSep)return;
   const player=players.get(hieuUngBatSep.id);
-  if(banSep){banSep.position.set(14.5,1,-8.55);banSep.rotation.set(0,0,0);}
+  if(banSep){banSep.position.set(-10.5,1,-8.55);banSep.rotation.set(0,0,0);}
   if(luaSep)luaSep.scale.setScalar(0);
   if(quangDoDauSep)quangDoDauSep.material.opacity=0;
   for(const muc of sep.userData.vatLieuDau||[]){muc.mesh.material=muc.goc;muc.mauDo.dispose();}
   sep.userData.vatLieuDau=[];
   const cua=cuaHop.get('PHÒNG SẾP');
-  if(cua){clearTimeout(cua.userData.dong);cua.position.copy(hieuUngBatSep.cuaViTri);cua.rotation.set(0,0,0);}
+  if(cua){clearTimeout(cua.userData.dong);cua.position.copy(hieuUngBatSep.cuaViTri);cua.rotation.set(0,cua.userData.closedRotationY??Math.PI/2,0);}
   for(const kyTu of kyTuBay)kyTu.visible=false;
   if(player){
     player.pose='';
@@ -2104,18 +2108,16 @@ function veHieuUngBatSep(now){
     luaSep.scale.set(.95+nhip*.2,Math.max(.001,cao*3.1*nhip),.95+nhip*.2);
   }
   const lat=Math.max(0,Math.min(1,t/1.5));
-  banSep.position.set(14.5+2.35*lat,1+Math.sin(lat*Math.PI)*1.5,-8.55+Math.sin(lat*Math.PI)*.45);
+  banSep.position.set(-10.5+2.35*lat,1+Math.sin(lat*Math.PI)*1.5,-8.55+Math.sin(lat*Math.PI)*.45);
   banSep.rotation.set(Math.PI*4*lat,Math.PI*2*lat,Math.sin(lat*Math.PI)*.28);
-  if(t>=1.5){banSep.position.set(16.85,.72,-8.55);banSep.rotation.set(Math.PI*4,Math.PI*2,.28);}
+  if(t>=1.5){banSep.position.set(-8.15,.72,-8.55);banSep.rotation.set(Math.PI*4,Math.PI*2,.28);}
   if(now-(effect.shadowRefreshAt||0)>=100){effect.shadowRefreshAt=now;renderer.shadowMap.needsUpdate=true;}
   const cua=cuaHop.get('PHÒNG SẾP');
   if(cua){
     const bay=Math.max(0,Math.min(1,(t-effect.batDauMoCua/1000)/.48));
     cua.position.copy(effect.cuaViTri);
-    cua.position.x+=1.7*bay;
     cua.position.y=2.35*bay*(1-bay);
-    cua.position.z+=.4*bay;
-    cua.rotation.set(bay*Math.PI*1.55,-bay*Math.PI*2.8,bay*1.35);
+    cua.rotation.set(bay*.08,Math.PI/2*(1-bay),bay*.06);
   }
   const player=players.get(effect.id);
   if(player){
@@ -2125,7 +2127,7 @@ function veHieuUngBatSep(now){
     }
     if(t>=effect.batDauDiCua/1000&&!effect.daDiCua){
       effect.daDiCua=true;
-      player.runMotion={points:[player.group.position.clone(),new THREE.Vector3(effect.cua.x,0,effect.cua.z)],started:effect.started+effect.batDauDiCua,duration:effect.thoiGianDenCua,jump:false};
+      player.runMotion={points:[player.group.position.clone(),...(effect.pathCua||[{x:effect.cua.x,z:effect.cua.z}]).map(diem=>new THREE.Vector3(diem.x,0,diem.z))],started:effect.started+effect.batDauDiCua,duration:effect.thoiGianDenCua,jump:false};
     }
     const quat=Math.max(0,Math.min(1,(t-effect.batDauQuatCua/1000)/.42));
     if(player.avatar==='snake'&&player.group.userData.duoiRan){
@@ -2169,7 +2171,7 @@ socket.on('boss-rebel',event=>{
   if(player.id===selfId){targetWorld=null;nutBatSep.hidden=true;}
   const cua=cuaHop.get('PHÒNG SẾP');
   if(cua)clearTimeout(cua.userData.dong);
-  hieuUngBatSep={...event,id:event.id,started:now,duration:event.duration,cuaViTri:cua?.position.clone()||new THREE.Vector3(13.805,0,-4.67),daDiCua:false,daDiTho:false};
+  hieuUngBatSep={...event,id:event.id,started:now,duration:event.duration,cuaViTri:cua?.position.clone()||new THREE.Vector3(-14.63,0,-6.925),daDiCua:false,daDiTho:false};
   renderer.shadowMap.needsUpdate=true;
 });
 
