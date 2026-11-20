@@ -414,13 +414,13 @@ function taoSanGoCafe(){
     for(let x=y%128?0:128;x<512;x+=128){ctx.fillStyle='#a87951';ctx.fillRect(x,y,3,64);}
   }
   const texture=new THREE.CanvasTexture(canvas);texture.colorSpace=THREE.SRGBColorSpace;
-  const san=new THREE.Mesh(new THREE.PlaneGeometry(9.4,12.4),new THREE.MeshStandardMaterial({map:texture,roughness:.87}));
-  san.rotation.x=-Math.PI/2;san.position.set(15.3,-.068,6.8);san.receiveShadow=true;scene.add(san);
+  const san=new THREE.Mesh(new THREE.PlaneGeometry(9.4,9.4),new THREE.MeshStandardMaterial({map:texture,roughness:.87}));
+  san.rotation.x=-Math.PI/2;san.position.set(15.3,-.068,8.3);san.receiveShadow=true;scene.add(san);
   denChieuCafe=new THREE.SpotLight('#ff4a9d',0,14,Math.PI/5,.8,1.1);
-  denChieuCafe.position.set(15.3,7,6.8);
-  const diemChieu=new THREE.Object3D();diemChieu.position.set(15.3,0,6.8);scene.add(diemChieu);denChieuCafe.target=diemChieu;scene.add(denChieuCafe);
+  denChieuCafe.position.set(15.3,7,8.3);
+  const diemChieu=new THREE.Object3D();diemChieu.position.set(15.3,0,8.3);scene.add(diemChieu);denChieuCafe.target=diemChieu;scene.add(denChieuCafe);
   chopSangCafe=new THREE.Mesh(new THREE.CylinderGeometry(.24,6.2,7,40,1,true),new THREE.MeshBasicMaterial({color:'#ff4a9d',transparent:true,opacity:.2,side:THREE.DoubleSide,depthWrite:false}));
-  chopSangCafe.position.set(15.3,3.5,6.8);chopSangCafe.visible=false;chopSangCafe.renderOrder=3;scene.add(chopSangCafe);
+  chopSangCafe.position.set(15.3,3.5,8.3);chopSangCafe.visible=false;chopSangCafe.renderOrder=3;scene.add(chopSangCafe);
 }
 function taoSofaCafe(){
   const sofa=new THREE.Group();sofa.position.set(18.85,0,3.9);sofa.rotation.y=Math.PI;sofa.scale.set(1.55,1.15,1.18);scene.add(sofa);
@@ -441,7 +441,7 @@ function taoSofaCafe(){
   for(const [x,z] of [[-.45,-1.78],[.48,-1.78],[-.45,1.78],[.48,1.78],[1.58,1.7],[1.58,.95]]){
     const chan=new THREE.Mesh(new THREE.CylinderGeometry(.07,.09,.25,10),go);chan.position.set(x,.14,z);sofa.add(chan);
   }
-  sofa.userData.sleepSpots=[{x:16.75,z:2.18,yaw:0},{x:18.35,z:7.3,yaw:Math.PI/2},{x:18.35,z:8.8,yaw:Math.PI/2},{x:18.35,z:10.3,yaw:Math.PI/2}];
+  sofa.userData.sleepSpots=[{x:16.95,z:2.4,yaw:0},{x:18.1,z:2.4,yaw:0},{x:18.85,z:4.05,yaw:Math.PI/2},{x:18.85,z:5.35,yaw:Math.PI/2}];
   sofa.userData.sleepSpot=sofa.userData.sleepSpots[0];
   const ban=new THREE.Group();ban.position.set(15.95,0,10.03);scene.add(ban);
   box(ban,1.25,.12,.72,mat('#c58a50'),0,.48,0);
@@ -1789,6 +1789,7 @@ socket.on('zone-sleep-motion',event=>{
   const p=players.get(event.id);if(!p)return;
   setBubble(event.id,'');
   p.pose='sofa-moving';
+  p.nhay=null;p.muaVo=null;p.hanhDong=null;p.hoatCanh=null;p.chichDien=null;
   p.body.rotation.set(0,0,0);p.body.scale.setScalar(1);p.body.position.set(0,0,0);
   for(const arm of p.group.userData.tay||[]){arm.rotation.set(0,0,0);arm.userData.khuYu.rotation.set(0,0,0);}
   for(const leg of p.group.userData.chan||[]){leg.rotation.set(0,0,0);leg.userData.goi.rotation.set(0,0,0);}
@@ -1800,8 +1801,9 @@ socket.on('zone-pose',event=>{
   const p=players.get(event.id);if(!p)return;
   const old=p.pose;p.pose=event.pose||'';
   if(p.pose==='sofa-sleep'){
+    p.nhay=null;p.muaVo=null;p.hanhDong=null;p.hoatCanh=null;p.chichDien=null;
     p.runMotion=null;
-    if(Number.isFinite(event.x)&&Number.isFinite(event.z)){p.group.position.set(event.x,.35,event.z);p.target.set(event.x,0,event.z);p.group.rotation.y=event.yaw||0;}
+    if(Number.isFinite(event.x)&&Number.isFinite(event.z)){p.group.position.set(event.x,0,event.z);p.target.set(event.x,0,event.z);p.group.rotation.y=event.yaw||0;}
   }
   if(!p.pose&&['sofa-moving','sofa-sleep','bar-dance'].includes(old)){
     if(old==='sofa-moving')p.runMotion=null;
@@ -2583,8 +2585,7 @@ function veRanThuong(p,now){
 }
 
 function vePoseCafe(p,now){
-  if(!p.taiNghe)return;
-  p.taiNghe.visible=p.pose==='bar-dance';
+  if(p.taiNghe)p.taiNghe.visible=p.pose==='bar-dance';
   p.zzzSprite.visible=p.pose==='sofa-sleep';
   p.closedEyes.visible=p.pose==='sofa-sleep';
   for(const eye of p.openEyes||[])eye.visible=p.pose!=='sofa-sleep';
@@ -2600,14 +2601,14 @@ function vePoseCafe(p,now){
     }
   }else if(p.pose==='sofa-sleep'){
     if(p.avatar==='snake'){
-      p.group.position.y=1.15;p.body.position.set(0,0,0);p.body.scale.setScalar(.6);
+      p.group.position.y=1.45;p.body.position.set(0,0,0);p.body.scale.setScalar(.6);
       bungLoXo(p,1,Math.sin(now*.0018)*.22,1,undefined,undefined,0,1,'bo');
     }else{
-    p.group.position.y=0;p.body.scale.setScalar(.6);p.body.position.set(.81,1.52,0);p.body.rotation.set(0,0,Math.PI/2);
+      p.group.position.y=0;p.body.scale.setScalar(.6);p.body.position.set(0,1.95,0);p.body.rotation.set(0,0,Math.PI/2);
       for(const arm of p.group.userData.tay||[]){arm.rotation.set(0,0,0);arm.userData.khuYu.rotation.set(0,0,0);}
       for(const leg of p.group.userData.chan||[]){leg.rotation.set(0,0,0);leg.userData.goi.rotation.set(0,0,0);}
     }
-    p.zzzSprite.position.set(.9+Math.sin(now*.002)*.12,1.12+(now%1300)/1300*.4,-.34);
+    p.zzzSprite.position.set(.9+Math.sin(now*.002)*.12,2.3+(now%1300)/1300*.4,-.34);
   }
 }
 function hoatAnhNhay(p,now){
