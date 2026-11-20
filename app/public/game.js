@@ -357,7 +357,7 @@ function enclosedRoom(xMin, xMax, zMin, zMax, title, doorAt, doorSide='south') {
   for(const o of scene.children.slice(truocVach))o.castShadow=false;
   scene.add(door);
   door.userData.closedRotationY=doorSide==='west'?Math.PI/2:0;
-  door.userData.openRotationY=doorSide==='west'?0:Math.PI/2;
+  door.userData.openRotationY=doorSide==='west'?0:title==='PHÒNG SẾP'?-Math.PI/2:Math.PI/2;
   cuaHop.set(title,door);
   if(title==='PHÒNG SẾP'){
     const mauBien=label(title,'#493650');
@@ -414,16 +414,16 @@ function taoSanGoCafe(){
     for(let x=y%128?0:128;x<512;x+=128){ctx.fillStyle='#a87951';ctx.fillRect(x,y,3,64);}
   }
   const texture=new THREE.CanvasTexture(canvas);texture.colorSpace=THREE.SRGBColorSpace;
-  const san=new THREE.Mesh(new THREE.PlaneGeometry(9.4,7.4),new THREE.MeshStandardMaterial({map:texture,roughness:.87}));
-  san.rotation.x=-Math.PI/2;san.position.set(15.3,-.068,9.3);san.receiveShadow=true;scene.add(san);
+  const san=new THREE.Mesh(new THREE.PlaneGeometry(9.4,12.4),new THREE.MeshStandardMaterial({map:texture,roughness:.87}));
+  san.rotation.x=-Math.PI/2;san.position.set(15.3,-.068,6.8);san.receiveShadow=true;scene.add(san);
   denChieuCafe=new THREE.SpotLight('#ff4a9d',0,14,Math.PI/5,.8,1.1);
-  denChieuCafe.position.set(15.3,7,9.3);
-  const diemChieu=new THREE.Object3D();diemChieu.position.set(15.3,0,9.3);scene.add(diemChieu);denChieuCafe.target=diemChieu;scene.add(denChieuCafe);
-  chopSangCafe=new THREE.Mesh(new THREE.CylinderGeometry(.24,4.8,7,40,1,true),new THREE.MeshBasicMaterial({color:'#ff4a9d',transparent:true,opacity:.2,side:THREE.DoubleSide,depthWrite:false}));
-  chopSangCafe.position.set(15.3,3.5,9.3);chopSangCafe.visible=false;chopSangCafe.renderOrder=3;scene.add(chopSangCafe);
+  denChieuCafe.position.set(15.3,7,6.8);
+  const diemChieu=new THREE.Object3D();diemChieu.position.set(15.3,0,6.8);scene.add(diemChieu);denChieuCafe.target=diemChieu;scene.add(denChieuCafe);
+  chopSangCafe=new THREE.Mesh(new THREE.CylinderGeometry(.24,6.2,7,40,1,true),new THREE.MeshBasicMaterial({color:'#ff4a9d',transparent:true,opacity:.2,side:THREE.DoubleSide,depthWrite:false}));
+  chopSangCafe.position.set(15.3,3.5,6.8);chopSangCafe.visible=false;chopSangCafe.renderOrder=3;scene.add(chopSangCafe);
 }
 function taoSofaCafe(){
-  const sofa=new THREE.Group();sofa.position.set(18.85,0,8.9);sofa.rotation.y=Math.PI;sofa.scale.set(1.55,1.15,1.18);scene.add(sofa);
+  const sofa=new THREE.Group();sofa.position.set(18.85,0,3.9);sofa.rotation.y=Math.PI;sofa.scale.set(1.55,1.15,1.18);scene.add(sofa);
   const khung=mat('#44434b'),nem=mat('#777880'),dem=mat('#b5b5ba'),go=mat('#383740');
   const khoiMem=(x,y,z,sx,sy,sz,vatLieu)=>{
     const m=new THREE.Mesh(new THREE.SphereGeometry(1,20,14),vatLieu);m.position.set(x,y,z);m.scale.set(sx,sy,sz);m.castShadow=true;m.receiveShadow=true;sofa.add(m);sofaParts.push(m);return m;
@@ -441,7 +441,7 @@ function taoSofaCafe(){
   for(const [x,z] of [[-.45,-1.78],[.48,-1.78],[-.45,1.78],[.48,1.78],[1.58,1.7],[1.58,.95]]){
     const chan=new THREE.Mesh(new THREE.CylinderGeometry(.07,.09,.25,10),go);chan.position.set(x,.14,z);sofa.add(chan);
   }
-  sofa.userData.sleepSpots=[{x:16.3,z:7.18,yaw:0},{x:18.35,z:6.65,yaw:Math.PI/2},{x:18.35,z:8.15,yaw:Math.PI/2},{x:18.35,z:9.65,yaw:Math.PI/2}];
+  sofa.userData.sleepSpots=[{x:16.75,z:2.18,yaw:0},{x:18.35,z:7.3,yaw:Math.PI/2},{x:18.35,z:8.8,yaw:Math.PI/2},{x:18.35,z:10.3,yaw:Math.PI/2}];
   sofa.userData.sleepSpot=sofa.userData.sleepSpots[0];
   const ban=new THREE.Group();ban.position.set(15.95,0,10.03);scene.add(ban);
   box(ban,1.25,.12,.72,mat('#c58a50'),0,.48,0);
@@ -477,6 +477,7 @@ function capNhatSoGheMaSoi(count){
     ghe.position.set(viTri.x-TAM_BAN_MA_SOI.x,0,viTri.z-TAM_BAN_MA_SOI.z);
     ghe.rotation.y=viTri.yaw;
   }
+  renderer.shadowMap.needsUpdate=true;
 }
 
 function taoBanMaSoi(){
@@ -1064,7 +1065,7 @@ function xuLyClickPhong(event){
   else{
     const sofaHit=raycaster.intersectObjects(sofaParts,true).length>0;
     const floorHit=raycaster.intersectObject(ground,false)[0];
-    const nearSofa=floorHit&&floorHit.point.x>=-14.7&&floorHit.point.x<=-11.55&&floorHit.point.z>=-12.95&&floorHit.point.z<=-8.85;
+    const nearSofa=floorHit&&floorHit.point.x>=16.05&&floorHit.point.x<=19.35&&floorHit.point.z>=.9&&floorHit.point.z<=6.65;
     if(sofaHit||nearSofa){socket.emit('sofa-sleep');return;}
     if(floorHit)datDiemDen(floorHit.point.x,floorHit.point.z);
   }
@@ -1157,6 +1158,7 @@ function removePlayer(id) {
   dungMuaVo(p);
   donChichDien(p);
   scene.remove(p.group);
+  renderer.shadowMap.needsUpdate=true;
   p.group.traverse(o=>{
     if(o.geometry)o.geometry.dispose();
     const materials=Array.isArray(o.material)?o.material:o.material?[o.material]:[];
@@ -1787,6 +1789,9 @@ socket.on('zone-sleep-motion',event=>{
   const p=players.get(event.id);if(!p)return;
   setBubble(event.id,'');
   p.pose='sofa-moving';
+  p.body.rotation.set(0,0,0);p.body.scale.setScalar(1);p.body.position.set(0,0,0);
+  for(const arm of p.group.userData.tay||[]){arm.rotation.set(0,0,0);arm.userData.khuYu.rotation.set(0,0,0);}
+  for(const leg of p.group.userData.chan||[]){leg.rotation.set(0,0,0);leg.userData.goi.rotation.set(0,0,0);}
   const points=(event.path?.length?event.path:[{x:event.x,z:event.z}]).map(point=>new THREE.Vector3(point.x,0,point.z));
   p.runMotion={points:[p.group.position.clone(),...points],started:performance.now(),duration:event.duration,jump:false};
   if(p.id===selfId)targetWorld=null;
@@ -2150,12 +2155,17 @@ function veHieuUngBatSep(now){
       }
       if(quat>=1)for(const chan of player.group.userData.chan){chan.rotation.set(0,0,0);chan.userData.goi.rotation.set(0,0,0);}
     }
+  if(t>=effect.batDauRaCua/1000&&!effect.daRaCua){
+      effect.daRaCua=true;
+      player.runMotion={points:[player.group.position.clone(),...(effect.pathRaCua||[{x:effect.cuaNgoai.x,z:effect.cuaNgoai.z}]).map(diem=>new THREE.Vector3(diem.x,0,diem.z))],started:effect.started+effect.batDauRaCua,duration:effect.thoiGianRaCua,jump:false};
+    }
     if(t>=effect.batDauDiTho/1000&&!effect.daDiTho){
       effect.daDiTho=true;
-      player.runMotion={points:[new THREE.Vector3(effect.cua.x,0,effect.cua.z),...effect.path.map(diem=>new THREE.Vector3(diem.x,0,diem.z))],started:effect.started+effect.batDauDiTho,duration:effect.thoiGianDiTho,jump:false,yawCuoi:0};
+      player.runMotion={points:[new THREE.Vector3(effect.cuaNgoai.x,0,effect.cuaNgoai.z),...effect.path.map(diem=>new THREE.Vector3(diem.x,0,diem.z))],started:effect.started+effect.batDauDiTho,duration:effect.thoiGianDiTho,jump:false,yawCuoi:0};
     }
-    if(t>=5.2){
-      const cui=Math.sin(Math.max(0,Math.min(1,(t-5.2)/.78))*Math.PI);
+    const batDauCui=(effect.batDauDiTho+effect.thoiGianDiTho)/1000;
+    if(t>=batDauCui){
+      const cui=Math.sin(Math.max(0,Math.min(1,(t-batDauCui)/.78))*Math.PI);
       player.body.rotation.x=-Math.PI/2*cui;
       player.body.position.y=.22*cui;
       for(const tay of player.group.userData.tay){tay.rotation.x=-.65*cui;tay.userData.khuYu.rotation.x=.35*cui;}
@@ -2593,7 +2603,9 @@ function vePoseCafe(p,now){
       p.group.position.y=1.15;p.body.position.set(0,0,0);p.body.scale.setScalar(.6);
       bungLoXo(p,1,Math.sin(now*.0018)*.22,1,undefined,undefined,0,1,'bo');
     }else{
-      p.group.position.y=0;p.body.scale.setScalar(.6);p.body.position.set(.81,1.52,0);p.body.rotation.set(0,0,Math.PI/2);
+    p.group.position.y=0;p.body.scale.setScalar(.6);p.body.position.set(.81,1.52,0);p.body.rotation.set(0,0,Math.PI/2);
+      for(const arm of p.group.userData.tay||[]){arm.rotation.set(0,0,0);arm.userData.khuYu.rotation.set(0,0,0);}
+      for(const leg of p.group.userData.chan||[]){leg.rotation.set(0,0,0);leg.userData.goi.rotation.set(0,0,0);}
     }
     p.zzzSprite.position.set(.9+Math.sin(now*.002)*.12,1.12+(now%1300)/1300*.4,-.34);
   }

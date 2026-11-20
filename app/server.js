@@ -38,9 +38,9 @@ function taoLoTrinhCoThoiGian(dau, cuoi, tocDo, thoiGianToiThieu = 700) {
 }
 function trongVungNhayCafe(player) {
   const { x, z } = player;
-  if (x < 10.6 || x > 18.4 || z < 5.6 || z > 12.8) return false;
-  if (x >= 17.25 && z >= 6.1 && z <= 11.7) return false;
-  if (x >= 16.2 && x <= 18.4 && z >= 6.7 && z <= 8.9) return false;
+  if (x < 10.6 || x > 18.4 || z < .6 || z > 12.8) return false;
+  if (x >= 17.25 && z >= 1.1 && z <= 6.7) return false;
+  if (x >= 16.2 && x <= 18.4 && z >= 1.7 && z <= 3.9) return false;
   if (x >= 12.9 && x <= 17.8 && z >= 10.7 && z <= 12.1) return false;
   if (Math.hypot(x - 15.95, z - 10.03) < 1.05) return false;
   if ([13.95, 15.35, 16.75].some(gheX => Math.hypot(x - gheX, z - 12.48) < .72)) return false;
@@ -90,7 +90,7 @@ setInterval(()=>{
   const now=Date.now();
   for(const [code,room] of rooms){
     for(const player of room.values()){
-      if(player.sofaTarget&&Math.hypot(player.x-player.sofaTarget.x,player.z-player.sofaTarget.z)<.52&&now>=player.sofaArriveAt){
+      if(player.sofaTarget&&now>=player.sofaArriveAt){
         const dich=player.sofaTarget;player.sofaTarget=null;player.sofaTravel=false;player.pose='sofa-sleep';player.poseUntil=0;player.x=dich.x;player.z=dich.z;player.yaw=dich.yaw||0;
         io.to(code).emit('zone-pose',{id:player.id,pose:'sofa-sleep',x:dich.x,z:dich.z,yaw:dich.yaw||0});
       }
@@ -477,7 +477,7 @@ io.on('connection', socket => {
     player.lastSofaAt=now;ghiThaoTac(code,player);releaseWorkSeat(code,player);
     player.bubble='';player.bubbleUntil=0;
     const sleepYaw=player.avatar==='snake'?[Math.PI/2,Math.PI,Math.PI,Math.PI]:[0,Math.PI/2,Math.PI/2,Math.PI/2];
-    const sleepSpots=[{x:16.3,z:7.18,yaw:sleepYaw[0]},{x:18.35,z:6.65,yaw:sleepYaw[1]},{x:18.35,z:8.15,yaw:sleepYaw[2]},{x:18.35,z:9.65,yaw:sleepYaw[3]}];
+    const sleepSpots=[{x:16.75,z:2.18,yaw:sleepYaw[0]},{x:18.35,z:7.3,yaw:sleepYaw[1]},{x:18.35,z:8.8,yaw:sleepYaw[2]},{x:18.35,z:10.3,yaw:sleepYaw[3]}];
     const used=new Set([...room.values()].filter(p=>p.id!==player.id&&(p.pose==='sofa-sleep'||p.sofaTarget)).map(p=>{
       if(Number.isInteger(p.sofaSlot))return p.sofaSlot;
       const pos=p.sofaTarget||p;return sleepSpots.reduce((best,spot,index)=>Math.hypot(pos.x-spot.x,pos.z-spot.z)<Math.hypot(pos.x-sleepSpots[best].x,pos.z-sleepSpots[best].z)?index:best,0);
@@ -643,27 +643,32 @@ io.on('connection', socket => {
     const player = room?.get(socket.id);
     const now = Date.now();
     if (!player || dangThamGiaMaSoi(room,player) || player.hoatCanh?.loai !== 'boss' || now < player.hoatCanh.batDau || player.pose === 'boss-rebel') return;
-    const duration = 6000;
     const x = banTho.x;
     const z = banTho.z + 1.5;
     const from = {x:player.x,z:player.z,yaw:player.yaw};
-    const cua = {x:-12.8,z:-6.0};
+    const cua = {x:-12.8,z:-7.25};
+    const cuaNgoai = {x:-12.8,z:-6.0};
     const pathCua=taoLoTrinh(player,cua);
-    const cuaCuoi=pathCua.at(-1)||player;
     const quangCua=[player,...pathCua].slice(1).reduce((sum,point,index,arr)=>sum+Math.hypot(point.x-(index?arr[index-1].x:player.x),point.z-(index?arr[index-1].z:player.z)),0);
-    const path = taoLoTrinh(cua,{x,z});
-    const batDauDiCua = 1600;
+    const pathRaCua=taoLoTrinh(cua,cuaNgoai);
+    const path = taoLoTrinh(cuaNgoai,{x,z});
+    let quangDiTho=0,truoc=cuaNgoai;
+    for(const diem of path){quangDiTho+=Math.hypot(diem.x-truoc.x,diem.z-truoc.z);truoc=diem;}
+    const batDauDiCua = 1000;
     const thoiGianDenCua = Math.max(500,quangCua/5.8*1000);
-    const batDauQuatCua = batDauDiCua + thoiGianDenCua + 180;
-    const batDauMoCua = batDauQuatCua + 300;
-    const batDauDiTho = batDauMoCua + 350;
-    const thoiGianDiTho = 1800;
+    const batDauQuatCua = batDauDiCua + thoiGianDenCua + 120;
+    const batDauMoCua = batDauQuatCua + 420;
+    const batDauRaCua = batDauMoCua + 350;
+    const thoiGianRaCua = 600;
+    const batDauDiTho = batDauRaCua + thoiGianRaCua;
+    const thoiGianDiTho = Math.max(1800,quangDiTho/5.2*1000);
+    const duration=batDauDiTho+thoiGianDiTho+900;
     player.hoatCanh = null;
     player.lockedUntil = now + duration;
     player.pose = 'boss-rebel';
     player.poseUntil = player.lockedUntil;
     room.pendingMoves.delete(player.id);
-    io.to(code).emit('boss-rebel', {id:player.id,startedAt:now,duration,from,cua,pathCua,cuaCuoi,path,batDauDiCua,thoiGianDenCua,batDauQuatCua,batDauMoCua,batDauDiTho,thoiGianDiTho,x,z,yaw:0});
+    io.to(code).emit('boss-rebel', {id:player.id,startedAt:now,duration,from,cua,cuaNgoai,pathCua,pathRaCua,path,batDauDiCua,thoiGianDenCua,batDauQuatCua,batDauMoCua,batDauRaCua,thoiGianRaCua,batDauDiTho,thoiGianDiTho,x,z,yaw:0});
     io.to(code).emit('feed', {text:`🔥 ${player.name} bật SẾP`});
     setTimeout(() => {
       if (room.get(player.id) !== player || player.pose !== 'boss-rebel' || player.poseUntil !== now + duration) return;
