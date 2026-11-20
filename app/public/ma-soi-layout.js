@@ -1,4 +1,4 @@
-export const TAM_BAN_MA_SOI = Object.freeze({x:0,z:-7.2});
+export const TAM_BAN_MA_SOI = Object.freeze({x:14.5,z:-.8});
 export const BAN_KINH_GHE_MA_SOI = 3.35;
 export const BAN_KINH_VUNG_MA_SOI = 5.2;
 export const SO_GHE_TOI_DA_MA_SOI = 15;
