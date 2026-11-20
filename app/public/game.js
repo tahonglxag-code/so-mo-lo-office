@@ -68,7 +68,7 @@ const veRadio=new CSS3DRenderer();
 veRadio.domElement.style.cssText='position:absolute;inset:0;pointer-events:none;overflow:hidden';
 document.querySelector('.world-wrap').append(veRadio.domElement);
 const bangRadio=new CSS3DObject(document.querySelector('#radio-panel'));
-bangRadio.position.set(20.05,2.45,5.1);
+bangRadio.position.set(20.05,2.45,9.3);
 bangRadio.rotation.y=-Math.PI/2;
 bangRadio.scale.setScalar(.014);
 canhRadio.add(bangRadio);
@@ -415,39 +415,39 @@ function taoSanGoCafe(){
   }
   const texture=new THREE.CanvasTexture(canvas);texture.colorSpace=THREE.SRGBColorSpace;
   const san=new THREE.Mesh(new THREE.PlaneGeometry(9.4,7.4),new THREE.MeshStandardMaterial({map:texture,roughness:.87}));
-  san.rotation.x=-Math.PI/2;san.position.set(15.3,-.068,5.1);san.receiveShadow=true;scene.add(san);
+  san.rotation.x=-Math.PI/2;san.position.set(15.3,-.068,9.3);san.receiveShadow=true;scene.add(san);
   denChieuCafe=new THREE.SpotLight('#ff4a9d',0,14,Math.PI/5,.8,1.1);
-  denChieuCafe.position.set(15.3,7,5.1);
-  const diemChieu=new THREE.Object3D();diemChieu.position.set(15.3,0,5.1);scene.add(diemChieu);denChieuCafe.target=diemChieu;scene.add(denChieuCafe);
+  denChieuCafe.position.set(15.3,7,9.3);
+  const diemChieu=new THREE.Object3D();diemChieu.position.set(15.3,0,9.3);scene.add(diemChieu);denChieuCafe.target=diemChieu;scene.add(denChieuCafe);
   chopSangCafe=new THREE.Mesh(new THREE.CylinderGeometry(.24,4.8,7,40,1,true),new THREE.MeshBasicMaterial({color:'#ff4a9d',transparent:true,opacity:.2,side:THREE.DoubleSide,depthWrite:false}));
-  chopSangCafe.position.set(15.3,3.5,5.1);chopSangCafe.visible=false;chopSangCafe.renderOrder=3;scene.add(chopSangCafe);
+  chopSangCafe.position.set(15.3,3.5,9.3);chopSangCafe.visible=false;chopSangCafe.renderOrder=3;scene.add(chopSangCafe);
 }
 function taoSofaCafe(){
-  const sofa=new THREE.Group();sofa.position.set(18.85,0,3.2);sofa.rotation.y=Math.PI;sofa.scale.set(1.55,1.15,1.18);scene.add(sofa);
+  const sofa=new THREE.Group();sofa.position.set(18.85,0,8.9);sofa.rotation.y=Math.PI;sofa.scale.set(1.55,1.15,1.18);scene.add(sofa);
   const khung=mat('#44434b'),nem=mat('#777880'),dem=mat('#b5b5ba'),go=mat('#383740');
   const khoiMem=(x,y,z,sx,sy,sz,vatLieu)=>{
     const m=new THREE.Mesh(new THREE.SphereGeometry(1,20,14),vatLieu);m.position.set(x,y,z);m.scale.set(sx,sy,sz);m.castShadow=true;m.receiveShadow=true;sofa.add(m);sofaParts.push(m);return m;
   };
   sofaParts.push(box(sofa,1.35,.38,4.25,khung,0,.42,.02));
-  sofaParts.push(box(sofa,2.05,.38,1.36,khung,.78,.42,-1.45));
+  sofaParts.push(box(sofa,2.05,.38,1.36,khung,.78,.42,1.45));
   khoiMem(0,.69,.02,.62,.2,2.02,nem);
-  khoiMem(.78,.69,-1.45,.94,.2,.62,nem);
+  khoiMem(.78,.69,1.45,.94,.2,.62,nem);
   khoiMem(-.5,1.02,.02,.23,.64,2.08,nem);
-  khoiMem(.78,1.02,-1.92,.98,.64,.23,nem);
+  khoiMem(.78,1.02,1.92,.98,.64,.23,nem);
   khoiMem(.02,.92,1.95,.68,.46,.28,nem);
-  khoiMem(1.72,.92,-1.45,.3,.46,.68,nem);
+  khoiMem(1.72,.92,1.45,.3,.46,.68,nem);
   for(const z of [-1.45,-.52,.42,1.35])khoiMem(-.27,1.02,z,.16,.38,.39,dem);
-  for(const x of [.15,1.12])khoiMem(x,1.02,-1.68,.38,.38,.16,dem);
-  for(const [x,z] of [[-.45,-1.78],[.48,-1.78],[-.45,1.78],[.48,1.78],[1.58,-1.7],[1.58,-.95]]){
+  for(const x of [.15,1.12])khoiMem(x,1.02,1.68,.38,.38,.16,dem);
+  for(const [x,z] of [[-.45,-1.78],[.48,-1.78],[-.45,1.78],[.48,1.78],[1.58,1.7],[1.58,.95]]){
     const chan=new THREE.Mesh(new THREE.CylinderGeometry(.07,.09,.25,10),go);chan.position.set(x,.14,z);sofa.add(chan);
   }
-  sofa.userData.sleepSpots=[{x:18.2,z:1.57,yaw:Math.PI},{x:18.2,z:2.57,yaw:Math.PI},{x:18.2,z:3.57,yaw:Math.PI},{x:18.2,z:4.57,yaw:Math.PI}];
+  sofa.userData.sleepSpots=[{x:18.2,z:6.5,yaw:Math.PI},{x:18.2,z:7.8,yaw:Math.PI},{x:18.2,z:9.1,yaw:Math.PI},{x:18.2,z:10.4,yaw:Math.PI}];
   sofa.userData.sleepSpot=sofa.userData.sleepSpots[0];
-  const ban=new THREE.Group();ban.position.set(15.95,0,5.83);scene.add(ban);
+  const ban=new THREE.Group();ban.position.set(15.95,0,10.03);scene.add(ban);
   box(ban,1.25,.12,.72,mat('#c58a50'),0,.48,0);
   const matBan=mat('#80563e');
   for(const x of [-.5,.5])for(const z of [-.26,.26])box(ban,.07,.46,.07,matBan,x,.23,z);
-  const den=new THREE.PointLight('#ffd99e',.7,4,1.7);den.position.set(16.55,2.5,6.38);scene.add(den);
+  const den=new THREE.PointLight('#ffd99e',.7,4,1.7);den.position.set(16.55,2.5,10.58);scene.add(den);
 }
 const gheSanh=[];
 const vatTheMaSoi=[];
@@ -532,7 +532,7 @@ function office() {
   enclosedRoom(11.5,19.7,-12.7,-6.7,'PHÒNG HỌP',-11.7,'west');
   taoKhuWc();
   taoSanGoCafe();
-  const dx=25.15,dz=17.23;
+  const dx=25.15,dz=21.43;
   box(scene,4.6,.72,1.1,mats.wood,-9.8+dx,.22,-10.05+dz);
   box(scene,4.7,.13,1.2,mats.woodLight,-9.8+dx,.65,-10.05+dz);
   box(scene,1.05,.36,.75,mats.dark,-11.1+dx,.9,-10.05+dz);
@@ -553,7 +553,7 @@ function office() {
   conferenceRoom(15.6,-9.7);
   taoBanMaSoi();
   for(const [id,z] of [[1,11.4],[3,1.4],[4,3.9],[5,6.4],[6,8.9]])workTable(z,`desk-${id}`);
-  for(const [x,z] of [[-18.5,11.8],[-18.5,4],[-18.5,0],[18.8,10],[18.8,-2],[-3,11],[3,11],[18.5,11.8]])plant(x,z);
+  for(const [x,z] of [[-18.5,11.8],[-18.5,4],[-18.5,0],[-15.2,-5.1],[18.8,-2],[-3,11],[3,11],[-10.4,-5.1]])plant(x,z);
   for(let i=0;i<4;i++){const x=-3.5+i*2.3,z=8.2;gheSanh.push({x,z,vat:stool(x,z)});}
 }
 
