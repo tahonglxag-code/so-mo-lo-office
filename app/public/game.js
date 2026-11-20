@@ -1066,11 +1066,11 @@ function xuLyClickPhong(event){
   raycaster.setFromCamera(pointer,camera);
   const wolfHit=raycaster.intersectObjects(vatTheMaSoi,true)[0];
   if(wolfHit){moBangMaSoi();return;}
-  if(players.get(selfId)?.maSoi){toast('Bạn đang tham gia Ma Sói nên chưa thể ngủ.');return;}
   const sofaHit=raycaster.intersectObjects(sofaParts,true).length>0;
   const floorHit=raycaster.intersectObject(ground,false)[0];
   const nearSofa=floorHit&&floorHit.point.x>=15.45&&floorHit.point.x<=19.45&&floorHit.point.z>=3.25&&floorHit.point.z<=8.15;
-  if(sofaHit||nearSofa){socket.timeout(5000).emit('sofa-sleep',{},(error,result)=>{if(error||!result?.ok)toast(result?.text||'Chưa thể nằm sofa lúc này.');});return;}
+  if(sofaHit||nearSofa){if(players.get(selfId)?.maSoi){toast('Bạn đang tham gia Ma Sói nên chưa thể ngủ.');return;}socket.timeout(5000).emit('sofa-sleep',{},(error,result)=>{if(error||!result?.ok)toast(result?.text||'Chưa thể nằm sofa lúc này.');});return;}
+  if(players.get(selfId)?.maSoi)return;
   const hits=raycaster.intersectObjects([...players.values()].map(p=>p.group),true);
   const hit=hits.find(h=>h.object.userData.playerId);
   if(hit)selectPlayer(hit.object.userData.playerId);
