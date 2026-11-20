@@ -476,7 +476,8 @@ io.on('connection', socket => {
     if(!player||dangThamGiaMaSoi(room,player)||player.hoatCanh||now<(player.lockedUntil||0)||now-(player.lastSofaAt||0)<700)return;
     player.lastSofaAt=now;ghiThaoTac(code,player);releaseWorkSeat(code,player);
     player.bubble='';player.bubbleUntil=0;
-    const sleepSpots=[{x:18.3,z:7,yaw:Math.PI},{x:18.3,z:8.1,yaw:Math.PI},{x:18.3,z:9.2,yaw:Math.PI},{x:18.3,z:10.3,yaw:Math.PI}];
+    const sleepYaw=player.avatar==='snake'?Math.PI:Math.PI/2;
+    const sleepSpots=[{x:18.35,z:7.15,yaw:sleepYaw},{x:18.35,z:8.35,yaw:sleepYaw},{x:18.35,z:9.55,yaw:sleepYaw},{x:18.35,z:10.75,yaw:sleepYaw}];
     const used=new Set([...room.values()].filter(p=>p.id!==player.id&&(p.pose==='sofa-sleep'||p.sofaTarget)).map(p=>{
       if(Number.isInteger(p.sofaSlot))return p.sofaSlot;
       const pos=p.sofaTarget||p;return sleepSpots.reduce((best,spot,index)=>Math.hypot(pos.x-spot.x,pos.z-spot.z)<Math.hypot(pos.x-sleepSpots[best].x,pos.z-sleepSpots[best].z)?index:best,0);
