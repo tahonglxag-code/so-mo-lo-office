@@ -72,6 +72,11 @@ canhRadio.add(bangRadio);
 const camera = new THREE.PerspectiveCamera(40, 1, 0.1, 240);
 camera.position.set(0, 16, 16);
 camera.lookAt(0, 0, 0);
+let mucZoomCamera=1;
+canvas.addEventListener('wheel',event=>{
+  event.preventDefault();
+  mucZoomCamera=THREE.MathUtils.clamp(mucZoomCamera*Math.exp(event.deltaY*.001),.55,1.8);
+},{passive:false});
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false, powerPreference: 'low-power' });
 renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 1.5));
 renderer.shadowMap.enabled = true;
@@ -2932,7 +2937,7 @@ function frame(now) {
     if(!running&&(dx||dz)){const mag=Math.hypot(dx,dz);dx/=mag;dz/=mag;const buoc=buocDiAnToan({x:me.group.position.x,z:me.group.position.z},{x:me.group.position.x+dx*5.2*dt,z:me.group.position.z+dz*5.2*dt});me.group.position.x=buoc.x;me.group.position.z=buoc.z;me.group.rotation.y=Math.atan2(-dx,-dz);}
     if(socket.connected&&!me.raHang&&!me.muaVo&&now>=(me.khoaDen||0)&&now-lastMove>100){socket.volatile.emit('move',{x:me.group.position.x,z:me.group.position.z,yaw:me.group.rotation.y});lastMove=now;}
     const goc=me.maSoi?tinhGocMayMaSoi():tinhGocMay(me.group.position.x,me.group.position.z,camera.fov,camera.aspect);
-    camera.position.set(goc.viTri.x,goc.viTri.y,goc.viTri.z);camera.lookAt(goc.tam.x,goc.tam.y,goc.tam.z);
+    camera.position.set(goc.tam.x+(goc.viTri.x-goc.tam.x)*mucZoomCamera,goc.tam.y+(goc.viTri.y-goc.tam.y)*mucZoomCamera,goc.tam.z+(goc.viTri.z-goc.tam.z)*mucZoomCamera);camera.lookAt(goc.tam.x,goc.tam.y,goc.tam.z);
   }
   for(const p of players.values()){
     if(p.pose==='wolf-seat'){
