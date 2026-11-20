@@ -38,9 +38,9 @@ function taoLoTrinhCoThoiGian(dau, cuoi, tocDo, thoiGianToiThieu = 700) {
 }
 function trongVungNhayCafe(player) {
   const { x, z } = player;
-  if (x < 10.6 || x > 18.4 || z < 3.6 || z > 12.8) return false;
-  if (x >= 17.25 && z >= 3.6 && z <= 6.7) return false;
-  if (x >= 16.2 && x <= 18.4 && z >= 3.6 && z <= 3.9) return false;
+  if (x < 10.6 || x > 18.4 || z < 3.75 || z > 12.8) return false;
+  if (x >= 17.25 && z >= 3.75 && z <= 8.7) return false;
+  if (x >= 16.2 && x <= 18.4 && z >= 3.75 && z <= 5.0) return false;
   if (x >= 12.9 && x <= 17.8 && z >= 10.7 && z <= 12.1) return false;
   if (Math.hypot(x - 15.95, z - 10.03) < 1.05) return false;
   if ([13.95, 15.35, 16.75].some(gheX => Math.hypot(x - gheX, z - 12.48) < .72)) return false;
@@ -477,7 +477,7 @@ io.on('connection', socket => {
     player.lastSofaAt=now;ghiThaoTac(code,player);releaseWorkSeat(code,player);
     player.bubble='';player.bubbleUntil=0;
     const sleepYaw=player.avatar==='snake'?[Math.PI/2,Math.PI/2,0,0]:[0,0,Math.PI/2,Math.PI/2];
-    const sleepSpots=[{x:16.95,z:2.4,yaw:sleepYaw[0]},{x:18.1,z:2.4,yaw:sleepYaw[1]},{x:18.85,z:4.05,yaw:sleepYaw[2]},{x:18.85,z:5.35,yaw:sleepYaw[3]}];
+    const sleepSpots=[{x:16.95,z:4.4,yaw:sleepYaw[0]},{x:18.1,z:4.4,yaw:sleepYaw[1]},{x:18.85,z:6.05,yaw:sleepYaw[2]},{x:18.85,z:7.35,yaw:sleepYaw[3]}];
     const used=new Set([...room.values()].filter(p=>p.id!==player.id&&(p.pose==='sofa-sleep'||p.sofaTarget)).map(p=>{
       if(Number.isInteger(p.sofaSlot))return p.sofaSlot;
       const pos=p.sofaTarget||p;return sleepSpots.reduce((best,spot,index)=>Math.hypot(pos.x-spot.x,pos.z-spot.z)<Math.hypot(pos.x-sleepSpots[best].x,pos.z-sleepSpots[best].z)?index:best,0);
