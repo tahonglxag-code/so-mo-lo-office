@@ -476,8 +476,8 @@ io.on('connection', socket => {
     if(!player||dangThamGiaMaSoi(room,player)||player.hoatCanh||now<(player.lockedUntil||0)||now-(player.lastSofaAt||0)<700)return;
     player.lastSofaAt=now;ghiThaoTac(code,player);releaseWorkSeat(code,player);
     player.bubble='';player.bubbleUntil=0;
-    const sleepYaw=player.avatar==='snake'?Math.PI:Math.PI/2;
-    const sleepSpots=[{x:18.35,z:7.15,yaw:sleepYaw},{x:18.35,z:8.35,yaw:sleepYaw},{x:18.35,z:9.55,yaw:sleepYaw},{x:18.35,z:10.75,yaw:sleepYaw}];
+    const sleepYaw=player.avatar==='snake'?[Math.PI/2,Math.PI,Math.PI,Math.PI]:[0,Math.PI/2,Math.PI/2,Math.PI/2];
+    const sleepSpots=[{x:16.3,z:7.18,yaw:sleepYaw[0]},{x:18.35,z:6.65,yaw:sleepYaw[1]},{x:18.35,z:8.15,yaw:sleepYaw[2]},{x:18.35,z:9.65,yaw:sleepYaw[3]}];
     const used=new Set([...room.values()].filter(p=>p.id!==player.id&&(p.pose==='sofa-sleep'||p.sofaTarget)).map(p=>{
       if(Number.isInteger(p.sofaSlot))return p.sofaSlot;
       const pos=p.sofaTarget||p;return sleepSpots.reduce((best,spot,index)=>Math.hypot(pos.x-spot.x,pos.z-spot.z)<Math.hypot(pos.x-sleepSpots[best].x,pos.z-sleepSpots[best].z)?index:best,0);
