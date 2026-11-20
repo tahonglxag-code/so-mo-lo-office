@@ -459,7 +459,8 @@ io.on('connection', socket => {
     const code=socket.data.room,room=rooms.get(code),player=room?.get(socket.id),now=Date.now();
     if(!player||player.maSoi||player.hoatCanh||now<(player.lockedUntil||0)||now-(player.lastSofaAt||0)<700)return;
     player.lastSofaAt=now;ghiThaoTac(code,player);releaseWorkSeat(code,player);
-    const sleepSpots=[{x:-13.72,z:-9.15,yaw:Math.PI},{x:-13.72,z:-10,yaw:Math.PI},{x:-13.72,z:-10.85,yaw:Math.PI},{x:-13.72,z:-11.7,yaw:Math.PI}];
+    player.bubble='';player.bubbleUntil=0;
+    const sleepSpots=[{x:-13.78,z:-9.35,yaw:Math.PI},{x:-13.78,z:-10.35,yaw:Math.PI},{x:-13.78,z:-11.35,yaw:Math.PI},{x:-13.78,z:-12.35,yaw:Math.PI}];
     const used=new Set([...room.values()].filter(p=>p.id!==player.id&&(p.pose==='sofa-sleep'||p.sofaTarget)).map(p=>{
       const pos=p.sofaTarget||p;return sleepSpots.reduce((best,spot,index)=>Math.hypot(pos.x-spot.x,pos.z-spot.z)<Math.hypot(pos.x-sleepSpots[best].x,pos.z-sleepSpots[best].z)?index:best,0);
     }));
