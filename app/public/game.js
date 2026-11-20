@@ -441,7 +441,7 @@ function taoSofaCafe(){
   for(const [x,z] of [[-.45,-1.78],[.48,-1.78],[-.45,1.78],[.48,1.78],[1.58,1.7],[1.58,.95]]){
     const chan=new THREE.Mesh(new THREE.CylinderGeometry(.07,.09,.25,10),go);chan.position.set(x,.14,z);sofa.add(chan);
   }
-  sofa.userData.sleepSpots=[{x:18.2,z:6.5,yaw:Math.PI},{x:18.2,z:7.8,yaw:Math.PI},{x:18.2,z:9.1,yaw:Math.PI},{x:18.2,z:10.4,yaw:Math.PI}];
+  sofa.userData.sleepSpots=[{x:18.3,z:7,yaw:Math.PI},{x:18.3,z:8.1,yaw:Math.PI},{x:18.3,z:9.2,yaw:Math.PI},{x:18.3,z:10.3,yaw:Math.PI}];
   sofa.userData.sleepSpot=sofa.userData.sleepSpots[0];
   const ban=new THREE.Group();ban.position.set(15.95,0,10.03);scene.add(ban);
   box(ban,1.25,.12,.72,mat('#c58a50'),0,.48,0);
@@ -2589,9 +2589,12 @@ function vePoseCafe(p,now){
       leg.rotation.x=Math.sin(pha*1.8+i*Math.PI)*.72;leg.userData.goi.rotation.x=Math.max(0,Math.cos(pha*1.8+i*Math.PI))*.55;
     }
   }else if(p.pose==='sofa-sleep'){
-    p.group.position.y=1.43;p.body.position.set(0,.08,0);
-    if(p.avatar==='snake')bungLoXo(p,1,Math.sin(now*.0018)*.22,1,undefined,undefined,0,1,'bo');
-    else p.body.rotation.set(0,0,Math.PI/2);
+    if(p.avatar==='snake'){
+      p.group.position.y=.55;p.body.position.set(0,0,0);
+      bungLoXo(p,1,Math.sin(now*.0018)*.22,1,undefined,undefined,0,1,'bo');
+    }else{
+      p.group.position.y=0;p.body.position.set(.82,.82,0);p.body.rotation.set(0,0,Math.PI/2);
+    }
     p.zzzSprite.position.set(.9+Math.sin(now*.002)*.12,1.12+(now%1300)/1300*.4,-.34);
   }
 }

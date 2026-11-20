@@ -36,6 +36,16 @@ function taoLoTrinhCoThoiGian(dau, cuoi, tocDo, thoiGianToiThieu = 700) {
   }, 0);
   return { path, duration: Math.max(thoiGianToiThieu, quangDuong / tocDo * 1000) };
 }
+function trongVungNhayCafe(player) {
+  const { x, z } = player;
+  if (x < 10.6 || x > 18.4 || z < 5.6 || z > 12.8) return false;
+  if (x >= 17.25 && z >= 6.1 && z <= 11.7) return false;
+  if (x >= 16.2 && x <= 18.4 && z >= 6.7 && z <= 8.9) return false;
+  if (x >= 12.9 && x <= 17.8 && z >= 10.7 && z <= 12.1) return false;
+  if (Math.hypot(x - 15.95, z - 10.03) < 1.05) return false;
+  if ([13.95, 15.35, 16.75].some(gheX => Math.hypot(x - gheX, z - 12.48) < .72)) return false;
+  return true;
+}
 setInterval(() => {
   for (const [code, room] of rooms) {
     if (!room.pendingMoves?.size) continue;
@@ -85,13 +95,13 @@ setInterval(()=>{
         io.to(code).emit('zone-pose',{id:player.id,pose:'sofa-sleep',x:dich.x,z:dich.z,yaw:dich.yaw||0});
       }
       if(dangThamGiaMaSoi(room,player)||player.hoatCanh||player.workSeatId||player.buongWc||player.sofaTravel||now<(player.lockedUntil||0)||player.pose==='sofa-sleep')continue;
-      const trongCafe=player.x>=10.6&&player.x<=18.4&&player.z>=5.6&&player.z<=12.8;
+      const trongCafe=trongVungNhayCafe(player);
       if(trongCafe&&now-player.lastActivity>=1000&&['','bar-dance','dance'].includes(player.pose||'')){
         if(player.pose!=='bar-dance'){
           player.pose='bar-dance';player.poseUntil=0;
           io.to(code).emit('zone-pose',{id:player.id,pose:'bar-dance'});
         }
-      }else if(!trongCafe&&player.pose==='bar-dance'){
+      }else if(player.pose==='bar-dance'){
         player.pose='';player.poseUntil=0;io.to(code).emit('zone-pose',{id:player.id,pose:''});
       }
     }
@@ -466,7 +476,7 @@ io.on('connection', socket => {
     if(!player||dangThamGiaMaSoi(room,player)||player.hoatCanh||now<(player.lockedUntil||0)||now-(player.lastSofaAt||0)<700)return;
     player.lastSofaAt=now;ghiThaoTac(code,player);releaseWorkSeat(code,player);
     player.bubble='';player.bubbleUntil=0;
-    const sleepSpots=[{x:18.2,z:6.5,yaw:Math.PI},{x:18.2,z:7.8,yaw:Math.PI},{x:18.2,z:9.1,yaw:Math.PI},{x:18.2,z:10.4,yaw:Math.PI}];
+    const sleepSpots=[{x:18.3,z:7,yaw:Math.PI},{x:18.3,z:8.1,yaw:Math.PI},{x:18.3,z:9.2,yaw:Math.PI},{x:18.3,z:10.3,yaw:Math.PI}];
     const used=new Set([...room.values()].filter(p=>p.id!==player.id&&(p.pose==='sofa-sleep'||p.sofaTarget)).map(p=>{
       if(Number.isInteger(p.sofaSlot))return p.sofaSlot;
       const pos=p.sofaTarget||p;return sleepSpots.reduce((best,spot,index)=>Math.hypot(pos.x-spot.x,pos.z-spot.z)<Math.hypot(pos.x-sleepSpots[best].x,pos.z-sleepSpots[best].z)?index:best,0);
