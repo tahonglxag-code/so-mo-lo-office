@@ -471,27 +471,33 @@ io.on('connection', socket => {
   }
   socket.on('di-wc', data => diWc(typeof data?.ban === 'string' ? data.ban : ''));
 
-  socket.on('sofa-sleep',()=>{
+  socket.on('sofa-sleep',(data,reply)=>{
+    if(typeof data==='function'){reply=data;data=null;}
+    if(typeof reply!=='function')reply=()=>{};
     const code=socket.data.room,room=rooms.get(code),player=room?.get(socket.id),now=Date.now();
-    if(!player||dangThamGiaMaSoi(room,player)||player.hoatCanh||now<(player.lockedUntil||0)||now-(player.lastSofaAt||0)<700)return;
+    if(!player)return reply({ok:false,text:'Không tìm thấy người chơi trong phòng.'});
+    if(dangThamGiaMaSoi(room,player))return reply({ok:false,text:'Bạn đang tham gia Ma Sói nên chưa thể ngủ.'});
+    if(player.hoatCanh||now<(player.lockedUntil||0))return reply({ok:false,text:'Bạn đang thực hiện tương tác khác.'});
+    if(now-(player.lastSofaAt||0)<700)return reply({ok:false,text:'Chờ một chút rồi thử lại.'});
     player.lastSofaAt=now;ghiThaoTac(code,player);releaseWorkSeat(code,player);
     player.bubble='';player.bubbleUntil=0;
     const sleepYaw=player.avatar==='snake'?[Math.PI/2,Math.PI/2,0,0]:[0,0,Math.PI/2,Math.PI/2];
-    const sleepSpots=[{x:16.95,z:4.4,yaw:sleepYaw[0]},{x:18.1,z:4.4,yaw:sleepYaw[1]},{x:18.85,z:6.05,yaw:sleepYaw[2]},{x:18.85,z:7.35,yaw:sleepYaw[3]}];
+    const sleepSpots=[{x:16.35,z:5.9,yaw:0},{x:17.85,z:5.9,yaw:0},{x:17.75,z:4.0,yaw:Math.PI/2},{x:17.75,z:4.9,yaw:Math.PI/2}];
     const used=new Set([...room.values()].filter(p=>p.id!==player.id&&(p.pose==='sofa-sleep'||p.sofaTarget)).map(p=>{
       if(Number.isInteger(p.sofaSlot))return p.sofaSlot;
       const pos=p.sofaTarget||p;return sleepSpots.reduce((best,spot,index)=>Math.hypot(pos.x-spot.x,pos.z-spot.z)<Math.hypot(pos.x-sleepSpots[best].x,pos.z-sleepSpots[best].z)?index:best,0);
     }));
     const sofaSlot=sleepSpots.findIndex((_,index)=>!used.has(index));
     const dich=sleepSpots[sofaSlot];
-    if(!dich){socket.emit('sofa-full','Hết chỗ nằm rồi');return;}
+    if(!dich){socket.emit('sofa-full','Hết chỗ nằm rồi');return reply({ok:false,text:'Hết chỗ nằm rồi'});}
     const path=taoLoTrinh(player,dich),cuoi=path.at(-1)||player;
-    if(Math.hypot(cuoi.x-dich.x,cuoi.z-dich.z)>.7)return;
+    if(Math.hypot(cuoi.x-dich.x,cuoi.z-dich.z)>.7)return reply({ok:false,text:'Không tìm được lối lên sofa. Hãy bấm gần phần đệm ghế.'});
     const diem=[{x:player.x,z:player.z},...path];let quang=0;
     for(let i=1;i<diem.length;i++)quang+=Math.hypot(diem[i].x-diem[i-1].x,diem[i].z-diem[i-1].z);
     const duration=Math.max(500,quang/5.2*1000);
     player.sofaSlot=sofaSlot;player.sofaTarget={x:dich.x,z:dich.z,yaw:dich.yaw};player.sofaArriveAt=now+duration;player.sofaTravel=true;player.pose='sofa-moving';player.poseUntil=0;player.lastActivity=now;
     io.to(code).emit('zone-sleep-motion',{id:player.id,x:dich.x,z:dich.z,path,duration});
+    reply({ok:true});
   });
 
   socket.on('self-action', action => {
