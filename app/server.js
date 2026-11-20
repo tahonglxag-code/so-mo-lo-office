@@ -460,7 +460,7 @@ io.on('connection', socket => {
     if(!player||player.maSoi||player.hoatCanh||now<(player.lockedUntil||0)||now-(player.lastSofaAt||0)<700)return;
     player.lastSofaAt=now;ghiThaoTac(code,player);releaseWorkSeat(code,player);
     player.bubble='';player.bubbleUntil=0;
-    const sleepSpots=[{x:11.37,z:4.83,yaw:Math.PI},{x:11.37,z:3.83,yaw:Math.PI},{x:11.37,z:2.83,yaw:Math.PI},{x:11.37,z:1.83,yaw:Math.PI}];
+    const sleepSpots=[{x:18.2,z:1.57,yaw:Math.PI},{x:18.2,z:2.57,yaw:Math.PI},{x:18.2,z:3.57,yaw:Math.PI},{x:18.2,z:4.57,yaw:Math.PI}];
     const used=new Set([...room.values()].filter(p=>p.id!==player.id&&(p.pose==='sofa-sleep'||p.sofaTarget)).map(p=>{
       const pos=p.sofaTarget||p;return sleepSpots.reduce((best,spot,index)=>Math.hypot(pos.x-spot.x,pos.z-spot.z)<Math.hypot(pos.x-sleepSpots[best].x,pos.z-sleepSpots[best].z)?index:best,0);
     }));
@@ -585,7 +585,7 @@ io.on('connection', socket => {
       releaseWorkSeat(code,p);
       ghiThaoTac(code,p);
       const x=loai==='inspect'?(i%10- (Math.min(khach.length,10)-1)/2)*1.6:gheNhau?gheNhau[i].x:loai==='boss'?-10.5:14.5;
-      const z=loai==='inspect'?3.5-Math.floor(i/10)*1.35:gheNhau?gheNhau[i].z:-7.15;
+      const z=loai==='inspect'?3.5-Math.floor(i/10)*1.35:gheNhau?gheNhau[i].z:loai==='boss'?-9.15:-7.15;
       const yaw=gheNhau?gheNhau[i].yaw:loai==='boss'?0:Math.PI;
       let path=[];
       let thoiGianDi=0;
@@ -628,7 +628,7 @@ io.on('connection', socket => {
     const x = banTho.x;
     const z = banTho.z + 1.5;
     const from = {x:player.x,z:player.z,yaw:player.yaw};
-    const cua = {x:-15.35,z:-7.7};
+    const cua = {x:-12.8,z:-6.0};
     const pathCua=taoLoTrinh(player,cua);
     const cuaCuoi=pathCua.at(-1)||player;
     const quangCua=[player,...pathCua].slice(1).reduce((sum,point,index,arr)=>sum+Math.hypot(point.x-(index?arr[index-1].x:player.x),point.z-(index?arr[index-1].z:player.z)),0);

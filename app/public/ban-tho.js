@@ -1,1 +1,1 @@
-export const banTho = { x: -4.5, z: -9.5, ten: 'bàn thờ Ông Địa – Thần Tài' };
+export const banTho = { x: -4.5, z: -12.2, ten: 'bàn thờ Ông Địa – Thần Tài' };
