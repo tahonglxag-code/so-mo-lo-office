@@ -1066,7 +1066,7 @@ function xuLyClickPhong(event){
   raycaster.setFromCamera(pointer,camera);
   const wolfHit=raycaster.intersectObjects(vatTheMaSoi,true)[0];
   if(wolfHit){moBangMaSoi();return;}
-  if(players.get(selfId)?.maSoi)return;
+  if(players.get(selfId)?.maSoi){toast('Bạn đang tham gia Ma Sói nên chưa thể ngủ.');return;}
   const sofaHit=raycaster.intersectObjects(sofaParts,true).length>0;
   const floorHit=raycaster.intersectObject(ground,false)[0];
   const nearSofa=floorHit&&floorHit.point.x>=15.45&&floorHit.point.x<=19.45&&floorHit.point.z>=3.25&&floorHit.point.z<=8.15;
