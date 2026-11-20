@@ -80,11 +80,11 @@ setInterval(()=>{
   for(const [code,room] of rooms){
     for(const player of room.values()){
       if(player.sofaTarget&&Math.hypot(player.x-player.sofaTarget.x,player.z-player.sofaTarget.z)<.52&&now>=player.sofaArriveAt){
-        player.sofaTarget=null;player.sofaTravel=false;player.pose='sofa-sleep';player.poseUntil=0;
-        io.to(code).emit('zone-pose',{id:player.id,pose:'sofa-sleep'});
+        const dich=player.sofaTarget;player.sofaTarget=null;player.sofaTravel=false;player.pose='sofa-sleep';player.poseUntil=0;player.x=dich.x;player.z=dich.z;player.yaw=dich.yaw||0;
+        io.to(code).emit('zone-pose',{id:player.id,pose:'sofa-sleep',x:dich.x,z:dich.z,yaw:dich.yaw||0});
       }
       if(player.maSoi||player.hoatCanh||player.workSeatId||player.buongWc||player.sofaTravel||now<(player.lockedUntil||0)||player.pose==='sofa-sleep')continue;
-      const trongCafe=player.x>=-14.95&&player.x<=-7.05&&player.z>=-11.25&&player.z<=-4.95;
+      const trongCafe=player.x>=-14.5&&player.x<=-6.7&&player.z>=-13.05&&player.z<=-5.05;
       if(trongCafe&&now-player.lastActivity>=1000&&['','bar-dance','dance'].includes(player.pose||'')){
         if(player.pose!=='bar-dance'){
           player.pose='bar-dance';player.poseUntil=0;
@@ -459,12 +459,18 @@ io.on('connection', socket => {
     const code=socket.data.room,room=rooms.get(code),player=room?.get(socket.id),now=Date.now();
     if(!player||player.maSoi||player.hoatCanh||now<(player.lockedUntil||0)||now-(player.lastSofaAt||0)<700)return;
     player.lastSofaAt=now;ghiThaoTac(code,player);releaseWorkSeat(code,player);
-    const dich={x:-9.2,z:-7.25},path=taoLoTrinh(player,dich),cuoi=path.at(-1)||player;
+    const sleepSpots=[{x:-13.72,z:-9.55,yaw:Math.PI},{x:-13.72,z:-10.48,yaw:Math.PI},{x:-13.72,z:-11.41,yaw:Math.PI},{x:-13.72,z:-12.34,yaw:Math.PI}];
+    const used=new Set([...room.values()].filter(p=>p.id!==player.id&&(p.pose==='sofa-sleep'||p.sofaTarget)).map(p=>{
+      const pos=p.sofaTarget||p;return sleepSpots.reduce((best,spot,index)=>Math.hypot(pos.x-spot.x,pos.z-spot.z)<Math.hypot(pos.x-sleepSpots[best].x,pos.z-sleepSpots[best].z)?index:best,0);
+    }));
+    const dich=sleepSpots.find((spot,index)=>!used.has(index));
+    if(!dich){socket.emit('sofa-full','Hết chỗ nằm rồi');return;}
+    const path=taoLoTrinh(player,dich),cuoi=path.at(-1)||player;
     if(Math.hypot(cuoi.x-dich.x,cuoi.z-dich.z)>.7)return;
     const diem=[{x:player.x,z:player.z},...path];let quang=0;
     for(let i=1;i<diem.length;i++)quang+=Math.hypot(diem[i].x-diem[i-1].x,diem[i].z-diem[i-1].z);
     const duration=Math.max(500,quang/5.2*1000);
-    player.sofaTarget={x:dich.x,z:dich.z};player.sofaArriveAt=now+duration;player.sofaTravel=true;player.pose='sofa-moving';player.poseUntil=0;player.lastActivity=now;
+    player.sofaTarget={x:dich.x,z:dich.z,yaw:dich.yaw};player.sofaArriveAt=now+duration;player.sofaTravel=true;player.pose='sofa-moving';player.poseUntil=0;player.lastActivity=now;
     io.to(code).emit('zone-sleep-motion',{id:player.id,x:dich.x,z:dich.z,path,duration});
   });
 
