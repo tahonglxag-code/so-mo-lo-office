@@ -17,7 +17,7 @@ const httpServer = createServer(app);
 const io = new Server(httpServer, { cors: { origin: true }, maxHttpBufferSize: 1e5 });
 const rooms = new Map();
 const maxX = 18.4;
-const maxZ = 11.5;
+const maxZ = 12.8;
 const workSeats = [
   { id: 'desk-1', x: -15.45, z: 11.4 },
   { id: 'desk-3', x: -15.45, z: 1.4 },
@@ -459,7 +459,7 @@ io.on('connection', socket => {
     const code=socket.data.room,room=rooms.get(code),player=room?.get(socket.id),now=Date.now();
     if(!player||player.maSoi||player.hoatCanh||now<(player.lockedUntil||0)||now-(player.lastSofaAt||0)<700)return;
     player.lastSofaAt=now;ghiThaoTac(code,player);releaseWorkSeat(code,player);
-    const sleepSpots=[{x:-13.72,z:-9.55,yaw:Math.PI},{x:-13.72,z:-10.48,yaw:Math.PI},{x:-13.72,z:-11.41,yaw:Math.PI},{x:-13.72,z:-12.34,yaw:Math.PI}];
+    const sleepSpots=[{x:-13.72,z:-9.15,yaw:Math.PI},{x:-13.72,z:-10,yaw:Math.PI},{x:-13.72,z:-10.85,yaw:Math.PI},{x:-13.72,z:-11.7,yaw:Math.PI}];
     const used=new Set([...room.values()].filter(p=>p.id!==player.id&&(p.pose==='sofa-sleep'||p.sofaTarget)).map(p=>{
       const pos=p.sofaTarget||p;return sleepSpots.reduce((best,spot,index)=>Math.hypot(pos.x-spot.x,pos.z-spot.z)<Math.hypot(pos.x-sleepSpots[best].x,pos.z-sleepSpots[best].z)?index:best,0);
     }));
