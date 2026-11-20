@@ -2554,6 +2554,8 @@ function bungLoXo(p, bung, nhip, duoi=0, dangTu, dangDen, tron=0, mucUon=1, dang
       tam[i].set(Math.cos(vong)*rong,.16+tiLe*.93,Math.sin(vong)*rong-.08*tiLe);
     }else if(dangThuong==='bo'){
       tam[i].set(Math.sin((1-tiLe)*Math.PI*3-nhip)*(.36-.19*tiLe),.15+.2*tiLe**6,.98-1.74*tiLe);
+    }else if(dangThuong==='nam'){
+      tam[i].set(.1*Math.sin(tiLe*Math.PI*4+nhip)*Math.sin(tiLe*Math.PI),.26+.025*Math.sin(tiLe*Math.PI*2+nhip),.9-1.8*tiLe);
     }else if(dangTu||dangDen){
       diemDich.copy(dangTu?.[i]||tam[i]).lerp(dangDen?.[i]||tam[i],tron);
       tam[i].lerp(diemDich,mucUon);
@@ -2577,7 +2579,7 @@ function bungLoXo(p, bung, nhip, duoi=0, dangTu, dangDen, tron=0, mucUon=1, dang
   }
   diem.needsUpdate=true;
   phapTuyen.needsUpdate=true;
-  dau.position.set(tam[48].x,tam[48].y-1.73,dangThuong?tam[48].z+.08:0);
+  dau.position.set(tam[48].x,dangThuong==='nam'?.7:tam[48].y-1.73,dangThuong?tam[48].z+.08:0);
 }
 
 function veRanThuong(p,now){
@@ -2614,8 +2616,8 @@ function vePoseCafe(p,now){
     }
   }else if(p.pose==='sofa-sleep'){
     if(p.avatar==='snake'){
-      p.group.position.y=1.12;p.body.position.set(0,0,0);p.body.scale.set(.6,.34,.6);
-      bungLoXo(p,1,Math.sin(now*.0018)*.22,1,undefined,undefined,0,1,'bo');
+      p.group.position.y=.98;p.body.position.set(0,0,0);p.body.scale.set(.6,.45,.6);
+      bungLoXo(p,1,Math.sin(now*.0018)*.22,1,undefined,undefined,0,1,'nam');
     }else{
       p.group.position.y=0;p.body.scale.setScalar(.6);p.body.position.set(0,1.35,0);p.body.rotation.set(0,0,Math.PI/2);
       for(const arm of p.group.userData.tay||[]){arm.rotation.set(0,0,0);arm.userData.khuYu.rotation.set(0,0,0);}
