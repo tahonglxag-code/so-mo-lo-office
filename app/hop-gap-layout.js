@@ -16,7 +16,7 @@ const choTrong = [
   { x: 2.55, z: 0 }
 ];
 
-export function taoChoHopGap(soNguoi, tamX = 14.5, tamZ = 5.1) {
+export function taoChoHopGap(soNguoi, tamX = 14.5, tamZ = -7.7) {
   const soCho = Math.max(0, Math.min(50, Math.floor(Number(soNguoi) || 0)));
   const viTri = gheNgoi.map(cho => ({ ...cho, dangNgoi: true }));
   for (const cho of choTrong) viTri.push({ ...cho, dangNgoi: false });
