@@ -84,7 +84,7 @@ setInterval(()=>{
         io.to(code).emit('zone-pose',{id:player.id,pose:'sofa-sleep',x:dich.x,z:dich.z,yaw:dich.yaw||0});
       }
       if(player.maSoi||player.hoatCanh||player.workSeatId||player.buongWc||player.sofaTravel||now<(player.lockedUntil||0)||player.pose==='sofa-sleep')continue;
-      const trongCafe=player.x>=-14.5&&player.x<=-6.7&&player.z>=-13.05&&player.z<=-5.05;
+      const trongCafe=player.x>=10.6&&player.x<=18.4&&player.z>=1.4&&player.z<=8.8;
       if(trongCafe&&now-player.lastActivity>=1000&&['','bar-dance','dance'].includes(player.pose||'')){
         if(player.pose!=='bar-dance'){
           player.pose='bar-dance';player.poseUntil=0;
@@ -460,7 +460,7 @@ io.on('connection', socket => {
     if(!player||player.maSoi||player.hoatCanh||now<(player.lockedUntil||0)||now-(player.lastSofaAt||0)<700)return;
     player.lastSofaAt=now;ghiThaoTac(code,player);releaseWorkSeat(code,player);
     player.bubble='';player.bubbleUntil=0;
-    const sleepSpots=[{x:-13.78,z:-9.35,yaw:Math.PI},{x:-13.78,z:-10.35,yaw:Math.PI},{x:-13.78,z:-11.35,yaw:Math.PI},{x:-13.78,z:-12.35,yaw:Math.PI}];
+    const sleepSpots=[{x:11.37,z:4.83,yaw:Math.PI},{x:11.37,z:3.83,yaw:Math.PI},{x:11.37,z:2.83,yaw:Math.PI},{x:11.37,z:1.83,yaw:Math.PI}];
     const used=new Set([...room.values()].filter(p=>p.id!==player.id&&(p.pose==='sofa-sleep'||p.sofaTarget)).map(p=>{
       const pos=p.sofaTarget||p;return sleepSpots.reduce((best,spot,index)=>Math.hypot(pos.x-spot.x,pos.z-spot.z)<Math.hypot(pos.x-sleepSpots[best].x,pos.z-sleepSpots[best].z)?index:best,0);
     }));
@@ -584,7 +584,7 @@ io.on('connection', socket => {
       p.hoatCanh=null;
       releaseWorkSeat(code,p);
       ghiThaoTac(code,p);
-      const x=loai==='inspect'?(i%10- (Math.min(khach.length,10)-1)/2)*1.6:gheNhau?gheNhau[i].x:14.5;
+      const x=loai==='inspect'?(i%10- (Math.min(khach.length,10)-1)/2)*1.6:gheNhau?gheNhau[i].x:loai==='boss'?-10.5:14.5;
       const z=loai==='inspect'?3.5-Math.floor(i/10)*1.35:gheNhau?gheNhau[i].z:-7.15;
       const yaw=gheNhau?gheNhau[i].yaw:loai==='boss'?0:Math.PI;
       let path=[];
@@ -628,10 +628,13 @@ io.on('connection', socket => {
     const x = banTho.x;
     const z = banTho.z + 1.5;
     const from = {x:player.x,z:player.z,yaw:player.yaw};
-    const cua = {x:14.5,z:-5.25};
-    const path = taoLoTrinh({x:14.5,z:-3.55},{x,z});
+    const cua = {x:-15.35,z:-7.7};
+    const pathCua=taoLoTrinh(player,cua);
+    const cuaCuoi=pathCua.at(-1)||player;
+    const quangCua=[player,...pathCua].slice(1).reduce((sum,point,index,arr)=>sum+Math.hypot(point.x-(index?arr[index-1].x:player.x),point.z-(index?arr[index-1].z:player.z)),0);
+    const path = taoLoTrinh(cua,{x,z});
     const batDauDiCua = 1600;
-    const thoiGianDenCua = Math.max(500,Math.hypot(cua.x-from.x,cua.z-from.z)/5.8*1000);
+    const thoiGianDenCua = Math.max(500,quangCua/5.8*1000);
     const batDauQuatCua = batDauDiCua + thoiGianDenCua + 180;
     const batDauMoCua = batDauQuatCua + 300;
     const batDauDiTho = batDauMoCua + 350;
@@ -641,7 +644,7 @@ io.on('connection', socket => {
     player.pose = 'boss-rebel';
     player.poseUntil = player.lockedUntil;
     room.pendingMoves.delete(player.id);
-    io.to(code).emit('boss-rebel', {id:player.id,startedAt:now,duration,from,cua,path,batDauDiCua,thoiGianDenCua,batDauQuatCua,batDauMoCua,batDauDiTho,thoiGianDiTho,x,z,yaw:0});
+    io.to(code).emit('boss-rebel', {id:player.id,startedAt:now,duration,from,cua,pathCua,cuaCuoi,path,batDauDiCua,thoiGianDenCua,batDauQuatCua,batDauMoCua,batDauDiTho,thoiGianDiTho,x,z,yaw:0});
     io.to(code).emit('feed', {text:`🔥 ${player.name} bật SẾP`});
     setTimeout(() => {
       if (room.get(player.id) !== player || player.pose !== 'boss-rebel' || player.poseUntil !== now + duration) return;
