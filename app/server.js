@@ -60,7 +60,7 @@ setInterval(() => {
     const choDaDung = new Set([...room.values()].map(player => player.choMuaVo));
     let cho = 0;
     for (const player of room.values()) {
-      if (dangThamGiaMaSoi(room,player) || player.choMuaVo !== undefined || player.hoatCanh || player.workSeatId || now < (player.lockedUntil || 0) || now - player.lastActivity < 60000) continue;
+      if (dangThamGiaMaSoi(room,player) || player.sofaTravel || player.pose==='sofa-sleep' || player.choMuaVo !== undefined || player.hoatCanh || player.workSeatId || now < (player.lockedUntil || 0) || now - player.lastActivity < 60000) continue;
       while (choDaDung.has(cho)) cho++;
       tatKhoiWc(code, player);
       player.choMuaVo = cho;
@@ -483,7 +483,7 @@ io.on('connection', socket => {
     player.lastSofaAt=now;ghiThaoTac(code,player);releaseWorkSeat(code,player);
     player.bubble='';player.bubbleUntil=0;
     const yaw=player.avatar==='snake'?Math.PI/2:0;
-    const sleepSpots=[{x:17.55,z:4.19,yaw},{x:18.85,z:5.32,yaw},{x:18.85,z:6.59,yaw},{x:18.85,z:7.8,yaw}];
+    const sleepSpots=[{x:17.55,z:4.19,yaw},{x:18.32,z:5.32,yaw},{x:18.32,z:6.59,yaw},{x:18.32,z:7.8,yaw}];
     const used=new Set([...room.values()].filter(p=>p.id!==player.id&&(p.pose==='sofa-sleep'||p.sofaTarget)).map(p=>{
       if(Number.isInteger(p.sofaSlot))return p.sofaSlot;
       const pos=p.sofaTarget||p;return sleepSpots.reduce((best,spot,index)=>Math.hypot(pos.x-spot.x,pos.z-spot.z)<Math.hypot(pos.x-sleepSpots[best].x,pos.z-sleepSpots[best].z)?index:best,0);
