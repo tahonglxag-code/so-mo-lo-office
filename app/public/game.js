@@ -6,7 +6,7 @@ import {laDemMaSoi,laNguoiChoiMaSoi,laThanhVienVanMaSoi,duocChonNangLucMaSoi} fr
 import {CSS3DRenderer,CSS3DObject} from '/css3d.js';
 
 import {banTho} from './ban-tho.js';
-import {taoLoTrinh,buocDiAnToan} from './office-navigation.js';
+import {taoLoTrinh,buocDiAnToan} from './office-navigation.js?v=lo-di-quay-cafe';
 
 const socket = io({ transports: ['websocket', 'polling'] });
 const sessionId=(()=>{let id=localStorage.getItem('somlo-session');if(!id){id=crypto.randomUUID();localStorage.setItem('somlo-session',id);}return id;})();
