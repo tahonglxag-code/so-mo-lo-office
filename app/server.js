@@ -483,7 +483,13 @@ io.on('connection', socket => {
     player.lastSofaAt=now;ghiThaoTac(code,player);releaseWorkSeat(code,player);
     player.bubble='';player.bubbleUntil=0;
     const yaw=player.avatar==='snake'?Math.PI/2:0;
-    const sleepSpots=[{x:17.55,z:4.19,yaw},{x:18.32,z:5.32,yaw},{x:18.32,z:6.59,yaw},{x:18.32,z:7.8,yaw}];
+    const huongNhanhDai=yaw+Math.PI;
+    const sleepSpots=[
+      {x:17.55,z:4.19,yaw},
+      {x:18.32,z:5.32,yaw:huongNhanhDai},
+      {x:18.32,z:6.59,yaw:huongNhanhDai},
+      {x:18.32,z:7.8,yaw:huongNhanhDai}
+    ];
     const used=new Set([...room.values()].filter(p=>p.id!==player.id&&(p.pose==='sofa-sleep'||p.sofaTarget)).map(p=>{
       if(Number.isInteger(p.sofaSlot))return p.sofaSlot;
       const pos=p.sofaTarget||p;return sleepSpots.reduce((best,spot,index)=>Math.hypot(pos.x-spot.x,pos.z-spot.z)<Math.hypot(pos.x-sleepSpots[best].x,pos.z-sleepSpots[best].z)?index:best,0);
