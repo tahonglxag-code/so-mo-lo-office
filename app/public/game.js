@@ -2580,7 +2580,7 @@ function bungLoXo(p, bung, nhip, duoi=0, dangTu, dangDen, tron=0, mucUon=1, dang
   }
   diem.needsUpdate=true;
   phapTuyen.needsUpdate=true;
-  dau.position.set(tam[48].x,dangThuong==='nam'?.7:tam[48].y-1.73,dangThuong?tam[48].z+.08:0);
+  dau.position.set(tam[48].x,dangThuong==='nam' ? -1.48 : tam[48].y-1.73,dangThuong?tam[48].z+.08:0);
 }
 
 function veRanThuong(p,now){
@@ -2617,7 +2617,7 @@ function vePoseCafe(p,now){
     }
   }else if(p.pose==='sofa-sleep'){
     if(p.avatar==='snake'){
-      p.group.position.y=.98;p.body.position.set(0,0,0);p.body.scale.set(.6,.45,.6);
+      p.group.position.y=1.05;p.body.position.set(0,0,0);p.body.scale.set(.6,.45,.6);
       if(p.dangRanThuong!=='nam'){
         bungLoXo(p,1,0,1,undefined,undefined,0,1,'nam');
         p.dangRanThuong='nam';
