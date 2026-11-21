@@ -3016,7 +3016,7 @@ function frame(now) {
     let dz=0;
     if(me.maSoi){dx=0;dz=0;targetWorld=null;}
     const running=animateRun(me,now);
-    if(!running&&targetWorld){const tx=targetWorld.x-me.group.position.x,tz=targetWorld.z-me.group.position.z;const d=Math.hypot(tx,tz);if(d>.24){dx=tx/d;dz=tz/d;}else if(targetPath.length)targetWorld=targetPath.shift();else targetWorld=null;}
+    if(!running&&targetWorld){const tx=targetWorld.x-me.group.position.x,tz=targetWorld.z-me.group.position.z;const d=Math.hypot(tx,tz);if(d>5.2*dt){dx=tx/d;dz=tz/d;}else{const buoc=buocDiAnToan(me.group.position,targetWorld);me.group.position.x=buoc.x;me.group.position.z=buoc.z;targetWorld=targetPath.shift()||null;}}
     if(!running&&me.workSeatId&&!me.working){dx=0;dz=0;}
     if(now<(me.khoaDen||0)){dx=0;dz=0;}
     if(!running&&(dx||dz)){const mag=Math.hypot(dx,dz);dx/=mag;dz/=mag;const buoc=buocDiAnToan({x:me.group.position.x,z:me.group.position.z},{x:me.group.position.x+dx*5.2*dt,z:me.group.position.z+dz*5.2*dt});me.group.position.x=buoc.x;me.group.position.z=buoc.z;me.group.rotation.y=Math.atan2(-dx,-dz);}
