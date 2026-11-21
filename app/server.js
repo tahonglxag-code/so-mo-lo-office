@@ -478,11 +478,12 @@ io.on('connection', socket => {
     if(!player)return reply({ok:false,text:'Không tìm thấy người chơi trong phòng.'});
     if(dangThamGiaMaSoi(room,player))return reply({ok:false,text:'Bạn đang tham gia Ma Sói nên chưa thể ngủ.'});
     if(player.hoatCanh||now<(player.lockedUntil||0))return reply({ok:false,text:'Bạn đang thực hiện tương tác khác.'});
+    if(player.sofaTravel||player.pose==='sofa-sleep')return reply({ok:true});
     if(now-(player.lastSofaAt||0)<700)return reply({ok:false,text:'Chờ một chút rồi thử lại.'});
     player.lastSofaAt=now;ghiThaoTac(code,player);releaseWorkSeat(code,player);
     player.bubble='';player.bubbleUntil=0;
-    const sleepYaw=player.avatar==='snake'?[Math.PI/2,Math.PI/2,0,0]:[0,0,Math.PI/2,Math.PI/2];
-    const sleepSpots=[{x:16.35,z:5.9,yaw:0},{x:17.85,z:5.9,yaw:0},{x:17.75,z:4.0,yaw:Math.PI/2},{x:17.75,z:4.9,yaw:Math.PI/2}];
+    const yaw=player.avatar==='snake'?Math.PI/2:0;
+    const sleepSpots=[{x:17.55,z:4.19,yaw},{x:18.85,z:5.32,yaw},{x:18.85,z:6.59,yaw},{x:18.85,z:7.8,yaw}];
     const used=new Set([...room.values()].filter(p=>p.id!==player.id&&(p.pose==='sofa-sleep'||p.sofaTarget)).map(p=>{
       if(Number.isInteger(p.sofaSlot))return p.sofaSlot;
       const pos=p.sofaTarget||p;return sleepSpots.reduce((best,spot,index)=>Math.hypot(pos.x-spot.x,pos.z-spot.z)<Math.hypot(pos.x-sleepSpots[best].x,pos.z-sleepSpots[best].z)?index:best,0);
