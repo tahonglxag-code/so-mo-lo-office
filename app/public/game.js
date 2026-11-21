@@ -1808,7 +1808,7 @@ socket.on('zone-sleep-motion',event=>{
   for(const leg of p.group.userData.chan||[]){leg.rotation.set(0,0,0);leg.userData.goi.rotation.set(0,0,0);}
   const points=(event.path?.length?event.path:[{x:event.x,z:event.z}]).map(point=>new THREE.Vector3(point.x,0,point.z));
   p.runMotion={points:[p.group.position.clone(),...points],started:performance.now(),duration:event.duration,jump:false};
-  if(p.id===selfId)targetWorld=null;
+  if(p.id===selfId){targetWorld=null;targetPath=[];}
 });
 socket.on('zone-pose',event=>{
   const p=players.get(event.id);if(!p)return;
@@ -1816,7 +1816,8 @@ socket.on('zone-pose',event=>{
   if(p.pose==='sofa-sleep'){
     p.nhay=null;p.muaVo=null;p.hanhDong=null;p.hoatCanh=null;p.chichDien=null;
     p.runMotion=null;
-    if(Number.isFinite(event.x)&&Number.isFinite(event.z)){p.group.position.set(event.x,0,event.z);p.target.set(event.x,0,event.z);p.group.rotation.y=event.yaw||0;}
+    if(Number.isFinite(event.x)&&Number.isFinite(event.z)){p.group.position.set(event.x,0,event.z);p.target.set(event.x,0,event.z);p.yaw=event.yaw||0;p.group.rotation.y=p.yaw;}
+    if(p.id===selfId){targetWorld=null;targetPath=[];}
   }
   if(!p.pose&&['sofa-moving','sofa-sleep','bar-dance'].includes(old)){
     if(old==='sofa-moving')p.runMotion=null;
@@ -2589,7 +2590,7 @@ function veRanThuong(p,now){
   p.ranX=x;
   p.ranZ=z;
   if(p.nhay||p.muaVo||p.hanhDong||p.hoatCanh||p.chichDien||p.pose==='bar-dance'||p.pose==='sofa-sleep'||p.pose==='sofa-moving'){
-    p.dangRanThuong=null;
+    if(p.pose!=='sofa-sleep')p.dangRanThuong=null;
     return;
   }
   const dang=p.pose==='sofa-sleep'||diChuyen?'bo':'nen';
@@ -2617,7 +2618,10 @@ function vePoseCafe(p,now){
   }else if(p.pose==='sofa-sleep'){
     if(p.avatar==='snake'){
       p.group.position.y=.98;p.body.position.set(0,0,0);p.body.scale.set(.6,.45,.6);
-      bungLoXo(p,1,Math.sin(now*.0018)*.22,1,undefined,undefined,0,1,'nam');
+      if(p.dangRanThuong!=='nam'){
+        bungLoXo(p,1,0,1,undefined,undefined,0,1,'nam');
+        p.dangRanThuong='nam';
+      }
     }else{
       p.group.position.y=0;p.body.scale.setScalar(.6);p.body.position.set(0,1.35,0);p.body.rotation.set(0,0,Math.PI/2);
       for(const arm of p.group.userData.tay||[]){arm.rotation.set(0,0,0);arm.userData.khuYu.rotation.set(0,0,0);}
@@ -3016,7 +3020,7 @@ function frame(now) {
     if(!running&&me.workSeatId&&!me.working){dx=0;dz=0;}
     if(now<(me.khoaDen||0)){dx=0;dz=0;}
     if(!running&&(dx||dz)){const mag=Math.hypot(dx,dz);dx/=mag;dz/=mag;const buoc=buocDiAnToan({x:me.group.position.x,z:me.group.position.z},{x:me.group.position.x+dx*5.2*dt,z:me.group.position.z+dz*5.2*dt});me.group.position.x=buoc.x;me.group.position.z=buoc.z;me.group.rotation.y=Math.atan2(-dx,-dz);}
-    if(socket.connected&&!me.raHang&&!me.muaVo&&now>=(me.khoaDen||0)&&now-lastMove>100){socket.volatile.emit('move',{x:me.group.position.x,z:me.group.position.z,yaw:me.group.rotation.y});lastMove=now;}
+    if(socket.connected&&me.pose!=='sofa-moving'&&(me.pose!=='sofa-sleep'||dx||dz)&&!me.raHang&&!me.muaVo&&now>=(me.khoaDen||0)&&now-lastMove>100){socket.volatile.emit('move',{x:me.group.position.x,z:me.group.position.z,yaw:me.group.rotation.y});lastMove=now;}
     const goc=me.maSoi?tinhGocMayMaSoi():tinhGocMay(me.group.position.x,me.group.position.z,camera.fov,camera.aspect);
     camera.position.set(goc.tam.x+(goc.viTri.x-goc.tam.x)*mucZoomCamera,goc.tam.y+(goc.viTri.y-goc.tam.y)*mucZoomCamera,goc.tam.z+(goc.viTri.z-goc.tam.z)*mucZoomCamera);camera.lookAt(goc.tam.x,goc.tam.y,goc.tam.z);
   }
