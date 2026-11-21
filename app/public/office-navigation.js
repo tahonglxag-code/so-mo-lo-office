@@ -1,4 +1,4 @@
-const gioiHan={minX:-18.35,maxX:18.35,minZ:-12.7,maxZ:12.8,bang:.4,dem:.34};
+const gioiHan={minX:-18.35,maxX:18.35,minZ:-12.7,maxZ:12.8,bang:.25,dem:.34};
 const tuong=[
   [-14.73,-12.84,-6.27,-12.56],[-14.73,-12.84,-14.47,-6.56],[-6.53,-12.84,-6.27,-6.56],
   [-14.73,-6.84,-13.575,-6.56],[-12.025,-6.84,-6.27,-6.56],
@@ -31,8 +31,21 @@ function diemGanNhat(point){
 export function taoLoTrinh(dau,cuoi){
   const start=diemGanNhat(dau),goal=diemGanNhat(cuoi);
   if(doanDiDuoc(start,goal))return[{x:goal.x,z:goal.z}];
-  const toaDoLuoi=(value,min,max)=>Math.max(Math.ceil(min/gioiHan.bang),Math.min(Math.floor(max/gioiHan.bang),Math.round(value/gioiHan.bang)))*gioiHan.bang;
-  const gridStart={x:toaDoLuoi(start.x,gioiHan.minX,gioiHan.maxX),z:toaDoLuoi(start.z,gioiHan.minZ,gioiHan.maxZ)},gridGoal={x:toaDoLuoi(goal.x,gioiHan.minX,gioiHan.maxX),z:toaDoLuoi(goal.z,gioiHan.minZ,gioiHan.maxZ)},startKey=key(gridStart.x,gridStart.z),goalKey=key(gridGoal.x,gridGoal.z),[sx,sz]=unpack(startKey),[gx,gz]=unpack(goalKey),open=new Map([[startKey,{...gridStart,g:0,f:Math.hypot(gridStart.x-gridGoal.x,gridStart.z-gridGoal.z)}]]),came=new Map(),cost=new Map([[startKey,0]]),closed=new Set();
+  function nutNoi(diem){
+    const ix=Math.round(diem.x/gioiHan.bang),iz=Math.round(diem.z/gioiHan.bang);
+    let nut=null,khoang=Infinity;
+    for(let dx=-2;dx<=2;dx++)for(let dz=-2;dz<=2;dz++){
+      const x=(ix+dx)*gioiHan.bang,z=(iz+dz)*gioiHan.bang;
+      const lech=Math.hypot(x-diem.x,z-diem.z);
+      if(lech<khoang&&doanDiDuoc(diem,{x,z})){nut={x,z};khoang=lech;}
+    }
+    return nut;
+  }
+  const gridStart=nutNoi(start),gridGoal=nutNoi(goal);
+  if(!gridStart||!gridGoal)return[{x:start.x,z:start.z}];
+  const startKey=key(gridStart.x,gridStart.z),goalKey=key(gridGoal.x,gridGoal.z);
+  const open=new Map([[startKey,{...gridStart,g:0,f:Math.hypot(gridStart.x-gridGoal.x,gridStart.z-gridGoal.z)}]]);
+  const came=new Map(),cost=new Map([[startKey,0]]),closed=new Set();
   const neighbors=[[1,0],[-1,0],[0,1],[0,-1],[1,1],[1,-1],[-1,1],[-1,-1]];
   while(open.size){
     let currentKey='',current;
