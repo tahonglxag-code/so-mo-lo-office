@@ -137,13 +137,15 @@ function ghiThaoTac(code, player) {
   io.to(code).emit('mua-vo', { id: player.id, batDau: 0 });
 }
 
-const avatars = new Set(['snake', 'fish', 'sloth', 'cow', 'leopard']);
+const avatars = new Set(['snake', 'fish', 'sloth', 'cow', 'leopard', 'capi', 'panda']);
 const defaultLines = {
   snake: ['chị khổ lắm em', 'chị lạy em', 'chị hứa mai chị gửi', 'em ơi', 'ủa em', 'alo em'],
   fish: ['thần thiếp không làm được', 'thần thiếp có tội', 'thần thiếp đi làm ngay', 'mấy giờ rồi', 'lên link trà chiều đi chị em', 'không phải em đâu', 'tất cả tại thằng bò'],
   sloth: ['Hảaa?', 'Àaaa...', 'tôi cần đi toilet 30p', 'qua tết nghỉ làm', 'đang lướt tóp tóp vui lòng không làm phiền'],
   cow: ['a di đà lạt - Bần Đò có biết gì đâu', 'lào gì cũng tôn', 'là sao nữa', 'nếu người khác làm được - thì để họ làm', 'cái gì đổ tại người khác được thì không phải tại mình', 'a di đà lạt - không biết không có tội'],
-  leopard: ['em xin lỗi', 'chị ơi...', 'anh ơi...', 'cú bé', 'ta thà báo cả thiên hạ chứ không báo sếp', 'em mới pass thử việc ạ', 'e thề e chưa làm gì cả', 'công ty là gia đình 🎼🎼']
+  leopard: ['em xin lỗi', 'chị ơi...', 'anh ơi...', 'cú bé', 'ta thà báo cả thiên hạ chứ không báo sếp', 'em mới pass thử việc ạ', 'e thề e chưa làm gì cả', 'công ty là gia đình 🎼🎼'],
+  capi: ['đang nhai cà rốt, deadline để sau', 'Capi xin nghỉ ăn trưa ạ', 'em đang ngâm nước cho tỉnh', 'chậm mà chắc nha', 'ai có cà rốt không'],
+  panda: ['em ăn tre để có sức làm tiếp', 'Panda đang nghỉ giải lao ạ', 'deadline tới đâu ăn tre tới đó', 'em xin thêm một khúc tre', 'năng lượng xanh đây rồi']
 };
 const loiBanThanTai = [
   'Ta ban cho con tiền đầy túi',
@@ -160,7 +162,9 @@ const interactionLines = {
   fish: 'bệ hạ tha tội',
   sloth: 't méc sếp m',
   cow: 'em đã làm gì đâu',
-  leopard: 'em bị tổn thưn'
+  leopard: 'em bị tổn thưn',
+  capi: 'Capi chỉ đang ăn nhẹ thôi',
+  panda: 'Panda chỉ muốn ăn tre thôi'
 };
 
 app.use(express.static(path.join(root, 'public')));
