@@ -757,428 +757,151 @@ function taoCanhTay(than, chatLieu, ben, ngang, cao, sau, dai, rong, doXoe) {
   return tay;
 }
 
-const CK = (() => {
-  const V = (x, y, z) => new THREE.Vector3(x, y, z);
-  const clamp = (x, a = 0, b = 1) => Math.min(b, Math.max(a, x));
-  const sstep = (a, b, x) => { const t = clamp((x - a) / (b - a)); return t * t * (3 - 2 * t); };
-  const rgb = h => { const n = parseInt(h.replace('#', ''), 16); return [(n >> 16) & 255, (n >> 8) & 255, n & 255]; };
-  const FD = (nx, ny) => V(nx, ny, -Math.sqrt(Math.max(0, 1 - nx * nx - ny * ny)));
-
-  const flat = (hex, rough = .8) => new THREE.MeshStandardMaterial({ color: hex, roughness: rough });
-  const EYE = new THREE.MeshStandardMaterial({ color: '#1d1a22', roughness: .22 });
-  const WHITE = new THREE.MeshBasicMaterial({ color: '#ffffff' });
-  const BIG = new THREE.SphereGeometry(1, 64, 48);
-  const SMALL = new THREE.SphereGeometry(1, 28, 18);
-
-  function sph(parent, x, y, z, rx, ry, rz, material, big = false) {
-    const m = new THREE.Mesh(big ? BIG : SMALL, material);
-    m.position.set(x, y, z); m.scale.set(rx, ry, rz); parent.add(m); return m;
-  }
-
-
-  function basis(dir) {
-    const c = dir.clone().normalize();
-    const up = Math.abs(c.y) > .92 ? V(0, 0, -1) : V(0, 1, 0);
-    const u = new THREE.Vector3().crossVectors(c, up).normalize();
-    const v = new THREE.Vector3().crossVectors(u, c);
-    return { c, u, v };
-  }
-
-  function oval(dir, ax, ay, rot = 0, soft = .18) {
-    const B = basis(dir), cr = Math.cos(rot), sr = Math.sin(rot);
-    return d => {
-      if (d.dot(B.c) <= 0) return 0;
-      const x = d.dot(B.u), y = d.dot(B.v);
-      const px = x * cr + y * sr, py = -x * sr + y * cr;
-      return 1 - sstep(1 - soft, 1 + soft, Math.hypot(px / ax, py / ay));
-    };
-  }
-
-  function disc(dir, r, seed = 0, irr = .16, soft = .03) {
-    const B = basis(dir);
-    return d => {
-      const dt = d.dot(B.c); if (dt <= 0) return 0;
-      const a = Math.acos(Math.min(1, dt));
-      if (a > r * 1.5) return 0;
-      const ph = Math.atan2(d.dot(B.v), d.dot(B.u));
-      const rr = r * (1 + irr * Math.sin(3 * ph + seed) + irr * .6 * Math.sin(5 * ph + seed * 1.7));
-      return 1 - sstep(rr - soft, rr + soft, a);
-    };
-  }
-
-  function rosette(dir, r, seed = 0) {
-    const B = basis(dir);
-    return d => {
-      const dt = d.dot(B.c); if (dt <= 0) return 0;
-      const a = Math.acos(Math.min(1, dt)); if (a > r * 1.1) return 0;
-      const ph = Math.atan2(d.dot(B.v), d.dot(B.u));
-      const ring = sstep(r * .58, r * .7, a) * (1 - sstep(r * .94, r * 1.06, a));
-      const dp = Math.abs(Math.atan2(Math.sin(ph - seed), Math.cos(ph - seed)));
-      return ring * sstep(.45, .75, dp);
-    };
-  }
-
-
-  function Paint(base) {
-    const b = rgb(base), L = [];
-    const api = {
-      add(cover, hex, k = 1) { L.push([cover, rgb(hex), k]); return api; },
-      texture(W = 512, H = 256) {
-        const cv = document.createElement('canvas'); cv.width = W; cv.height = H;
-        const ctx = cv.getContext('2d'); const img = ctx.createImageData(W, H); const data = img.data;
-        const d = V(0, 0, 0);
-        for (let y = 0; y < H; y++) {
-          const th = Math.PI * (y + .5) / H, st = Math.sin(th), ct = Math.cos(th);
-          for (let x = 0; x < W; x++) {
-            const ph = 2 * Math.PI * (x + .5) / W;
-            d.set(-Math.cos(ph) * st, ct, Math.sin(ph) * st);
-            let r = b[0], g = b[1], bl = b[2];
-            for (let i = 0; i < L.length; i++) {
-              const a = L[i][0](d) * L[i][2];
-              if (a > 0) { const c = L[i][1]; r += (c[0] - r) * a; g += (c[1] - g) * a; bl += (c[2] - bl) * a; }
-            }
-            const o = (y * W + x) * 4; data[o] = r; data[o + 1] = g; data[o + 2] = bl; data[o + 3] = 255;
-          }
-        }
-        ctx.putImageData(img, 0, 0);
-        const t = new THREE.CanvasTexture(cv);
-        if ('colorSpace' in t) t.colorSpace = THREE.SRGBColorSpace; else t.encoding = THREE.sRGBEncoding;
-        t.anisotropy = 4;
-        return t;
-      },
-      material(W = 512, H = 256, rough = .8) { return new THREE.MeshStandardMaterial({ map: api.texture(W, H), roughness: rough }); }
-    };
-    return api;
-  }
-
-
-  function placeOn(parent, H, nx, ny, lift = 0) {
-    const nz = -Math.sqrt(Math.max(0, 1 - nx * nx - ny * ny));
-    const n = V(nx / H.r[0], ny / H.r[1], nz / H.r[2]).normalize();
-    const p = V(H.c[0] + nx * H.r[0], H.c[1] + ny * H.r[1], H.c[2] + nz * H.r[2]).addScaledVector(n, lift);
-    const g = new THREE.Group(); g.position.copy(p);
-    g.quaternion.setFromUnitVectors(V(0, 0, -1), n); parent.add(g); return g;
-  }
-  function eye(parent, H, nx, ny, s) {
-    const g = placeOn(parent, H, nx, ny, -s * .25);
-    const e = sph(g, 0, 0, 0, s, s * 1.12, s * .6, EYE); e.userData.eyeOpen = true;
-    for (const [hx, hy, hr] of [[-.3, .38, .34], [.34, -.34, .16]]) {
-      const h = sph(g, hx * s, hy * s, -s * .46, s * hr, s * hr, s * hr * .5, WHITE); h.userData.eyeOpen = true;
-    }
-    return g;
-  }
-  function arc(parent, H, nx, ny, w, hex, happyEye = false) {
-    const g = placeOn(parent, H, nx, ny, .006);
-    const m = new THREE.Mesh(new THREE.TorusGeometry(w, w * .14, 6, 18, Math.PI), flat(hex, .5));
-    if (!happyEye) m.rotation.z = Math.PI;
-    g.add(m); return g;
-  }
-  function nose(parent, H, nx, ny, rx, ry, hex = '#34303a') {
-    const g = placeOn(parent, H, nx, ny, -ry * .3);
-    return sph(g, 0, 0, 0, rx, ry, rx * .7, flat(hex, .35));
-  }
-
-
-  function arm(parent, material, side, x, y, z, len, r, handR, fwd = .15, out = .2, handMat = material) {
-    const g = new THREE.Group(); g.position.set(side * x, y, z);
-    g.userData.tay = true; g.userData.ben = side;
-    const inner = new THREE.Group(); inner.rotation.set(fwd, 0, side * out); g.add(inner);
-    sph(inner, 0, 0, 0, r * 1.3, r * 1.3, r * 1.25, material);
-    sph(inner, 0, -len * .27, 0, r * 1.08, len * .33, r * 1.05, material);
-    const khuYu = new THREE.Group(); khuYu.position.y = -len * .5; inner.add(khuYu);
-    sph(khuYu, 0, -len * .22, 0, r, len * .3, r, material);
-    sph(khuYu, 0, -len * .48, -.01, handR, handR * 1.1, handR, handMat);
-    g.userData.khuYu = khuYu;
-    parent.add(g); return g;
-  }
-  function leg(parent, material, footMat, x, len, r, footL) {
-    const g = new THREE.Group(); g.userData.chan = true;
-    g.position.set(x, len + .02, .05);
-    sph(g, 0, -len * .25, 0, r * 1.12, len * .32, r * 1.12, material);
-    const goi = new THREE.Group(); goi.position.y = -len * .5; g.add(goi); g.userData.goi = goi;
-    sph(goi, 0, -len * .2, 0, r, len * .28, r, material);
-    sph(goi, 0, -len * .5 + r * .55, -footL * .25, r * 1.2, r * .62, footL, footMat);
-    parent.add(g); return { g, goi };
-  }
-
-
-  function tailTube(pts, r, colorFn) {
-    const curve = new THREE.CatmullRomCurve3(pts), segs = 30, rad = 10;
-    const g = new THREE.TubeGeometry(curve, segs, r, rad, false);
-    const cols = new Float32Array(g.attributes.position.count * 3);
-    for (let i = 0; i <= segs; i++) {
-      const c = new THREE.Color(colorFn(i / segs));
-      for (let j = 0; j <= rad; j++) { const o = (i * (rad + 1) + j) * 3; cols[o] = c.r; cols[o + 1] = c.g; cols[o + 2] = c.b; }
-    }
-    g.setAttribute('color', new THREE.BufferAttribute(cols, 3));
-    return new THREE.Mesh(g, new THREE.MeshStandardMaterial({ vertexColors: true, roughness: .8 }));
-  }
-  function tube(points, rFn, colorFn, segs = 160, radial = 40) {
-    const curve = new THREE.CatmullRomCurve3(points);
-    const fr = curve.computeFrenetFrames(segs, false);
-    const pos = [], nor = [], col = [], idx = [];
-    const p = new THREE.Vector3(), c = new THREE.Color();
-    for (let i = 0; i <= segs; i++) {
-      const t = i / segs; curve.getPointAt(t, p); const r = rFn(t);
-      const N = fr.normals[i], B = fr.binormals[i];
-      for (let j = 0; j <= radial; j++) {
-        const a = j / radial * Math.PI * 2, cx = Math.cos(a), sy = Math.sin(a);
-        const dir = V(N.x * cx + B.x * sy, N.y * cx + B.y * sy, N.z * cx + B.z * sy).normalize();
-        pos.push(p.x + dir.x * r, p.y + dir.y * r, p.z + dir.z * r);
-        nor.push(dir.x, dir.y, dir.z);
-        colorFn(dir, t, c); col.push(c.r, c.g, c.b);
-      }
-    }
-    for (let i = 1; i <= segs; i++) for (let j = 1; j <= radial; j++) {
-      const a = (radial + 1) * (i - 1) + (j - 1), b = (radial + 1) * i + (j - 1), cc = (radial + 1) * i + j, d = (radial + 1) * (i - 1) + j;
-      idx.push(a, b, d, b, cc, d);
-    }
-    const g = new THREE.BufferGeometry();
-    g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
-    g.setAttribute('normal', new THREE.Float32BufferAttribute(nor, 3));
-    g.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
-    g.setIndex(idx);
-    return new THREE.Mesh(g, new THREE.MeshStandardMaterial({ vertexColors: true, roughness: .7 }));
-  }
-
-  return { V, FD, sstep, flat, sph, Paint, oval, disc, rosette, placeOn, eye, arc, nose, arm, leg, tailTube, tube };
-})();
-
-
 function animal(type, tint = null, macVest = false) {
-  const { V, FD, sstep, flat, sph, Paint, oval, disc, rosette, placeOn, eye, arc, nose, arm, leg, tailTube, tube } = CK;
   const root = new THREE.Group();
   const body = new THREE.Group();
   root.add(body);
-  const T = tint ? (tint.isColor ? '#' + tint.getHexString() : tint) : null;
-
-  let headG = null;
-  const makeHead = (H, paint) => {
-    headG = new THREE.Group(); headG.position.y = 1.3; body.add(headG);
-    sph(headG, H.c[0], H.c[1], H.c[2], H.r[0], H.r[1], H.r[2], paint.material(512, 256), true);
-    return headG;
-  };
-  const makeTorso = (c, r, paint) => sph(body, c[0], c[1], c[2], r[0], r[1], r[2], paint.material(512, 256), true);
-
-
-  if (type === 'cow') {
-    const white = T || '#fffaf0', dark = '#4a342e', pink = '#f4a3a9';
-    const H = { c: [0, .08, -.08], r: [.6, .52, .5] };
-    const bodyP = macVest ? Paint('#1c1d22') : Paint(white)
-      .add(disc(V(-.85, .25, -.45), .5, 1.3), dark)
-      .add(disc(V(.75, -.25, .1), .55, 2.1), dark)
-      .add(disc(V(.1, .6, .85), .42, 3.2), dark)
-      .add(disc(V(-.55, -.35, .8), .38, 4.4), dark)
-      .add(disc(V(.9, .5, -.3), .3, 5.1), dark);
-    makeTorso([0, .66, .02], [.56, .68, .5], bodyP);
-    const headP = Paint(white)
-      .add(disc(FD(-.62, .5), .4, 1.7), dark)
-      .add(oval(FD(.8, -.15), .2, .14), pink, .5)
-      .add(oval(FD(-.8, -.15), .2, .14), pink, .5);
-    const hg = makeHead(H, headP);
-
-    for (const s of [-1, 1]) {
-      const ear = sph(hg, s * .64, .3, -.02, .25, .09, .15, Paint(dark).add(oval(V(0, 1, -.15), .6, .5), pink, .9).material(128, 64));
-      ear.rotation.z = -s * .35;
-      const horn = sph(hg, s * .27, .56, -.1, .07, .17, .07, flat('#f3dc9a', .6)); horn.rotation.z = -s * .3;
+  const fur = tint ? mat(tint) : ({ snake: mat('#64bc83'), fish: mat('#57a9d8'), sloth: mat('#92745b'), cow: mat('#fffaf0'), leopard: mat('#d7a353') }[type]);
+  const cowBodyFur = macVest ? mat('#18191d') : type === 'cow' ? patternMaterial('#fffaf0', 'cow', 'body') : fur;
+  const cowHeadFur = type === 'cow' ? patternMaterial('#fffaf0', 'cow', 'head') : fur;
+  const leopardBodyFur = type === 'leopard' ? patternMaterial('#d7a353', 'leopard', 'body') : fur;
+  const leopardHeadFur = type === 'leopard' ? patternMaterial('#d7a353', 'leopard', 'head') : fur;
+  const blush = mat('#f39a9c');
+  const eye = mat('#24212b');
+  const dark = mat('#34303a');
+  if (type === 'snake') {
+    for (const [radius, y, thickness] of [[.74,.16,.13],[.59,.3,.12],[.44,.43,.105]]) {
+      const coil = new THREE.Mesh(new THREE.TorusGeometry(radius, thickness, 10, 36), fur);
+      coil.rotation.x = Math.PI / 2;
+      coil.position.set(0, y, .05);
+      body.add(coil);
     }
-
-    const mg = placeOn(hg, H, 0, -.42, -.07);
-    sph(mg, 0, 0, 0, .27, .19, .14, Paint(pink)
-      .add(oval(V(-.33, .1, -.93), .13, .2), '#c96b78', .9)
-      .add(oval(V(.33, .1, -.93), .13, .2), '#c96b78', .9).material(128, 64));
-    for (const s of [-1, 1]) eye(hg, H, s * .42, .12, .085);
-
-    const collar = new THREE.Mesh(new THREE.TorusGeometry(.53, .05, 10, 40), flat('#6a4a3a'));
-    collar.rotation.x = Math.PI / 2; collar.position.set(0, .82, .02); collar.scale.set(1, .92, 1); body.add(collar);
-    sph(body, 0, .73, -.5, .075, .08, .07, flat('#f2b632', .35));
-
-    const armMat = macVest ? flat('#1c1d22') : flat(white);
-    for (const s of [-1, 1]) arm(body, armMat, s, .5, .92, -.02, .5, .13, .15, .15, .22);
-    const dk = flat(dark);
-    for (const s of [-1, 1]) leg(body, dk, dk, s * .3, .34, .115, .15);
-
-    const tail = tailTube([V(0, .5, .46), V(.2, .4, .72), V(.3, .55, .84)], .035, t => t > .86 ? dark : white);
-    body.add(tail); sph(body, .3, .55, .85, .07, .09, .07, flat(dark));
-
-
-  } else if (type === 'snake') {
-    const G = new THREE.Color(T || '#8fcf5e'), CR = new THREE.Color('#f6eab4');
-    const F = V(0, -.25, -1).normalize();
-    const colorFn = (dir, t, out) => { out.copy(G).lerp(CR, sstep(.55, .72, dir.dot(F))); };
-    const sp = []; const N = 22;
-    for (let k = 0; k <= N; k++) {
-      const s = k / N, a = -.3 + s * Math.PI * 2 * 1.55, rad = .7 - s * .3;
-      sp.push(V(rad * Math.cos(a), .17 + s * .3, rad * Math.sin(a)));
-    }
-    const S0 = sp[0].clone();
-    const path = [...sp, V(-.32, .7, -.02), V(-.1, 1.0, -.04), V(.02, 1.3, -.05), V(0, 1.46, -.05)];
-    const bodyMesh = tube(path, t => .2 - .035 * sstep(.65, .95, t), colorFn);
-    body.add(bodyMesh);
-
-    const duoiRan = new THREE.Group(); duoiRan.position.copy(S0);
-    duoiRan.add(tube([V(0, 0, 0), V(.05, 0, -.22), V(.2, .03, -.42), V(.4, .1, -.52)], t => .2 * (1 - .9 * t), colorFn, 40, 24));
+    const duoiRan=new THREE.Group();
+    duoiRan.position.set(.66,.17,.08);
+    taperedTube(duoiRan,[[0,0,0],[.18,0,.1],[.4,.06,.22]],.13,.012,fur);
     body.add(duoiRan);
-    body.userData.duoiRan = duoiRan;
-    body.userData.thanCuon = [bodyMesh];
-    body.userData.longRan = bodyMesh.material;
-    body.userData.caoDauRan = 0;
-
-    const H = { c: [0, 1.62, -.05], r: [.5, .43, .45] };
-    const snakeHead = new THREE.Group(); snakeHead.userData.dauRan = true; body.add(snakeHead);
-    const headP = Paint(T || '#8fcf5e')
-      .add(oval(FD(0, -.5), .8, .45, 0, .3), '#d9eb8f', .75)
-      .add(oval(FD(.78, -.2), .2, .14), '#f59aa0', .5)
-      .add(oval(FD(-.78, -.2), .2, .14), '#f59aa0', .5);
-    sph(snakeHead, H.c[0], H.c[1], H.c[2], H.r[0], H.r[1], H.r[2], headP.material(512, 256), true);
-    for (const s of [-1, 1]) { eye(snakeHead, H, s * .4, .18, .09); nose(snakeHead, H, s * .1, -.12, .018, .022); }
-    arc(snakeHead, H, 0, -.4, .11, '#34303a');
-    const tg = placeOn(snakeHead, H, 0, -.52, 0);
-    const tongue = sph(tg, 0, 0, -.1, .04, .015, .12, flat('#e8465a', .5)); tongue.rotation.x = .25;
-    root.userData.dau = snakeHead;
-    root.userData.duoiRan = duoiRan;
-
-
+    body.userData.duoiRan=duoiRan;
+    const middleHeight = .77;
+    const shortenedHeight = middleHeight * 2 / 3;
+    const headShift = middleHeight - shortenedHeight;
+    const connection = new THREE.Mesh(new THREE.CylinderGeometry(.14,.44,.8,20),fur);
+    connection.position.set(0,.55,-.02);
+    connection.castShadow = true;
+    body.add(connection);
+    sphere(body,0,1.11-headShift/2,-.02,.145,shortenedHeight,.15,fur,20);
+    body.userData.thanCuon=body.children.slice();
+    body.userData.longRan=fur;
+    body.userData.caoDauRan=-headShift;
+    const snakeHead = new THREE.Group();
+    snakeHead.userData.dauRan=true;
+    snakeHead.position.y = -headShift;
+    body.add(snakeHead);
+    sphere(snakeHead,0,1.91,-.08,.43,.39,.39,fur,20);
+    for(const x of [-.17,.17]) {
+      const matNgu=sphere(snakeHead,x,1.98,-.405,.064,.085,.035,eye,12);matNgu.userData.eyeOpen=true;
+      const longMat=sphere(snakeHead,x-.014,2.01,-.434,.016,.022,.01,mats.white,8);longMat.userData.eyeOpen=true;
+    }
+    sphere(snakeHead,-.04,1.83,-.45,.018,.022,.012,dark,8);
+    sphere(snakeHead,.04,1.83,-.45,.018,.022,.012,dark,8);
+    faceLine(snakeHead,[[-.09,1.76,-.435],[0,1.73,-.45],[.09,1.76,-.435]],dark,.014);
   } else if (type === 'fish') {
-    const blue = T || '#4aa6f0', fin = '#6bbcf5';
-    const H = { c: [0, .82, -.02], r: [.66, .6, .56] };
-    const P = Paint(blue)
-      .add(oval(FD(0, -.5), .62, .5, 0, .3), '#bfe3fb', .9)
-      .add(oval(FD(.75, -.2), .17, .12), '#f58fb2', .55)
-      .add(oval(FD(-.75, -.2), .17, .12), '#f58fb2', .55)
-      .add(oval(FD(0, -.28), .13, .08), '#c2394d', 1);
-    sph(body, H.c[0], H.c[1], H.c[2], H.r[0], H.r[1], H.r[2], P.material(512, 256), true);
-    const fm = flat(fin, .75);
-    const dorsal = sph(body, 0, 1.4, .1, .05, .3, .28, fm); dorsal.rotation.x = -.5;
-    const tailFin = sph(body, 0, .5, .6, .05, .3, .3, fm); tailFin.rotation.x = .6;
-    for (const s of [-1, 1]) {
-      const pf = sph(body, s * .68, .72, 0, .2, .1, .14, fm); pf.rotation.z = -s * .5;
-      eye(body, H, s * .45, .17, .1);
+    const finMat = new THREE.MeshStandardMaterial({color:'#3297c7',side:THREE.DoubleSide,roughness:.8});
+    const gillMat = mat('#e78388');
+    sphere(body,0,.57,.04,.7,.43,.68,fur,20);
+    triangleFin(body,[[0,.59,.72],[-.37,.82,1.03],[0,.58,1.08]],finMat);
+    triangleFin(body,[[0,.58,1.08],[.37,.82,1.03],[0,.59,.72]],finMat);
+    triangleFin(body,[[0,.9,.1],[-.28,1.19,.35],[.25,.91,.43]],finMat);
+    triangleFin(body,[[0,.26,-.05],[-.22,-.02,.18],[.2,.25,.35]],finMat);
+    triangleFin(body,[[-.5,.48,-.12],[-.86,.32,.08],[-.58,.75,.15]],finMat);
+    triangleFin(body,[[.5,.48,-.12],[.86,.32,.08],[.58,.75,.15]],finMat);
+    for(const x of [-.52,.52]) {
+      sphere(body,x,.56,-.13,.095,.25,.11,gillMat,12);
+      sphere(body,x*.73,.69,-.49,.07,.09,.035,mats.white,12);
+      const matNgu=sphere(body,x*.73,.69,-.52,.032,.054,.018,eye,10);matNgu.userData.eyeOpen=true;
     }
-    for (const s of [-1, 1]) leg(body, fm, fm, s * .28, .3, .1, .13);
-
-
+    faceLine(body,[[-.11,.47,-.65],[0,.44,-.675],[.11,.47,-.65]],dark,.018);
   } else if (type === 'sloth') {
-    const fur = T || '#b98a5e', cream = '#f1dcc0', patch = '#8d5d3d';
-    const H = { c: [0, .08, -.08], r: [.62, .54, .5] };
-    makeTorso([0, .66, .02], [.6, .7, .52], Paint(fur).add(oval(FD(0, -.05), .62, .74), '#ecd3a9', .95));
-    const headP = Paint(fur)
-      .add(oval(FD(0, -.08), .75, .62, 0, .22), cream, .95)
-      .add(oval(FD(.4, .1), .27, .17, .5), patch, .95)
-      .add(oval(FD(-.4, .1), .27, .17, -.5), patch, .95)
-      .add(oval(FD(.78, -.25), .17, .12), '#f2a08a', .5)
-      .add(oval(FD(-.78, -.25), .17, .12), '#f2a08a', .5);
-    const hg = makeHead(H, headP);
-    for (const s of [-1, 1]) arc(hg, H, s * .4, .1, .09, '#3b2a22', true);
-    nose(hg, H, 0, -.16, .06, .045);
-    arc(hg, H, 0, -.2, .1, '#3b2a22');
-    const cl = flat('#efe3c4', .6);
-    for (const s of [-1, 1]) {
-      const a = arm(body, flat(fur), s, .52, .92, -.02, .8, .14, .15, .1, .16);
-      for (let i = 0; i < 3; i++) sph(a.userData.khuYu, (i - 1) * .06, -.8 * .48 - .15, -.03, .026, .075, .026, cl);
-      const { goi } = leg(body, flat(fur), flat(fur), s * .3, .34, .13, .16);
-      for (let i = 0; i < 3; i++) sph(goi, (i - 1) * .065, -.17 + .13 * .55 * 0 - .01, -.2, .028, .03, .06, cl);
+    sphere(body,0,.56,.02,.55,.53,.48,fur,18);
+    sphere(body,0,1.02,-.16,.48,.47,.42,fur,18);
+    sphere(body,0,1.03,-.52,.35,.31,.12,mat('#d7bd91'),16);
+    for(const x of [-.17,.17]) {
+      sphere(body,x,1.08,-.625,.12,.16,.045,mat('#654d3c'),12);
+      const matNgu=sphere(body,x,1.08,-.668,.047,.065,.025,eye,10);matNgu.userData.eyeOpen=true;
     }
-
-
+    sphere(body,0,.91,-.635,.09,.06,.045,dark,10);
+    const smile=new THREE.Mesh(new THREE.TorusGeometry(.075,.012,6,12,Math.PI),dark); smile.position.set(0,.85,-.66); smile.rotation.z=Math.PI; body.add(smile);
+    for(const ben of [-1,1]) {
+      const tay=taoCanhTay(body,fur,ben,.41,.87,.02,.72,.126,.13);
+      for(let i=0;i<3;i++) {
+        const mong=new THREE.Mesh(new THREE.ConeGeometry(.029,.13,7),mat('#e8ddbd'));
+        mong.position.set((i-1)*.055,-.79-tay.userData.khuYu.position.y,-.025);
+        mong.rotation.x=Math.PI;
+        tay.userData.khuYu.add(mong);
+      }
+    }
   } else if (type === 'leopard') {
-    const fur = T || '#f7c85c', cream = '#fcecc0', br = '#9a5f2a';
-    const H = { c: [0, .08, -.08], r: [.6, .52, .48] };
-    const bodyP = Paint(fur).add(oval(FD(0, -.05), .55, .68, 0, .22), cream, .95);
-    const NB = 34;
-    for (let i = 0; i < NB; i++) {
-      const y = 1 - 2 * (i + .5) / NB, rad = Math.sqrt(1 - y * y), ph = i * 2.399963;
-      const d = V(Math.cos(ph) * rad, y, Math.sin(ph) * rad);
-      if ((d.z < -.5 && Math.abs(d.x) < .62) || Math.abs(y) > .93) continue;
-      bodyP.add(rosette(d, .2 + .05 * Math.sin(i * 1.3), i * 1.9), br, .95);
+    sphere(body,0,.68,.02,.52,.66,.44,leopardBodyFur,18);
+    sphere(body,0,1.38,-.15,.48,.46,.4,leopardHeadFur,18);
+    sphere(body,0,.64,-.385,.28,.39,.075,mat('#f2d8a5'),14);
+    for(const x of [-.36,.36]) {
+      sphere(body,x,1.67,-.08,.16,.18,.1,fur,12);
     }
-    makeTorso([0, .66, .02], [.5, .66, .44], bodyP);
-    const headP = Paint(fur)
-      .add(oval(FD(0, -.38), .55, .4, 0, .25), cream, .95)
-      .add(oval(FD(.8, -.2), .17, .12), '#f58c78', .45)
-      .add(oval(FD(-.8, -.2), .17, .12), '#f58c78', .45);
-    for (let i = 0; i < 16; i++) {
-      const y = 1 - 2 * (i + .5) / 16, rad = Math.sqrt(1 - y * y), ph = i * 2.399963 + 1;
-      const d = V(Math.cos(ph) * rad, y, Math.sin(ph) * rad);
-      if (d.z < -.25 || y < -.3) continue;
-      headP.add(disc(d, .07, i * 1.7), br, .95);
+    for(const x of [-.18,.18]) {
+      const matNgu=sphere(body,x,1.43,-.525,.062,.085,.028,eye,12);matNgu.userData.eyeOpen=true;
+      const longMat=sphere(body,x-.012,1.46,-.548,.016,.022,.01,mats.white,8);longMat.userData.eyeOpen=true;
     }
-    const hg = makeHead(H, headP);
-    for (const s of [-1, 1]) {
-      sph(hg, s * .44, .5, -.04, .2, .2, .1, Paint(fur).add(oval(V(0, .05, -1), .55, .55), '#f3a0a6', .9).material(128, 64));
-      eye(hg, H, s * .4, .1, .085);
+    const leopardNose = new THREE.Mesh(new THREE.ConeGeometry(.105,.13,3),dark);
+    leopardNose.position.set(0,1.27,-.562);
+    leopardNose.rotation.x=-Math.PI/2;
+    body.add(leopardNose);
+    faceLine(body,[[0,1.21,-.557],[0,1.16,-.555],[-.075,1.13,-.545],[0,1.105,-.55],[.075,1.13,-.545]],dark,.014);
+    for(const ben of [-1,1])taoCanhTay(body,fur,ben,.425,.99,-.035,.54,.14,.31);
+    const tail=new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3([new THREE.Vector3(.42,.38,.25),new THREE.Vector3(.75,.35,.5),new THREE.Vector3(.82,.55,.72)]),16,.075,8,false),fur);
+    body.add(tail);
+    sphere(body,.82,.55,.72,.12,.12,.12,mat('#593d2e'),10);
+  } else {
+    sphere(body,0,.68,0,.55,.62,.44,cowBodyFur,18);
+    sphere(body,0,1.36,-.16,.49,.47,.42,cowHeadFur,18);
+    for(const x of [-.45,.45]) {
+      sphere(body,x,1.31,-.15,.17,.11,.1,fur,12);
+      const horn=new THREE.Mesh(new THREE.ConeGeometry(.1,.27,8),mats.cream); horn.position.set(x*.72,1.8,-.13); horn.rotation.z=x<0?.2:-.2; body.add(horn);
     }
-    nose(hg, H, 0, -.2, .07, .05);
-    arc(hg, H, 0, -.26, .11, '#34303a');
-    const tg = placeOn(hg, H, 0, -.4, 0); sph(tg, 0, 0, -.015, .06, .025, .05, flat('#f07a8a', .5));
-    for (const s of [-1, 1]) {
-      arm(body, flat(fur), s, .47, .92, -.02, .5, .13, .15, .15, .2);
-      leg(body, flat(fur), flat(cream), s * .3, .34, .115, .15);
-    }
-    body.add(tailTube([V(0, .4, .4), V(.5, .3, .62), V(.78, .5, .7), V(.86, .85, .6)], .07, t => (t > .93 || Math.floor(t * 9) % 2 === 1) ? br : fur));
-
-
-  } else if (type === 'capybara') {
-    const fur = T || '#c88c55', snout = '#a76a40';
-    const H = { c: [0, -.04, -.1], r: [.52, .46, .55] };
-    makeTorso([0, .62, .04], [.66, .62, .56], Paint(fur).add(oval(FD(0, -.1), .6, .6, 0, .3), '#d79e68', .6));
-    const headP = Paint(fur)
-      .add(oval(FD(0, -.3), .72, .5, 0, .3), snout, .95)
-      .add(oval(FD(-.2, -.12), .05, .04), '#3a261c', 1)
-      .add(oval(FD(.2, -.12), .05, .04), '#3a261c', 1);
-    const hg = makeHead(H, headP);
-    for (const s of [-1, 1]) {
-      eye(hg, H, s * .55, .22, .05);
-      sph(hg, s * .32, .36, 0, .1, .1, .07, flat('#a5683c'));
-    }
-    arc(hg, H, 0, -.4, .08, '#3a261c');
-
-    sph(body, 0, .55, -.5, .19, .17, .19, flat('#f28a22', .5));
-    sph(body, 0, .71, -.5, .09, .025, .05, flat('#5cae48'));
-    const lf = sph(body, .02, .71, -.5, .09, .025, .05, flat('#4a9a3c')); lf.rotation.y = 1.2;
-    for (const s of [-1, 1]) {
-      arm(body, flat(fur), s, .58, .82, -.1, .42, .13, .12, .9, -.65, flat('#b67a4a'));
-      leg(body, flat(fur), flat('#9a643c'), s * .34, .32, .13, .15);
-    }
-
-
-  } else if (type === 'panda') {
-    const white = T || '#fbf6ee', black = '#3a3236';
-    const H = { c: [0, .08, -.08], r: [.64, .54, .52] };
-    makeTorso([0, .66, .02], [.6, .7, .5], Paint(white));
-    const headP = Paint(white)
-      .add(oval(FD(.42, .02), .17, .24, .5, .2), black, 1)
-      .add(oval(FD(-.42, .02), .17, .24, -.5, .2), black, 1)
-      .add(oval(FD(.8, -.25), .17, .12), '#f7b0b8', .5)
-      .add(oval(FD(-.8, -.25), .17, .12), '#f7b0b8', .5);
-    const hg = makeHead(H, headP);
-    for (const s of [-1, 1]) { sph(hg, s * .5, .48, -.02, .19, .19, .1, flat(black)); eye(hg, H, s * .42, .02, .07); }
-    nose(hg, H, 0, -.18, .065, .045);
-    arc(hg, H, 0, -.22, .1, '#3a3236');
-    const bk = flat(black);
-    for (const s of [-1, 1]) {
-      arm(body, bk, s, .52, .92, -.02, .55, .15, .16, .85, -.55);
-      leg(body, bk, bk, s * .3, .34, .13, .16);
-    }
-
-    const bam = new THREE.Group(); bam.position.set(.14, .62, -.5); bam.rotation.z = -.12; body.add(bam);
-    bam.add(new THREE.Mesh(new THREE.CylinderGeometry(.04, .04, .95, 10), flat('#7ec850', .6)));
-    for (const y of [-.25, .1, .4]) {
-      const n = new THREE.Mesh(new THREE.TorusGeometry(.045, .012, 6, 12), flat('#5da23a')); n.rotation.x = Math.PI / 2; n.position.y = y; bam.add(n);
-    }
-    for (const [x, y, rz] of [[.1, .42, -.5], [-.1, .34, .6], [.08, .5, .2]]) {
-      const l = sph(bam, x, y, 0, .14, .02, .05, flat('#5cae48')); l.rotation.z = rz;
-    }
+    const matNgu1=sphere(body,-.2,1.42,-.52,.07,.09,.05,eye,10),matNgu2=sphere(body,.2,1.42,-.52,.07,.09,.05,eye,10);matNgu1.userData.eyeOpen=true;matNgu2.userData.eyeOpen=true;
+    sphere(body,0,1.17,-.6,.28,.19,.12,blush,14);
+    sphere(body,-.09,1.17,-.7,.035,.055,.025,dark,8); sphere(body,.09,1.17,-.7,.035,.055,.025,dark,8);
+    for(const ben of [-1,1])taoCanhTay(body,macVest?cowBodyFur:fur,ben,.455,.99,-.045,.53,.15,.35);
   }
-
-
-  if (type !== 'snake') root.userData.dau = (type === 'fish') ? undefined : headG;
-  if (type !== 'snake') root.userData.duoiRan = undefined;
-
-  body.traverse(o => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
-  root.userData.tay = [];
-  body.traverse(o => { if (o.userData.tay) root.userData.tay.push(o); });
-  root.userData.chan = body.children.filter(o => o.userData.chan);
+  if(type!=='snake') for(const x of [-.3,.3]) {
+    const tall=type==='cow'||type==='leopard';
+    const dai=tall?.44:.34;
+    const tren=tall?.12:.1, duoi=tall?.14:.13;
+    const giua=(tren+duoi)/2;
+    const chatLieu=type==='sloth'?fur:dark;
+    const leg=new THREE.Group();
+    const goi=new THREE.Group();
+    const dui=new THREE.CylinderGeometry(tren,giua,dai/2+.014,8);
+    dui.translate(0,-dai/4-.007,0);
+    const ongChan=new THREE.CylinderGeometry(giua,duoi,dai/2+.014,8);
+    ongChan.translate(0,-dai/4+.007,0);
+    leg.add(new THREE.Mesh(dui,chatLieu),goi);
+    goi.position.y=-dai/2;
+    goi.add(new THREE.Mesh(ongChan,chatLieu));
+    leg.userData.chan=true;
+    leg.userData.goi=goi;
+    leg.position.set(x,(tall?.21:.15)+dai/2,.05);
+    body.add(leg);
+  }
+  body.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true;}});
+  let dau;
+  if(type==='snake') dau=body.children.find(o=>o.userData.dauRan);
+  else if(type!=='fish'){
+    dau=new THREE.Group();dau.position.y=1.3;body.add(dau);
+    for(const o of [...body.children])if(o!==dau&&o.position.y>=1){body.remove(o);o.position.y-=1.3;dau.add(o);}
+  }
+  root.userData.dau=dau;
+  root.userData.duoiRan=body.userData.duoiRan;
+  root.userData.tay=[];body.traverse(o=>{if(o.userData.tay)root.userData.tay.push(o);});
+  root.userData.chan=body.children.filter(o=>o.userData.chan);
   root.userData.body = body;
   return root;
 }
