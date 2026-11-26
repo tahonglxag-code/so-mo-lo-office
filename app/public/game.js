@@ -766,12 +766,15 @@ function animal(type,tint=null,macVest=false){
   root.add(body);
   const colors={snake:'#8bd978',fish:'#64c5e7',sloth:'#be895e',cow:'#fffaf3',leopard:'#ffc44e',panda:'#fffaf4',capi:'#bd8154'};
   root.userData.body=body;
-  root.userData.dau=body;
+  const dau=new THREE.Group();
+  dau.position.y=1.3;
+  body.add(dau);
+  root.userData.dau=dau;
   root.userData.tay=[];
   root.userData.chan=[];
   body.userData.thanCuon=[];
   body.userData.longRan=mat(colors[type]||'#be895e');
-  body.userData.caoDauRan=0;
+  body.userData.caoDauRan=1.3;
   root.userData.duoiRan=null;
   const modelType=colors[type]?type:'capi';
   let tai=animalModelCache.get(modelType);
@@ -1948,9 +1951,9 @@ function veSep(now){
   than.position.y=khach?0:-.2;
   than.scale.y=khach?1:.76;
   than.rotation.x=.13*dap;
-  const [tayDap,tayChi]=sep.userData.tay;
-  tayDap.rotation.x=khach?.77+dap*.85:0;
-  tayChi.rotation.x=khach?1.48:0;
+  const [tayDap,tayChi]=sep.userData.tay||[];
+  if(tayDap)tayDap.rotation.x=khach?.77+dap*.85:0;
+  if(tayChi)tayChi.rotation.x=khach?1.48:0;
   banSep.rotation.z=.024*dap*Math.sin(t*29);
   if(!khach){
     for(const kyTu of kyTuBay)kyTu.visible=false;
