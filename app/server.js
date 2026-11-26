@@ -171,6 +171,8 @@ app.use(express.static(path.join(root, 'public')));
 app.get('/css3d.js', (_req, res) => res.sendFile(path.join(root, 'node_modules/three/examples/jsm/renderers/CSS3DRenderer.js')));
 app.get('/three.module.js', (_req, res) => res.sendFile(path.join(root, 'node_modules/three/build/three.module.js')));
 app.get('/three.core.js', (_req, res) => res.sendFile(path.join(root, 'node_modules/three/build/three.core.js')));
+app.get('/gltfloader.js', (_req, res) => res.sendFile(path.join(root, 'node_modules/three/examples/jsm/loaders/GLTFLoader.js')));
+app.get('/utils/BufferGeometryUtils.js', (_req, res) => res.sendFile(path.join(root, 'node_modules/three/examples/jsm/utils/BufferGeometryUtils.js')));
 app.get('/healthz', (_req, res) => res.json({ ok: true, rooms: rooms.size, players: [...rooms.values()].reduce((n, room) => n + room.size, 0), uptime: Math.floor(process.uptime()) }));
 app.get('*', (_req, res) => res.sendFile(path.join(root, 'public/index.html')));
 
