@@ -14,9 +14,9 @@ const canvas = document.querySelector('#world');
 const modal = document.querySelector('#join-modal');
 const feed = document.querySelector('#feed');
 const messages = document.querySelector('#messages');
-const avatarIcons = { snake: '🐍', fish: '🐟', sloth: '🦥', cow: '🐮', leopard: '🐆' };
-const avatarColors = { snake: '#399466', fish: '#247da9', sloth: '#73523d', cow: '#39343a', leopard: '#9e5b21' };
-const selectionLines = { snake: 'tôi khổ quá mà', fish: 'thần thiếp không làm được', sloth: 'hả?', cow: 'là sao nữa...', leopard: 'cú bé' };
+const avatarIcons = { snake: '🐍', fish: '🐟', sloth: '🦥', cow: '🐮', leopard: '🐆', capybara: '🦫', panda: '🐼' };
+const avatarColors = { snake: '#399466', fish: '#247da9', sloth: '#73523d', cow: '#39343a', leopard: '#9e5b21', capybara: '#a76a40', panda: '#3a3236' };
+const selectionLines = { snake: 'tôi khổ quá mà', fish: 'thần thiếp không làm được', sloth: 'hả?', cow: 'là sao nữa...', leopard: 'cú bé', capybara: 'cho tôi xin quả hồng', panda: 'để tôi ăn tre đã' };
 let selfId = '';
 let roomCode = '';
 let myName = '';
@@ -757,151 +757,434 @@ function taoCanhTay(than, chatLieu, ben, ngang, cao, sau, dai, rong, doXoe) {
   return tay;
 }
 
-function animal(type, tint = null, macVest = false) {
-  const root = new THREE.Group();
-  const body = new THREE.Group();
-  root.add(body);
-  const fur = tint ? mat(tint) : ({ snake: mat('#64bc83'), fish: mat('#57a9d8'), sloth: mat('#92745b'), cow: mat('#fffaf0'), leopard: mat('#d7a353') }[type]);
-  const cowBodyFur = macVest ? mat('#18191d') : type === 'cow' ? patternMaterial('#fffaf0', 'cow', 'body') : fur;
-  const cowHeadFur = type === 'cow' ? patternMaterial('#fffaf0', 'cow', 'head') : fur;
-  const leopardBodyFur = type === 'leopard' ? patternMaterial('#d7a353', 'leopard', 'body') : fur;
-  const leopardHeadFur = type === 'leopard' ? patternMaterial('#d7a353', 'leopard', 'head') : fur;
-  const blush = mat('#f39a9c');
-  const eye = mat('#24212b');
-  const dark = mat('#34303a');
-  if (type === 'snake') {
-    for (const [radius, y, thickness] of [[.74,.16,.13],[.59,.3,.12],[.44,.43,.105]]) {
-      const coil = new THREE.Mesh(new THREE.TorusGeometry(radius, thickness, 10, 36), fur);
-      coil.rotation.x = Math.PI / 2;
-      coil.position.set(0, y, .05);
-      body.add(coil);
+const CK = (() => {
+  const V = (x, y, z) => new THREE.Vector3(x, y, z);
+  const clamp = (x, a = 0, b = 1) => Math.min(b, Math.max(a, x));
+  const sstep = (a, b, x) => { const t = clamp((x - a) / (b - a)); return t * t * (3 - 2 * t); };
+  const len = (x, y, z) => Math.sqrt(x * x + y * y + z * z);
+  const smin = (a, b, k) => { const h = Math.max(k - Math.abs(a - b), 0) / k; return Math.min(a, b) - h * h * k * .25; };
+  const ell = (x, y, z, c, r) => {
+    const px = (x - c[0]) / r[0], py = (y - c[1]) / r[1], pz = (z - c[2]) / r[2];
+    const k0 = len(px, py, pz), k1 = len(px / r[0], py / r[1], pz / r[2]);
+    return k1 < 1e-6 ? -Math.min(r[0], r[1], r[2]) : k0 * (k0 - 1) / k1;
+  };
+  const rcone = (x, y, z, a, b, r1, r2) => {
+    const dx = b[0] - a[0], dy = b[1] - a[1], dz = b[2] - a[2];
+    const px = x - a[0], py = y - a[1], pz = z - a[2];
+    const h = clamp((px * dx + py * dy + pz * dz) / (dx * dx + dy * dy + dz * dz));
+    return len(px - dx * h, py - dy * h, pz - dz * h) - (r1 + (r2 - r1) * h);
+  };
+
+  
+  const _cc = {}; const K = h => _cc[h] || (_cc[h] = new THREE.Color(h));
+  const paint = (o, h, a) => { if (a > .002) o.lerp(K(h), a > 1 ? 1 : a); };
+  const blob = (x, y, z, c, r, soft = .15, rot = 0) => {
+    let dx = x - c[0], dy = y - c[1];
+    if (rot) { const cs = Math.cos(rot), sn = Math.sin(rot); const t = dx * cs + dy * sn; dy = -dx * sn + dy * cs; dx = t; }
+    return 1 - sstep(1 - soft, 1 + soft, len(dx / r[0], dy / r[1], (z - c[2]) / r[2]));
+  };
+  const spot = (x, y, z, c, r, seed = 0) => {          
+    const d = len(x - c[0], y - c[1], z - c[2]);
+    const R = r * (1 + .22 * Math.sin(6 * x + seed) * Math.cos(5 * y + seed * 1.3) + .16 * Math.sin(8 * z + seed * 2.1));
+    return 1 - sstep(R - .02, R + .02, d);
+  };
+  const ring = (x, y, z, c, r, seed) => {              
+    const d = len(x - c[0], y - c[1], z - c[2]); if (d < 1e-6) return 0;
+    const rg = sstep(r * .55, r * .7, d) * (1 - sstep(r * .92, r * 1.05, d));
+    const dp = ((x - c[0]) * Math.cos(seed) + (y - c[1]) * Math.sin(seed)) / d;
+    return rg * (1 - sstep(.25, .6, dp));
+  };
+  const onEll = (c, r, d) => { const l = len(d[0], d[1], d[2]); return [c[0] + r[0] * d[0] / l, c[1] + r[1] * d[1] / l, c[2] + r[2] * d[2] / l]; };
+
+  
+  function mesher(sdf, colorFn, lo, hi, step) {
+    const nx = Math.ceil((hi[0] - lo[0]) / step) + 1, ny = Math.ceil((hi[1] - lo[1]) / step) + 1, nz = Math.ceil((hi[2] - lo[2]) / step) + 1;
+    const S = [1, nx, nx * ny];
+    const F = new Float32Array(nx * ny * nz);
+    for (let z = 0, i = 0; z < nz; z++) for (let y = 0; y < ny; y++) for (let x = 0; x < nx; x++, i++)
+      F[i] = sdf(lo[0] + x * step, lo[1] + y * step, lo[2] + z * step);
+    const E = [0, 1, 2, 3, 4, 5, 6, 7, 0, 2, 1, 3, 4, 6, 5, 7, 0, 4, 1, 5, 2, 6, 3, 7];
+    const cellV = new Int32Array(F.length).fill(-1), P = [], cv = new Float32Array(8);
+    for (let z = 0; z < nz - 1; z++) for (let y = 0; y < ny - 1; y++) for (let x = 0; x < nx - 1; x++) {
+      const i0 = x + nx * (y + ny * z); let mask = 0;
+      for (let k = 0; k < 8; k++) {
+        const v = F[i0 + (k & 1) + ((k >> 1) & 1) * S[1] + ((k >> 2) & 1) * S[2]];
+        cv[k] = v; if (v < 0) mask |= 1 << k;
+      }
+      if (mask === 0 || mask === 255) continue;
+      let sx = 0, sy = 0, sz = 0, n = 0;
+      for (let e = 0; e < 24; e += 2) {
+        const a = E[e], b = E[e + 1];
+        if (((mask >> a) & 1) === ((mask >> b) & 1)) continue;
+        const t = cv[a] / (cv[a] - cv[b]);
+        const ax = a & 1, ay = (a >> 1) & 1, az = (a >> 2) & 1, bx = b & 1, by = (b >> 1) & 1, bz = (b >> 2) & 1;
+        sx += ax + (bx - ax) * t; sy += ay + (by - ay) * t; sz += az + (bz - az) * t; n++;
+      }
+      cellV[i0] = P.length / 3;
+      P.push(lo[0] + (x + sx / n) * step, lo[1] + (y + sy / n) * step, lo[2] + (z + sz / n) * step);
     }
-    const duoiRan=new THREE.Group();
-    duoiRan.position.set(.66,.17,.08);
-    taperedTube(duoiRan,[[0,0,0],[.18,0,.1],[.4,.06,.22]],.13,.012,fur);
-    body.add(duoiRan);
-    body.userData.duoiRan=duoiRan;
-    const middleHeight = .77;
-    const shortenedHeight = middleHeight * 2 / 3;
-    const headShift = middleHeight - shortenedHeight;
-    const connection = new THREE.Mesh(new THREE.CylinderGeometry(.14,.44,.8,20),fur);
-    connection.position.set(0,.55,-.02);
-    connection.castShadow = true;
-    body.add(connection);
-    sphere(body,0,1.11-headShift/2,-.02,.145,shortenedHeight,.15,fur,20);
-    body.userData.thanCuon=body.children.slice();
-    body.userData.longRan=fur;
-    body.userData.caoDauRan=-headShift;
-    const snakeHead = new THREE.Group();
-    snakeHead.userData.dauRan=true;
-    snakeHead.position.y = -headShift;
-    body.add(snakeHead);
-    sphere(snakeHead,0,1.91,-.08,.43,.39,.39,fur,20);
-    for(const x of [-.17,.17]) {
-      const matNgu=sphere(snakeHead,x,1.98,-.405,.064,.085,.035,eye,12);matNgu.userData.eyeOpen=true;
-      const longMat=sphere(snakeHead,x-.014,2.01,-.434,.016,.022,.01,mats.white,8);longMat.userData.eyeOpen=true;
-    }
-    sphere(snakeHead,-.04,1.83,-.45,.018,.022,.012,dark,8);
-    sphere(snakeHead,.04,1.83,-.45,.018,.022,.012,dark,8);
-    faceLine(snakeHead,[[-.09,1.76,-.435],[0,1.73,-.45],[.09,1.76,-.435]],dark,.014);
-  } else if (type === 'fish') {
-    const finMat = new THREE.MeshStandardMaterial({color:'#3297c7',side:THREE.DoubleSide,roughness:.8});
-    const gillMat = mat('#e78388');
-    sphere(body,0,.57,.04,.7,.43,.68,fur,20);
-    triangleFin(body,[[0,.59,.72],[-.37,.82,1.03],[0,.58,1.08]],finMat);
-    triangleFin(body,[[0,.58,1.08],[.37,.82,1.03],[0,.59,.72]],finMat);
-    triangleFin(body,[[0,.9,.1],[-.28,1.19,.35],[.25,.91,.43]],finMat);
-    triangleFin(body,[[0,.26,-.05],[-.22,-.02,.18],[.2,.25,.35]],finMat);
-    triangleFin(body,[[-.5,.48,-.12],[-.86,.32,.08],[-.58,.75,.15]],finMat);
-    triangleFin(body,[[.5,.48,-.12],[.86,.32,.08],[.58,.75,.15]],finMat);
-    for(const x of [-.52,.52]) {
-      sphere(body,x,.56,-.13,.095,.25,.11,gillMat,12);
-      sphere(body,x*.73,.69,-.49,.07,.09,.035,mats.white,12);
-      const matNgu=sphere(body,x*.73,.69,-.52,.032,.054,.018,eye,10);matNgu.userData.eyeOpen=true;
-    }
-    faceLine(body,[[-.11,.47,-.65],[0,.44,-.675],[.11,.47,-.65]],dark,.018);
-  } else if (type === 'sloth') {
-    sphere(body,0,.56,.02,.55,.53,.48,fur,18);
-    sphere(body,0,1.02,-.16,.48,.47,.42,fur,18);
-    sphere(body,0,1.03,-.52,.35,.31,.12,mat('#d7bd91'),16);
-    for(const x of [-.17,.17]) {
-      sphere(body,x,1.08,-.625,.12,.16,.045,mat('#654d3c'),12);
-      const matNgu=sphere(body,x,1.08,-.668,.047,.065,.025,eye,10);matNgu.userData.eyeOpen=true;
-    }
-    sphere(body,0,.91,-.635,.09,.06,.045,dark,10);
-    const smile=new THREE.Mesh(new THREE.TorusGeometry(.075,.012,6,12,Math.PI),dark); smile.position.set(0,.85,-.66); smile.rotation.z=Math.PI; body.add(smile);
-    for(const ben of [-1,1]) {
-      const tay=taoCanhTay(body,fur,ben,.41,.87,.02,.72,.126,.13);
-      for(let i=0;i<3;i++) {
-        const mong=new THREE.Mesh(new THREE.ConeGeometry(.029,.13,7),mat('#e8ddbd'));
-        mong.position.set((i-1)*.055,-.79-tay.userData.khuYu.position.y,-.025);
-        mong.rotation.x=Math.PI;
-        tay.userData.khuYu.add(mong);
+    const T = [], co = [0, 0, 0];
+    for (let z = 0; z < nz - 1; z++) for (let y = 0; y < ny - 1; y++) for (let x = 0; x < nx - 1; x++) {
+      const i0 = x + nx * (y + ny * z), f0 = F[i0]; co[0] = x; co[1] = y; co[2] = z;
+      for (let d = 0; d < 3; d++) {
+        const u = (d + 1) % 3, v = (d + 2) % 3;
+        if (co[u] < 1 || co[v] < 1) continue;
+        if ((f0 < 0) === (F[i0 + S[d]] < 0)) continue;
+        const c00 = cellV[i0], c10 = cellV[i0 - S[u]], c11 = cellV[i0 - S[u] - S[v]], c01 = cellV[i0 - S[v]];
+        if (c00 < 0 || c10 < 0 || c11 < 0 || c01 < 0) continue;
+        T.push(c11, c01, c00, c11, c00, c10);
       }
     }
+    
+    const nV = P.length / 3, N = new Float32Array(nV * 3), C = new Float32Array(nV * 3);
+    const eps = step * .4, g = [0, 0, 0], col = new THREE.Color();
+    const grad = (x, y, z) => {
+      const gx = sdf(x + eps, y, z) - sdf(x - eps, y, z), gy = sdf(x, y + eps, z) - sdf(x, y - eps, z), gz = sdf(x, y, z + eps) - sdf(x, y, z - eps);
+      const l = len(gx, gy, gz) || 1; g[0] = gx / l; g[1] = gy / l; g[2] = gz / l;
+    };
+    for (let i = 0; i < nV; i++) {
+      let x = P[3 * i], y = P[3 * i + 1], z = P[3 * i + 2];
+      grad(x, y, z);
+      const f = clamp(sdf(x, y, z), -step, step);
+      x -= g[0] * f; y -= g[1] * f; z -= g[2] * f;
+      grad(x, y, z);
+      P[3 * i] = x; P[3 * i + 1] = y; P[3 * i + 2] = z;
+      N[3 * i] = g[0]; N[3 * i + 1] = g[1]; N[3 * i + 2] = g[2];
+      colorFn(x, y, z, g, col);
+      C[3 * i] = col.r; C[3 * i + 1] = col.g; C[3 * i + 2] = col.b;
+    }
+    
+    for (let i = 0; i < T.length; i += 3) {
+      const a = T[i], b = T[i + 1], c = T[i + 2];
+      const ux = P[3 * b] - P[3 * a], uy = P[3 * b + 1] - P[3 * a + 1], uz = P[3 * b + 2] - P[3 * a + 2];
+      const wx = P[3 * c] - P[3 * a], wy = P[3 * c + 1] - P[3 * a + 1], wz = P[3 * c + 2] - P[3 * a + 2];
+      const cx = uy * wz - uz * wy, cy = uz * wx - ux * wz, cz = ux * wy - uy * wx;
+      const nxs = N[3 * a] + N[3 * b] + N[3 * c], nys = N[3 * a + 1] + N[3 * b + 1] + N[3 * c + 1], nzs = N[3 * a + 2] + N[3 * b + 2] + N[3 * c + 2];
+      if (cx * nxs + cy * nys + cz * nzs < 0) { T[i + 1] = c; T[i + 2] = b; }
+    }
+    const geom = new THREE.BufferGeometry();
+    geom.setAttribute('position', new THREE.Float32BufferAttribute(P, 3));
+    geom.setAttribute('normal', new THREE.BufferAttribute(N, 3));
+    geom.setAttribute('color', new THREE.BufferAttribute(C, 3));
+    geom.setIndex(T);
+    return geom;
+  }
+
+  
+  const MAT = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: .72 });
+  const CACHE = {}; const geo = (key, build) => CACHE[key] || (CACHE[key] = build());
+  const solid = (key, sdf, colorFn, lo, hi, step = .02) => new THREE.Mesh(geo(key, () => mesher(sdf, colorFn, lo, hi, step)), MAT);
+  const flat = (hex, rough = .8) => new THREE.MeshStandardMaterial({ color: hex, roughness: rough });
+  const EYE = new THREE.MeshStandardMaterial({ color: '#1d1a22', roughness: .2 });
+  const WHITE = new THREE.MeshBasicMaterial({ color: '#ffffff' });
+  const SMALL = new THREE.SphereGeometry(1, 28, 18);
+  function sph(parent, x, y, z, rx, ry, rz, material) {
+    const m = new THREE.Mesh(SMALL, material); m.position.set(x, y, z); m.scale.set(rx, ry, rz); parent.add(m); return m;
+  }
+
+  
+  function placeOn(parent, H, nx, ny, lift = 0) {
+    const nz = -Math.sqrt(Math.max(0, 1 - nx * nx - ny * ny));
+    const n = V(nx / H.r[0], ny / H.r[1], nz / H.r[2]).normalize();
+    const p = V(H.c[0] + nx * H.r[0], H.c[1] + ny * H.r[1], H.c[2] + nz * H.r[2]).addScaledVector(n, lift);
+    const g = new THREE.Group(); g.position.copy(p); g.quaternion.setFromUnitVectors(V(0, 0, -1), n); parent.add(g); return g;
+  }
+  function eye(parent, H, nx, ny, s) {
+    const g = placeOn(parent, H, nx, ny, -s * .25);
+    const e = sph(g, 0, 0, 0, s, s * 1.12, s * .6, EYE); e.userData.eyeOpen = true;
+    for (const [hx, hy, hr] of [[-.3, .38, .34], [.34, -.34, .16]]) {
+      const h = sph(g, hx * s, hy * s, -s * .46, s * hr, s * hr, s * hr * .5, WHITE); h.userData.eyeOpen = true;
+    }
+    return g;
+  }
+  function arc(parent, H, nx, ny, w, hex, up = false) {
+    const g = placeOn(parent, H, nx, ny, .006);
+    const m = new THREE.Mesh(new THREE.TorusGeometry(w, w * .14, 6, 18, Math.PI), flat(hex, .5));
+    if (!up) m.rotation.z = Math.PI;   
+    g.add(m); return g;
+  }
+  function nose(parent, H, nx, ny, rx, ry, hex = '#34303a') {
+    const g = placeOn(parent, H, nx, ny, -ry * .3); return sph(g, 0, 0, 0, rx, ry, rx * .7, flat(hex, .35));
+  }
+  const cheeks = (H, hex = '#f6b0b0', dir = [.8, -.2, -.55], a = .6) => {
+    const c = onEll(H.c, H.r, dir);
+    return (x, y, z, o) => paint(o, hex, a * blob(Math.abs(x), y, z, c, [.13, .1, .13]));
+  };
+
+  
+  function limbGeo(o) {
+    const { len: Ln, r0, r1, foot = 0, base, tip, tipFrom = .8 } = o;
+    const fc = [0, -Ln + r1 * .3, -foot * .5], fr = [r1 * 1.15, r1 * .8, r1 * .7 + foot * .5];
+    const sdf = (x, y, z) => {
+      let d = rcone(x, y, z, [0, 0, 0], [0, -Ln, 0], r0, r1);
+      if (foot) d = smin(d, ell(x, y, z, fc, fr), .06);
+      return d;
+    };
+    const color = (x, y, z, n, out) => { out.copy(K(base)); if (tip) paint(out, tip, sstep(-Ln * tipFrom, -Ln * (tipFrom + .1), y)); };
+    const R = Math.max(r0, r1 * 1.2) + .1;
+    return mesher(sdf, color, [-R, -Ln - r1 - .1, -R - foot - .1], [R, r0 + .1, R], .02);
+  }
+  const limbMesh = o => new THREE.Mesh(geo('limb' + JSON.stringify(o), () => limbGeo(o)), MAT);
+  function addArm(parent, o, side, x, y, z, fwd = .1, out = .25) {
+    const g = new THREE.Group(); g.position.set(side * x, y, z); g.userData.tay = true; g.userData.ben = side;
+    const inner = new THREE.Group(); inner.rotation.set(fwd, 0, side * out); g.add(inner);
+    inner.add(limbMesh(o));
+    const khuYu = new THREE.Group(); khuYu.position.y = -o.len * .5; inner.add(khuYu);
+    g.userData.khuYu = khuYu; g.userData.inner = inner;
+    parent.add(g); return g;
+  }
+  function addLeg(parent, o, x) {
+    const g = new THREE.Group(); g.userData.chan = true; g.position.set(x, o.len + .02, .05);
+    g.add(limbMesh(o));
+    const goi = new THREE.Group(); goi.position.y = -o.len * .5; g.add(goi); g.userData.goi = goi;
+    parent.add(g); return g;
+  }
+
+  
+  function tailTube(pts, r, colorFn) {
+    const curve = new THREE.CatmullRomCurve3(pts), segs = 30, rad = 10;
+    const g = new THREE.TubeGeometry(curve, segs, r, rad, false);
+    const cols = new Float32Array(g.attributes.position.count * 3);
+    for (let i = 0; i <= segs; i++) {
+      const c = new THREE.Color(colorFn(i / segs));
+      for (let j = 0; j <= rad; j++) { const o = (i * (rad + 1) + j) * 3; cols[o] = c.r; cols[o + 1] = c.g; cols[o + 2] = c.b; }
+    }
+    g.setAttribute('color', new THREE.BufferAttribute(cols, 3));
+    return new THREE.Mesh(g, new THREE.MeshStandardMaterial({ vertexColors: true, roughness: .75 }));
+  }
+
+  
+  const torsoSdf = (c, r) => (x, y, z) =>
+    smin(ell(x, y, z, c, r), ell(x, y, z, [c[0], c[1] - .18, c[2]], [r[0] * 1.04, r[1] * .72, r[2] * 1.04]), .25);
+  const TLO = [-.95, -.08, -.75], THI = [.95, 1.4, .75];
+  const HLO = [-1, -.62, -.75], HHI = [1, .95, .5];
+  const headSolid = (key, H, extra, colorFn) => solid(key,
+    (x, y, z) => { const d = ell(x, y, z, H.c, H.r); return extra ? smin(d, extra(x, y, z), .07) : d; },
+    colorFn, HLO, HHI);
+
+  return { V, sstep, smin, ell, rcone, K, paint, blob, spot, ring, onEll, mesher, MAT, geo, solid, flat, sph, placeOn, eye, arc, nose, cheeks,
+           addArm, addLeg, tailTube, torsoSdf, TLO, THI, headSolid };
+})();
+
+
+function animal(type, tint = null, macVest = false) {
+  const { V, sstep, smin, ell, rcone, K, paint, blob, spot, ring, onEll, MAT, geo, solid, flat, sph, placeOn, eye, arc, nose, cheeks,
+          addArm, addLeg, tailTube, torsoSdf, TLO, THI, headSolid, mesher } = CK;
+  const root = new THREE.Group(), body = new THREE.Group(); root.add(body);
+  const T = tint ? (tint.isColor ? '#' + tint.getHexString() : tint) : null;
+  const key = type + (T || '') + (macVest ? 'v' : '');
+  let headG = null;
+  const newHead = () => { headG = new THREE.Group(); headG.position.y = 1.3; body.add(headG); return headG; };
+  const torso = (k, c, r, colorFn) => body.add(solid(k + 'T', torsoSdf(c, r), colorFn, TLO, THI));
+
+  
+  if (type === 'cow') {
+    const white = T || '#fffaf0', dark = '#4a342e', pink = '#f4a3a9';
+    const Tc = [0, .66, .02], Tr = [.56, .68, .5];
+    const spots = [[-.85, .25, -.45, .27, 1.3], [.75, -.25, .1, .3, 2.1], [.1, .6, .85, .25, 3.2], [-.55, -.35, .8, .23, 4.4], [.9, .5, -.3, .2, 5.1]]
+      .map(s => ({ c: onEll(Tc, Tr, [s[0], s[1], s[2]]), r: s[3], s: s[4] }));
+    torso(key, Tc, Tr, (x, y, z, n, o) => {
+      o.copy(K(macVest ? '#1c1d22' : white));
+      if (!macVest) for (const s of spots) paint(o, dark, spot(x, y, z, s.c, s.r, s.s));
+    });
+    const H = { c: [0, .08, -.08], r: [.6, .52, .5] }, M = [0, -.14, -.52], Mr = [.27, .19, .14];
+    const earD = (ax, y, z) => ell(ax, y, z, [.64, .2, -.02], [.26, .09, .15]);
+    const hornD = (ax, y, z) => rcone(ax, y, z, [.25, .44, -.1], [.34, .72, -.1], .08, .03);
+    const spotC = onEll(H.c, H.r, [-.62, .5, -.6]), chk = cheeks(H);
+    const hg = newHead();
+    hg.add(headSolid(key + 'H', H,
+      (x, y, z) => { const ax = Math.abs(x); return smin(smin(earD(ax, y, z), ell(x, y, z, M, Mr), .1), hornD(ax, y, z), .05); },
+      (x, y, z, n, o) => {
+        const ax = Math.abs(x);
+        o.copy(K(white));
+        paint(o, dark, spot(x, y, z, spotC, .2, 1.7));
+        paint(o, dark, 1 - sstep(-.02, .03, earD(ax, y, z)));
+        paint(o, pink, .9 * blob(ax, y, z, [.66, .2, -.12], [.13, .06, .07], .2));
+        paint(o, '#f3dc9a', 1 - sstep(-.02, .02, hornD(ax, y, z)));
+        paint(o, pink, 1 - sstep(-.03, .02, ell(x, y, z, M, Mr)));
+        paint(o, '#c96b78', blob(ax, y, z, [.09, -.12, -.64], [.05, .07, .06], .2));
+        chk(x, y, z, o);
+      }));
+    for (const s of [-1, 1]) eye(hg, H, s * .42, .12, .1);
+    const collar = new THREE.Mesh(new THREE.TorusGeometry(.5, .05, 10, 40), flat('#6a4a3a'));
+    collar.rotation.x = Math.PI / 2; collar.scale.set(1.1, .98, 1); collar.position.set(0, .84, .02); body.add(collar);
+    sph(body, 0, .74, -.5, .075, .08, .07, flat('#f2b632', .35));
+    const arm = { len: .46, r0: .14, r1: .12, base: macVest ? '#1c1d22' : white };
+    const lg = { len: .34, r0: .13, r1: .12, foot: .15, base: dark };
+    for (const s of [-1, 1]) { addArm(body, arm, s, .46, .95, -.02, .1, .25); addLeg(body, lg, s * .3); }
+    const tail = tailTube([V(0, .5, .46), V(.2, .4, .72), V(.3, .55, .84)], .035, t => t > .86 ? dark : white);
+    body.add(tail); sph(body, .3, .55, .85, .07, .09, .07, flat(dark));
+
+  
+  } else if (type === 'snake') {
+    const G = T || '#8fcf5e', CR = '#f3eab0';
+    const sp = [], N = 22;
+    for (let k = 0; k <= N; k++) { const s = k / N, a = -.3 + s * Math.PI * 2 * 1.55, rad = .7 - s * .3; sp.push([rad * Math.cos(a), .17 + s * .3, rad * Math.sin(a)]); }
+    const path = [...sp, [-.32, .7, -.02], [-.1, 1.0, -.04], [.02, 1.3, -.05], [0, 1.46, -.05]];
+    const rr = i => i >= path.length - 3 ? .17 : .2;
+    const bodySdf = (x, y, z) => {
+      let d = 1e9;
+      for (let i = 0; i < path.length - 1; i++) d = smin(d, rcone(x, y, z, path[i], path[i + 1], rr(i), rr(i + 1)), .05);
+      return d;
+    };
+    const bodyMesh = solid(key + 'B', bodySdf, (x, y, z, n, o) => {
+      o.copy(K(G)); paint(o, CR, sstep(.5, .8, -n[2]) * sstep(.6, .9, y));
+    }, [-1.05, -.1, -1], [1.05, 1.7, .95], .03);
+    body.add(bodyMesh);
+    
+    const tp = [[0, 0, 0], [.05, 0, -.22], [.2, .03, -.42], [.4, .1, -.52]], tr = [.2, .16, .09, .03];
+    const tailSdf = (x, y, z) => { let d = 1e9; for (let i = 0; i < 3; i++) d = smin(d, rcone(x, y, z, tp[i], tp[i + 1], tr[i], tr[i + 1]), .04); return d; };
+    const duoiRan = new THREE.Group(); duoiRan.position.set(...sp[0]);
+    duoiRan.add(solid(key + 'Tail', tailSdf, (x, y, z, n, o) => o.copy(K(G)), [-.35, -.3, -.75], [.65, .35, .3], .025));
+    body.add(duoiRan);
+    body.userData.duoiRan = duoiRan; body.userData.thanCuon = [bodyMesh]; body.userData.longRan = bodyMesh.material; body.userData.caoDauRan = 0;
+    
+    const H = { c: [0, .1, 0], r: [.5, .43, .45] }, chin = onEll(H.c, H.r, [0, -.5, -.86]), chk = cheeks(H, '#f59aa0', [.78, -.2, -.6], .6);
+    const sh = new THREE.Group(); sh.userData.dauRan = true; sh.position.set(0, 1.52, -.05); body.add(sh);
+    sh.add(headSolid(key + 'H', H, null, (x, y, z, n, o) => {
+      o.copy(K(G)); paint(o, '#e5f0a0', .9 * blob(x, y, z, chin, [.38, .2, .2], .3)); chk(x, y, z, o);
+    }));
+    for (const s of [-1, 1]) { eye(sh, H, s * .4, .18, .1); nose(sh, H, s * .1, -.12, .018, .022); }
+    arc(sh, H, 0, -.4, .11, '#34303a');
+    const tg = placeOn(sh, H, 0, -.52, 0); const tongue = sph(tg, 0, 0, -.1, .04, .015, .12, flat('#e8465a', .5)); tongue.rotation.x = .25;
+    root.userData.dau = sh;
+
+  
+  } else if (type === 'fish') {
+    const blue = T || '#4aa6f0', fin = '#6bbcf5';
+    const H = { c: [0, .82, -.02], r: [.66, .6, .56] };
+    const bellyC = onEll(H.c, H.r, [0, -.4, -1]), chk = cheeks(H, '#f58fb2', [.75, -.2, -.6], .7);
+    const fins = (x, y, z) => {
+      const ax = Math.abs(x);
+      let d = ell(x, y, z, [0, 1.4, .2], [.05, .32, .3]);                    
+      d = smin(d, ell(x, y, z, [0, .5, .68], [.05, .3, .3]), .06);          
+      d = smin(d, ell(ax, y, z, [.72, .72, 0], [.2, .1, .14]), .06);        
+      return d;
+    };
+    body.add(solid(key + 'B', (x, y, z) => smin(ell(x, y, z, H.c, H.r), fins(x, y, z), .09), (x, y, z, n, o) => {
+      o.copy(K(blue));
+      paint(o, fin, sstep(.005, .04, ell(x, y, z, H.c, H.r)));
+      paint(o, '#bfe3fb', .9 * blob(x, y, z, bellyC, [.45, .4, .25], .3));
+      chk(x, y, z, o);
+    }, [-1.1, -.05, -.7], [1.1, 1.8, 1.1]));
+    for (const s of [-1, 1]) eye(body, H, s * .45, .17, .11);
+    sph(body, 0, .56, -.55, .07, .035, .04, flat('#c2394d', .5));
+    const lg = { len: .3, r0: .1, r1: .1, foot: .13, base: fin };
+    for (const s of [-1, 1]) addLeg(body, lg, s * .28);
+
+  
+  } else if (type === 'sloth') {
+    const fur = T || '#b98a5e', cream = '#f1dcc0', patch = '#8d5d3d';
+    const Tc = [0, .66, .02], Tr = [.58, .7, .5], bellyC = onEll(Tc, Tr, [0, -.1, -1]);
+    torso(key, Tc, Tr, (x, y, z, n, o) => { o.copy(K(fur)); paint(o, '#ecd3a9', .95 * blob(x, y, z, bellyC, [.36, .46, .22], .25)); });
+    const H = { c: [0, .08, -.08], r: [.64, .54, .5] };
+    const faceC = onEll(H.c, H.r, [0, -.08, -1]), pc = onEll(H.c, H.r, [.4, .1, -.91]), chk = cheeks(H, '#f2a08a', [.78, -.25, -.55], .6);
+    const hg = newHead();
+    hg.add(headSolid(key + 'H', H, null, (x, y, z, n, o) => {
+      const ax = Math.abs(x), sg = x < 0 ? 1 : -1;
+      o.copy(K(fur));
+      paint(o, cream, .95 * blob(x, y, z, faceC, [.5, .4, .22], .3));
+      paint(o, patch, .95 * blob(ax, y, z, [pc[0], pc[1], pc[2]], [.17, .11, .12], .2, .5 * sg));
+      chk(x, y, z, o);
+    }));
+    for (const s of [-1, 1]) arc(hg, H, s * .4, .1, .09, '#3b2a22', true);
+    nose(hg, H, 0, -.16, .06, .045); arc(hg, H, 0, -.2, .1, '#3b2a22');
+    const cl = flat('#efe3c4', .6);
+    const arm = { len: .58, r0: .14, r1: .13, base: fur }, lg = { len: .34, r0: .13, r1: .13, foot: .16, base: fur };
+    for (const s of [-1, 1]) {
+      const a = addArm(body, arm, s, .5, .92, -.02, .1, .16);
+      for (let i = 0; i < 3; i++) sph(a.userData.inner, (i - 1) * .06, -arm.len - .1, -.03, .026, .075, .026, cl);
+      const l = addLeg(body, lg, s * .3);
+      for (let i = 0; i < 3; i++) sph(l, (i - 1) * .065, -lg.len + .04, -.2, .028, .03, .06, cl);
+    }
+
+  
   } else if (type === 'leopard') {
-    sphere(body,0,.68,.02,.52,.66,.44,leopardBodyFur,18);
-    sphere(body,0,1.38,-.15,.48,.46,.4,leopardHeadFur,18);
-    sphere(body,0,.64,-.385,.28,.39,.075,mat('#f2d8a5'),14);
-    for(const x of [-.36,.36]) {
-      sphere(body,x,1.67,-.08,.16,.18,.1,fur,12);
+    const fur = T || '#f7c85c', cream = '#fcecc0', br = '#9a5f2a';
+    const Tc = [0, .66, .02], Tr = [.5, .66, .44], bellyC = onEll(Tc, Tr, [0, -.05, -1]);
+    const ros = [], NB = 30;
+    for (let i = 0; i < NB; i++) {
+      const yy = 1 - 2 * (i + .5) / NB, rad = Math.sqrt(1 - yy * yy), ph = i * 2.399963, d = [Math.cos(ph) * rad, yy, Math.sin(ph) * rad];
+      if ((d[2] < -.45 && Math.abs(d[0]) < .65) || Math.abs(yy) > .92) continue;
+      ros.push({ c: onEll(Tc, Tr, d), r: .15 + .035 * Math.sin(i * 1.3), s: i * 1.9 });
     }
-    for(const x of [-.18,.18]) {
-      const matNgu=sphere(body,x,1.43,-.525,.062,.085,.028,eye,12);matNgu.userData.eyeOpen=true;
-      const longMat=sphere(body,x-.012,1.46,-.548,.016,.022,.01,mats.white,8);longMat.userData.eyeOpen=true;
+    torso(key, Tc, Tr, (x, y, z, n, o) => {
+      o.copy(K(fur)); paint(o, cream, .95 * blob(x, y, z, bellyC, [.3, .45, .18], .25));
+      for (const r of ros) paint(o, br, .95 * ring(x, y, z, r.c, r.r, r.s));
+    });
+    const H = { c: [0, .08, -.08], r: [.6, .52, .48] };
+    const mz = onEll(H.c, H.r, [0, -.38, -1]), chk = cheeks(H, '#f58c78', [.8, -.2, -.55], .5);
+    const dots = [];
+    for (let i = 0; i < 14; i++) {
+      const yy = 1 - 2 * (i + .5) / 14, rad = Math.sqrt(1 - yy * yy), ph = i * 2.399963 + 1, d = [Math.cos(ph) * rad, yy, Math.sin(ph) * rad];
+      if (d[2] < -.2 || yy < -.3) continue; dots.push(onEll(H.c, H.r, d));
     }
-    const leopardNose = new THREE.Mesh(new THREE.ConeGeometry(.105,.13,3),dark);
-    leopardNose.position.set(0,1.27,-.562);
-    leopardNose.rotation.x=-Math.PI/2;
-    body.add(leopardNose);
-    faceLine(body,[[0,1.21,-.557],[0,1.16,-.555],[-.075,1.13,-.545],[0,1.105,-.55],[.075,1.13,-.545]],dark,.014);
-    for(const ben of [-1,1])taoCanhTay(body,fur,ben,.425,.99,-.035,.54,.14,.31);
-    const tail=new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3([new THREE.Vector3(.42,.38,.25),new THREE.Vector3(.75,.35,.5),new THREE.Vector3(.82,.55,.72)]),16,.075,8,false),fur);
-    body.add(tail);
-    sphere(body,.82,.55,.72,.12,.12,.12,mat('#593d2e'),10);
-  } else {
-    sphere(body,0,.68,0,.55,.62,.44,cowBodyFur,18);
-    sphere(body,0,1.36,-.16,.49,.47,.42,cowHeadFur,18);
-    for(const x of [-.45,.45]) {
-      sphere(body,x,1.31,-.15,.17,.11,.1,fur,12);
-      const horn=new THREE.Mesh(new THREE.ConeGeometry(.1,.27,8),mats.cream); horn.position.set(x*.72,1.8,-.13); horn.rotation.z=x<0?.2:-.2; body.add(horn);
-    }
-    const matNgu1=sphere(body,-.2,1.42,-.52,.07,.09,.05,eye,10),matNgu2=sphere(body,.2,1.42,-.52,.07,.09,.05,eye,10);matNgu1.userData.eyeOpen=true;matNgu2.userData.eyeOpen=true;
-    sphere(body,0,1.17,-.6,.28,.19,.12,blush,14);
-    sphere(body,-.09,1.17,-.7,.035,.055,.025,dark,8); sphere(body,.09,1.17,-.7,.035,.055,.025,dark,8);
-    for(const ben of [-1,1])taoCanhTay(body,macVest?cowBodyFur:fur,ben,.455,.99,-.045,.53,.15,.35);
+    const hg = newHead();
+    hg.add(headSolid(key + 'H', H, (x, y, z) => ell(Math.abs(x), y, z, [.44, .52, -.04], [.19, .19, .1]), (x, y, z, n, o) => {
+      o.copy(K(fur)); const ax = Math.abs(x);
+      paint(o, cream, .95 * blob(x, y, z, mz, [.3, .2, .15], .3));
+      paint(o, '#f3a0a6', .9 * blob(ax, y, z, [.44, .52, -.1], [.1, .1, .06], .25));
+      for (const d of dots) paint(o, br, spot(x, y, z, d, .05, d[0] * 9));
+      chk(x, y, z, o);
+    }));
+    for (const s of [-1, 1]) eye(hg, H, s * .4, .1, .1);
+    nose(hg, H, 0, -.2, .07, .05); arc(hg, H, 0, -.26, .11, '#34303a');
+    const arm = { len: .5, r0: .13, r1: .115, base: fur }, lg = { len: .34, r0: .13, r1: .115, foot: .15, base: fur, tip: cream, tipFrom: .85 };
+    for (const s of [-1, 1]) { addArm(body, arm, s, .46, .95, -.02, .1, .22); addLeg(body, lg, s * .3); }
+    body.add(tailTube([V(0, .4, .4), V(.5, .3, .62), V(.78, .5, .7), V(.86, .85, .6)], .07, t => (t > .93 || Math.floor(t * 9) % 2 === 1) ? br : fur));
+
+  
+  } else if (type === 'capybara') {
+    const fur = T || '#c88c55', snout = '#a76a40';
+    const Tc = [0, .62, .04], Tr = [.66, .62, .56], bellyC = onEll(Tc, Tr, [0, -.1, -1]);
+    torso(key, Tc, Tr, (x, y, z, n, o) => { o.copy(K(fur)); paint(o, '#d79e68', .7 * blob(x, y, z, bellyC, [.4, .42, .22], .3)); });
+    const H = { c: [0, -.04, -.1], r: [.52, .46, .55] }, SN = [0, -.12, -.5], SR = [.3, .25, .22];
+    const hg = newHead();
+    hg.add(headSolid(key + 'H', H, (x, y, z) => smin(ell(x, y, z, SN, SR), ell(Math.abs(x), y, z, [.32, .36, 0], [.1, .1, .07]), .06), (x, y, z, n, o) => {
+      o.copy(K(fur)); const ax = Math.abs(x);
+      paint(o, snout, 1 - sstep(-.04, .02, ell(x, y, z, SN, SR)));
+      paint(o, '#3a261c', blob(ax, y, z, [.1, -.08, -.7], [.045, .04, .05], .2));
+    }));
+    for (const s of [-1, 1]) eye(hg, H, s * .55, .22, .06);
+    arc(hg, H, 0, -.42, .08, '#3a261c');
+    
+    sph(body, 0, .55, -.5, .19, .17, .19, flat('#f28a22', .5));
+    sph(body, 0, .71, -.5, .09, .025, .05, flat('#5cae48'));
+    const lf = sph(body, .02, .71, -.5, .09, .025, .05, flat('#4a9a3c')); lf.rotation.y = 1.2;
+    const arm = { len: .42, r0: .13, r1: .12, base: fur, tip: '#b67a4a', tipFrom: .85 }, lg = { len: .32, r0: .13, r1: .13, foot: .15, base: fur, tip: '#9a643c', tipFrom: .85 };
+    for (const s of [-1, 1]) { addArm(body, arm, s, .58, .82, -.1, .9, -.65); addLeg(body, lg, s * .34); }
+
+  
+  } else if (type === 'panda') {
+    const white = T || '#fbf6ee', black = '#3a3236';
+    const Tc = [0, .66, .02], Tr = [.6, .7, .5];
+    torso(key, Tc, Tr, (x, y, z, n, o) => o.copy(K(white)));
+    const H = { c: [0, .08, -.08], r: [.64, .54, .52] }, pc = onEll(H.c, H.r, [.42, .02, -.9]), chk = cheeks(H, '#f7b0b8', [.8, -.25, -.55], .6);
+    const earD = (ax, y, z) => ell(ax, y, z, [.5, .48, -.02], [.2, .2, .1]);
+    const hg = newHead();
+    hg.add(headSolid(key + 'H', H, (x, y, z) => earD(Math.abs(x), y, z), (x, y, z, n, o) => {
+      const ax = Math.abs(x), sg = x < 0 ? 1 : -1;
+      o.copy(K(white));
+      paint(o, black, 1 - sstep(-.02, .03, earD(ax, y, z)));
+      paint(o, black, blob(ax, y, z, pc, [.17, .24, .16], .2, .5 * sg));
+      chk(x, y, z, o);
+    }));
+    for (const s of [-1, 1]) eye(hg, H, s * .42, .02, .075);
+    nose(hg, H, 0, -.18, .065, .045); arc(hg, H, 0, -.22, .1, '#3a3236');
+    const arm = { len: .55, r0: .15, r1: .14, base: black }, lg = { len: .34, r0: .13, r1: .13, foot: .16, base: black };
+    for (const s of [-1, 1]) { addArm(body, arm, s, .52, .92, -.02, .85, -.55); addLeg(body, lg, s * .3); }
+    const bam = new THREE.Group(); bam.position.set(.14, .62, -.5); bam.rotation.z = -.12; body.add(bam);
+    bam.add(new THREE.Mesh(new THREE.CylinderGeometry(.04, .04, .95, 10), flat('#7ec850', .6)));
+    for (const y of [-.25, .1, .4]) { const n = new THREE.Mesh(new THREE.TorusGeometry(.045, .012, 6, 12), flat('#5da23a')); n.rotation.x = Math.PI / 2; n.position.y = y; bam.add(n); }
+    for (const [x, y, rz] of [[.1, .42, -.5], [-.1, .34, .6], [.08, .5, .2]]) { const l = sph(bam, x, y, 0, .14, .02, .05, flat('#5cae48')); l.rotation.z = rz; }
   }
-  if(type!=='snake') for(const x of [-.3,.3]) {
-    const tall=type==='cow'||type==='leopard';
-    const dai=tall?.44:.34;
-    const tren=tall?.12:.1, duoi=tall?.14:.13;
-    const giua=(tren+duoi)/2;
-    const chatLieu=type==='sloth'?fur:dark;
-    const leg=new THREE.Group();
-    const goi=new THREE.Group();
-    const dui=new THREE.CylinderGeometry(tren,giua,dai/2+.014,8);
-    dui.translate(0,-dai/4-.007,0);
-    const ongChan=new THREE.CylinderGeometry(giua,duoi,dai/2+.014,8);
-    ongChan.translate(0,-dai/4+.007,0);
-    leg.add(new THREE.Mesh(dui,chatLieu),goi);
-    goi.position.y=-dai/2;
-    goi.add(new THREE.Mesh(ongChan,chatLieu));
-    leg.userData.chan=true;
-    leg.userData.goi=goi;
-    leg.position.set(x,(tall?.21:.15)+dai/2,.05);
-    body.add(leg);
-  }
-  body.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true;}});
-  let dau;
-  if(type==='snake') dau=body.children.find(o=>o.userData.dauRan);
-  else if(type!=='fish'){
-    dau=new THREE.Group();dau.position.y=1.3;body.add(dau);
-    for(const o of [...body.children])if(o!==dau&&o.position.y>=1){body.remove(o);o.position.y-=1.3;dau.add(o);}
-  }
-  root.userData.dau=dau;
-  root.userData.duoiRan=body.userData.duoiRan;
-  root.userData.tay=[];body.traverse(o=>{if(o.userData.tay)root.userData.tay.push(o);});
-  root.userData.chan=body.children.filter(o=>o.userData.chan);
+
+  
+  if (type !== 'snake') { root.userData.dau = (type === 'fish') ? undefined : headG; root.userData.duoiRan = undefined; }
+  else root.userData.duoiRan = body.userData.duoiRan;
+  body.traverse(o => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
+  root.userData.tay = []; body.traverse(o => { if (o.userData.tay) root.userData.tay.push(o); });
+  root.userData.chan = body.children.filter(o => o.userData.chan);
   root.userData.body = body;
   return root;
 }
@@ -1098,7 +1381,7 @@ function createPlayer(data) {
   scene.add(group);
   const taiNghe=taoTaiNghe(data.avatar),zzz=taoZzz();(group.userData.dau||group.userData.body).add(taiNghe);group.add(zzz);
   const dauMat=group.userData.dau||group.userData.body;
-  const eyePositions={snake:[[-.17,1.98,-.46],[.17,1.98,-.46]],fish:[[-.379,.69,-.56],[.379,.69,-.56]],sloth:[[-.17,-.22,-.70],[.17,-.22,-.70]],cow:[[-.2,.12,-.56],[.2,.12,-.56]],leopard:[[-.18,.13,-.57],[.18,.13,-.57]]}[data.avatar]||[];
+  const eyePositions={snake:[[-.17,1.98,-.46],[.17,1.98,-.46]],fish:[[-.379,.69,-.56],[.379,.69,-.56]],sloth:[[-.17,-.22,-.70],[.17,-.22,-.70]],cow:[[-.2,.12,-.56],[.2,.12,-.56]],leopard:[[-.18,.13,-.57],[.18,.13,-.57]],capybara:[[-.28,.22,-.48],[.28,.22,-.48]],panda:[[-.27,.10,-.48],[.27,.10,-.48]]}[data.avatar]||[];
   const closedEyes=new THREE.Group();for(const [x,y,z] of eyePositions){const lid=new THREE.Mesh(new THREE.BoxGeometry(.15,.026,.025),mat('#24212b'));lid.position.set(x,y,z);closedEyes.add(lid);}dauMat.add(closedEyes);
   const openEyes=[];group.traverse(o=>{if(o.userData.eyeOpen)openEyes.push(o);});
   const entry={...data,group,body:group.userData.body,nameSprite:name,bubbleSprite:null,taiNghe,zzzSprite:zzz,closedEyes,openEyes,target:new THREE.Vector3(data.x||0,0,data.z||0),poseUntil:0,working:Boolean(data.working),workSeatId:data.workSeatId||'',workStartedAt:data.workStartedAt||0,meditating:false,auraUntil:0,auraSprite:null,auraRing:null,maSoi:Boolean(data.maSoi)};
@@ -2485,7 +2768,9 @@ const dieuNhayNhanVat={
   fish:[[3,.8],[2,.85],[5,1.1],[4,1.3],[3,.95]],
   sloth:[[1,.7],[1,.9],[3,.7],[2,.75],[2,1.3]],
   cow:[[2,.9],[1,1.1],[5,1.2],[2,1.05],[3,1.25]],
-  leopard:[[3,1.1],[2,1.2],[6,1.3],[3,1.45],[4,1.2]]
+  leopard:[[3,1.1],[2,1.2],[6,1.3],[3,1.45],[4,1.2]],
+  capybara:[[2,.9],[1,1],[4,1.1],[2,1.05],[3,1.1]],
+  panda:[[2,.9],[1,1],[4,1.1],[2,1.05],[3,1.1]]
 };
 function batDauNhay(p,kieu,batDau,ketThuc){
   if(!Number.isInteger(kieu)||kieu<0||kieu>4)return;
@@ -2692,7 +2977,7 @@ function hoatAnhNhay(p,now){
     return;
   }else if(kieu===1){
     const doc=Math.min(1,t*5,(1-t)*5);
-    const cao={snake:1.94,fish:1.68,sloth:1.89,cow:2.03,leopard:1.91}[p.avatar];
+    const cao={snake:1.94,fish:1.68,sloth:1.89,cow:2.03,leopard:1.91,capybara:2.05,panda:2.05}[p.avatar];
     p.body.rotation.set(Math.PI*doc,t*Math.PI*2*soNhip,.13*lac);
     p.body.position.y=cao*Math.sin(doc*Math.PI/2);
   }else if(kieu===2){
@@ -2744,7 +3029,9 @@ const nhanVatMuaVo={
   fish:{tay:.97,chan:.85,nghieng:1.4,nhip:.9},
   sloth:{tay:.79,chan:.51,nghieng:.72,nhip:.88},
   cow:{tay:.91,chan:.79,nghieng:.91,nhip:1},
-  leopard:{tay:1,chan:1,nghieng:1,nhip:1.12}
+  leopard:{tay:1,chan:1,nghieng:1,nhip:1.12},
+  capybara:{tay:.85,chan:.75,nghieng:.8,nhip:.9},
+  panda:{tay:.9,chan:.8,nghieng:.85,nhip:1}
 };
 
 function taoChiCa(p){
@@ -2769,7 +3056,7 @@ function taoChiCa(p){
 }
 
 function xepThuTuTheVo(avatar,cho){
-  const loai=['snake','fish','sloth','cow','leopard'].indexOf(avatar);
+  const loai=['snake','fish','sloth','cow','leopard','capybara','panda'].indexOf(avatar);
   let ma=(cho*5+loai+1)*104729;
   const conLai=Array.from({length:theVo.length},(_,i)=>i);
   const thuTu=[];

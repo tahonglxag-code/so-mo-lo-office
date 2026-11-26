@@ -1,6 +1,7 @@
 import { spawn } from 'node:child_process';
 import { io } from 'socket.io-client';
 import { doanDiDuoc } from '../public/office-navigation.js';
+import { taoChoHopGap } from '../hop-gap-layout.js';
 
 const port = 40581;
 const origin = `http://127.0.0.1:${port}`;
@@ -76,7 +77,8 @@ try {
   const meeting = expectEvent(second, 'urgent-meeting');
   first.emit('urgent-meeting');
   const meetingEvent = await meeting;
-  if (meetingEvent.players.length !== 2 || meetingEvent.players.some(player => player.x < 10 || player.z < 1)) throw new Error('Urgent meeting did not move all players into room B');
+  const gheHop=taoChoHopGap(2);
+  if (meetingEvent.players.length !== 2 || meetingEvent.players.some(player => !gheHop.some(ghe=>Math.hypot(player.x-ghe.x,player.z-ghe.z)<.001))) throw new Error('Urgent meeting did not move all players into the current meeting-room seats');
   await wait(meetingEvent.duration + 120);
   const money = expectEvent(second, 'self-action');
   first.emit('self-action', 'money');

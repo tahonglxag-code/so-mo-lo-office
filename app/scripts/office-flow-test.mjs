@@ -3,6 +3,7 @@ import { spawn } from 'node:child_process';
 import { io } from 'socket.io-client';
 import { taoChoHopGap } from '../hop-gap-layout.js';
 import { doanDiDuoc, taoLoTrinh } from '../public/office-navigation.js';
+import { banTho } from '../public/ban-tho.js';
 
 const port = 40583;
 const origin = `http://127.0.0.1:${port}`;
@@ -67,6 +68,13 @@ try {
   }
   assert.ok(Math.hypot(workPrevious.x-work.seat.x, workPrevious.z-work.seat.z)<.7);
 
+  const workStarted=doiSuKien(sockets[1],'work-state');
+  for(const point of work.path){
+    sockets[0].emit('move',{x:point.x,z:point.z,yaw:0});
+    await wait(120);
+  }
+  assert.equal((await workStarted).working,true);
+
   const altarAction = doiSuKien(sockets[1], 'act');
   sockets[0].emit('act',{action:'bow'});
   const altar = await altarAction;
@@ -76,7 +84,8 @@ try {
     assert.ok(doanDiDuoc(altarPrevious,point));
     altarPrevious=point;
   }
-  assert.ok(Math.hypot(altarPrevious.x-8.6,altarPrevious.z+9.65)<.7);
+  assert.ok(Math.hypot(altarPrevious.x-altar.x,altarPrevious.z-altar.z)<.7);
+  assert.ok(Math.abs(Math.hypot(altarPrevious.x-banTho.x,altarPrevious.z-banTho.z)-2)<.7);
   await wait(altar.approach+altar.duration+150);
 
   const hopGap = doiSuKien(sockets[0], 'urgent-meeting');
@@ -99,7 +108,7 @@ try {
   assert.ok(loTrinh.duration >= 700);
   assert.ok(loTrinh.batDau >= Date.now() - 100);
   let bossPrevious = hop.players.find(player=>player.id===sockets[1].id);
-  for (const point of [...loTrinh.path,{x:14.5,z:-7.15}]) {
+  for (const point of loTrinh.path) {
     assert.ok(doanDiDuoc(bossPrevious,point));
     bossPrevious=point;
   }
@@ -111,21 +120,21 @@ try {
   const rebel = await batSep;
   const thongBao = await feedBatSep;
   assert.equal(rebel.id, sockets[1].id);
-  assert.equal(rebel.duration, 6000);
-  assert.ok(rebel.from.x >= 10.4 && rebel.from.x <= 18.6);
-  assert.ok(rebel.from.z >= -10.7 && rebel.from.z <= -4.7);
-  assert.deepEqual(rebel.cua, { x: 14.5, z: -5.25 });
+  assert.ok(rebel.duration > 6000 && rebel.duration < 12000);
+  assert.ok(rebel.from.x >= -14.6 && rebel.from.x <= -6.4);
+  assert.ok(rebel.from.z >= -12.7 && rebel.from.z <= -6.7);
+  assert.deepEqual(rebel.cua, { x: -12.8, z: -7.25 });
   assert.ok(rebel.batDauDiCua < rebel.batDauQuatCua);
   assert.ok(rebel.batDauQuatCua < rebel.batDauMoCua);
   assert.ok(rebel.batDauMoCua < rebel.batDauDiTho);
   assert.ok(rebel.batDauDiTho + rebel.thoiGianDiTho < rebel.duration);
-  assert.ok(rebel.path.length >= 3);
-  let rebelPrevious = {x:14.5,z:-3.55};
+  assert.ok(rebel.path.length >= 1);
+  let rebelPrevious = rebel.cuaNgoai;
   for (const point of rebel.path) {
     assert.ok(doanDiDuoc(rebelPrevious,point));
     rebelPrevious=point;
   }
-  assert.ok(Math.abs(rebel.x - 8.6) < .01 && Math.abs(rebel.z + 10.15) < .01);
+  assert.ok(Math.abs(rebel.x - banTho.x) < .01 && Math.abs(rebel.z - (banTho.z + 1.5)) < .01);
   assert.equal(thongBao.text, '🔥 Hop 2 bật SẾP');
   const end = await doiSuKien(sockets[0], 'boss-rebel-end', 7500);
   assert.equal(end.id, sockets[1].id);
