@@ -761,127 +761,153 @@ function animal(type, tint = null, macVest = false) {
   const root = new THREE.Group();
   const body = new THREE.Group();
   root.add(body);
-  const fur = tint ? mat(tint) : ({ snake: mat('#64bc83'), fish: mat('#57a9d8'), sloth: mat('#92745b'), cow: mat('#fffaf0'), leopard: mat('#d7a353') }[type]);
+  const mauLong={snake:'#78ce88',fish:'#63c4df',sloth:'#b9855c',cow:'#fffaf0',leopard:'#ffc64c'};
+  const fur = tint ? mat(tint) : mat(mauLong[type]||'#b9855c');
   const cowBodyFur = macVest ? mat('#18191d') : type === 'cow' ? patternMaterial('#fffaf0', 'cow', 'body') : fur;
   const cowHeadFur = type === 'cow' ? patternMaterial('#fffaf0', 'cow', 'head') : fur;
-  const leopardBodyFur = type === 'leopard' ? patternMaterial('#d7a353', 'leopard', 'body') : fur;
-  const leopardHeadFur = type === 'leopard' ? patternMaterial('#d7a353', 'leopard', 'head') : fur;
+  const leopardBodyFur = type === 'leopard' ? patternMaterial('#ffc64c', 'leopard', 'body') : fur;
+  const leopardHeadFur = type === 'leopard' ? patternMaterial('#ffc64c', 'leopard', 'head') : fur;
   const blush = mat('#f39a9c');
-  const eye = mat('#24212b');
-  const dark = mat('#34303a');
+  const eye = mat('#201c24');
+  const dark = mat('#342c31');
+  const white = mat('#fffaf2');
+  const cream = mat('#fff0d6');
+  const brown = mat('#795238');
   if (type === 'snake') {
-    for (const [radius, y, thickness] of [[.74,.16,.13],[.59,.3,.12],[.44,.43,.105]]) {
-      const coil = new THREE.Mesh(new THREE.TorusGeometry(radius, thickness, 10, 36), fur);
+    for (const [radius, y, thickness] of [[.69,.16,.16],[.49,.43,.145]]) {
+      const coil = new THREE.Mesh(new THREE.TorusGeometry(radius, thickness, 16, 48), fur);
       coil.rotation.x = Math.PI / 2;
-      coil.position.set(0, y, .05);
+      coil.position.set(0, y, .04);
+      coil.castShadow = true;
       body.add(coil);
     }
     const duoiRan=new THREE.Group();
-    duoiRan.position.set(.66,.17,.08);
-    taperedTube(duoiRan,[[0,0,0],[.18,0,.1],[.4,.06,.22]],.13,.012,fur);
+    duoiRan.position.set(.62,.16,.06);
+    taperedTube(duoiRan,[[0,0,0],[.2,0,.1],[.42,.07,.22]],.13,.009,fur);
     body.add(duoiRan);
     body.userData.duoiRan=duoiRan;
-    const middleHeight = .77;
-    const shortenedHeight = middleHeight * 2 / 3;
-    const headShift = middleHeight - shortenedHeight;
-    const connection = new THREE.Mesh(new THREE.CylinderGeometry(.14,.44,.8,20),fur);
-    connection.position.set(0,.55,-.02);
-    connection.castShadow = true;
-    body.add(connection);
-    sphere(body,0,1.11-headShift/2,-.02,.145,shortenedHeight,.15,fur,20);
+    const headShift=0;
     body.userData.thanCuon=body.children.slice();
     body.userData.longRan=fur;
     body.userData.caoDauRan=-headShift;
     const snakeHead = new THREE.Group();
     snakeHead.userData.dauRan=true;
-    snakeHead.position.y = -headShift;
     body.add(snakeHead);
-    sphere(snakeHead,0,1.91,-.08,.43,.39,.39,fur,20);
-    for(const x of [-.17,.17]) {
-      const matNgu=sphere(snakeHead,x,1.98,-.405,.064,.085,.035,eye,12);matNgu.userData.eyeOpen=true;
-      const longMat=sphere(snakeHead,x-.014,2.01,-.434,.016,.022,.01,mats.white,8);longMat.userData.eyeOpen=true;
+    sphere(snakeHead,0,1.48,-.08,.49,.47,.46,fur,32);
+    sphere(snakeHead,0,1.26,-.40,.31,.18,.09,mat('#a4e5a6'),24);
+    for(const x of [-.20,.20]) {
+      const matNgu=sphere(snakeHead,x,1.56,-.475,.078,.11,.035,eye,16);matNgu.userData.eyeOpen=true;
+      const longMat=sphere(snakeHead,x-.018,1.59,-.506,.022,.03,.012,white,10);longMat.userData.eyeOpen=true;
+      const may=new THREE.Mesh(new THREE.TorusGeometry(.085,.018,6,16,Math.PI),dark);
+      may.position.set(x,1.73,-.45);
+      may.rotation.z=x<0?-.15:.15;
+      snakeHead.add(may);
     }
-    sphere(snakeHead,-.04,1.83,-.45,.018,.022,.012,dark,8);
-    sphere(snakeHead,.04,1.83,-.45,.018,.022,.012,dark,8);
-    faceLine(snakeHead,[[-.09,1.76,-.435],[0,1.73,-.45],[.09,1.76,-.435]],dark,.014);
+    sphere(snakeHead,-.065,1.35,-.49,.022,.028,.014,dark,10);
+    sphere(snakeHead,.065,1.35,-.49,.022,.028,.014,dark,10);
+    faceLine(snakeHead,[[-.13,1.23,-.47],[0,1.19,-.50],[.13,1.23,-.47]],dark,.018);
   } else if (type === 'fish') {
-    const finMat = new THREE.MeshStandardMaterial({color:'#3297c7',side:THREE.DoubleSide,roughness:.8});
-    const gillMat = mat('#e78388');
-    sphere(body,0,.57,.04,.7,.43,.68,fur,20);
-    triangleFin(body,[[0,.59,.72],[-.37,.82,1.03],[0,.58,1.08]],finMat);
-    triangleFin(body,[[0,.58,1.08],[.37,.82,1.03],[0,.59,.72]],finMat);
-    triangleFin(body,[[0,.9,.1],[-.28,1.19,.35],[.25,.91,.43]],finMat);
-    triangleFin(body,[[0,.26,-.05],[-.22,-.02,.18],[.2,.25,.35]],finMat);
-    triangleFin(body,[[-.5,.48,-.12],[-.86,.32,.08],[-.58,.75,.15]],finMat);
-    triangleFin(body,[[.5,.48,-.12],[.86,.32,.08],[.58,.75,.15]],finMat);
-    for(const x of [-.52,.52]) {
-      sphere(body,x,.56,-.13,.095,.25,.11,gillMat,12);
-      sphere(body,x*.73,.69,-.49,.07,.09,.035,mats.white,12);
-      const matNgu=sphere(body,x*.73,.69,-.52,.032,.054,.018,eye,10);matNgu.userData.eyeOpen=true;
+    const finMat = new THREE.MeshStandardMaterial({color:'#35afd0',side:THREE.DoubleSide,roughness:.72});
+    const gillMat = mat('#258eaf');
+    sphere(body,0,.64,.02,.76,.54,.57,fur,32);
+    triangleFin(body,[[0,.55,.49],[-.29,.73,.98],[0,.62,1.18]],finMat);
+    triangleFin(body,[[0,.62,1.18],[.30,.79,.98],[0,.55,.49]],finMat);
+    triangleFin(body,[[-.08,.91,.08],[-.29,1.37,.42],[.12,1.08,.40]],finMat);
+    triangleFin(body,[[.08,.91,.08],[.29,1.37,.42],[-.12,1.08,.40]],finMat);
+    triangleFin(body,[[0,.35,.10],[-.17,.08,.32],[.14,.27,.37]],finMat);
+    for(const x of [-.48,.48]) {
+      const fin=triangleFin(body,[[x,.61,-.02],[x*1.52,.34,.17],[x*.98,.89,.23]],finMat);
+      fin.rotation.y=x<0?-.10:.10;
+      const gill=new THREE.Mesh(new THREE.TorusGeometry(.14,.025,8,20,Math.PI*.72),gillMat);
+      gill.position.set(x*.83,.64,-.30);
+      gill.rotation.set(0,Math.PI/2,Math.PI/2);
+      body.add(gill);
     }
-    faceLine(body,[[-.11,.47,-.65],[0,.44,-.675],[.11,.47,-.65]],dark,.018);
+    for(const x of [-.34,.34]) {
+      sphere(body,x,.78,-.43,.11,.14,.055,white,16);
+      const matNgu=sphere(body,x,.77,-.478,.061,.09,.03,eye,14);matNgu.userData.eyeOpen=true;
+      const longMat=sphere(body,x-.022,.81,-.505,.022,.03,.012,white,10);longMat.userData.eyeOpen=true;
+    }
+    faceLine(body,[[-.14,.53,-.55],[0,.49,-.59],[.14,.53,-.55]],dark,.019);
   } else if (type === 'sloth') {
-    sphere(body,0,.56,.02,.55,.53,.48,fur,18);
-    sphere(body,0,1.02,-.16,.48,.47,.42,fur,18);
-    sphere(body,0,1.03,-.52,.35,.31,.12,mat('#d7bd91'),16);
-    for(const x of [-.17,.17]) {
-      sphere(body,x,1.08,-.625,.12,.16,.045,mat('#654d3c'),12);
-      const matNgu=sphere(body,x,1.08,-.668,.047,.065,.025,eye,10);matNgu.userData.eyeOpen=true;
+    sphere(body,0,.62,.02,.55,.55,.47,fur,28);
+    sphere(body,0,1.33,-.12,.59,.57,.51,fur,32);
+    sphere(body,0,1.30,-.565,.43,.37,.105,cream,28);
+    for(const x of [-.22,.22]) {
+      sphere(body,x,1.36,-.642,.17,.19,.055,brown,20);
+      const matNgu=sphere(body,x,1.36,-.691,.082,.105,.035,eye,16);matNgu.userData.eyeOpen=true;
+      const longMat=sphere(body,x-.025,1.40,-.722,.026,.035,.014,white,10);longMat.userData.eyeOpen=true;
     }
-    sphere(body,0,.91,-.635,.09,.06,.045,dark,10);
-    const smile=new THREE.Mesh(new THREE.TorusGeometry(.075,.012,6,12,Math.PI),dark); smile.position.set(0,.85,-.66); smile.rotation.z=Math.PI; body.add(smile);
+    sphere(body,0,1.19,-.685,.105,.075,.055,dark,16);
+    const smile=new THREE.Mesh(new THREE.TorusGeometry(.105,.018,8,20,Math.PI),dark);
+    smile.position.set(0,1.115,-.68);
+    smile.rotation.z=Math.PI;
+    body.add(smile);
     for(const ben of [-1,1]) {
-      const tay=taoCanhTay(body,fur,ben,.41,.87,.02,.72,.126,.13);
+      const tay=taoCanhTay(body,fur,ben,.43,.91,.02,.72,.15,.15);
       for(let i=0;i<3;i++) {
-        const mong=new THREE.Mesh(new THREE.ConeGeometry(.029,.13,7),mat('#e8ddbd'));
-        mong.position.set((i-1)*.055,-.79-tay.userData.khuYu.position.y,-.025);
+        const mong=new THREE.Mesh(new THREE.ConeGeometry(.025,.105,8),cream);
+        mong.position.set((i-1)*.052,-.79-tay.userData.khuYu.position.y,-.025);
         mong.rotation.x=Math.PI;
         tay.userData.khuYu.add(mong);
       }
     }
   } else if (type === 'leopard') {
-    sphere(body,0,.68,.02,.52,.66,.44,leopardBodyFur,18);
-    sphere(body,0,1.38,-.15,.48,.46,.4,leopardHeadFur,18);
-    sphere(body,0,.64,-.385,.28,.39,.075,mat('#f2d8a5'),14);
-    for(const x of [-.36,.36]) {
-      sphere(body,x,1.67,-.08,.16,.18,.1,fur,12);
+    sphere(body,0,.68,.02,.53,.67,.46,leopardBodyFur,28);
+    sphere(body,0,1.39,-.14,.58,.57,.51,leopardHeadFur,32);
+    sphere(body,0,.67,-.405,.32,.45,.075,cream,24);
+    for(const x of [-.42,.42]) {
+      sphere(body,x,1.76,-.11,.19,.20,.13,fur,18);
+      sphere(body,x,1.76,-.22,.105,.12,.035,mat('#e9a846'),14);
     }
-    for(const x of [-.18,.18]) {
-      const matNgu=sphere(body,x,1.43,-.525,.062,.085,.028,eye,12);matNgu.userData.eyeOpen=true;
-      const longMat=sphere(body,x-.012,1.46,-.548,.016,.022,.01,mats.white,8);longMat.userData.eyeOpen=true;
+    for(const x of [-.20,.20]) {
+      const matNgu=sphere(body,x,1.45,-.617,.075,.105,.04,eye,16);matNgu.userData.eyeOpen=true;
+      const longMat=sphere(body,x-.02,1.48,-.65,.022,.03,.012,white,10);longMat.userData.eyeOpen=true;
+      const may=new THREE.Mesh(new THREE.TorusGeometry(.105,.025,8,20,Math.PI),brown);
+      may.position.set(x,1.63,-.59);
+      body.add(may);
     }
-    const leopardNose = new THREE.Mesh(new THREE.ConeGeometry(.105,.13,3),dark);
-    leopardNose.position.set(0,1.27,-.562);
-    leopardNose.rotation.x=-Math.PI/2;
+    sphere(body,0,1.24,-.663,.25,.19,.095,cream,20);
+    const leopardNose = new THREE.Mesh(new THREE.SphereGeometry(1,16,12),dark);
+    leopardNose.scale.set(.095,.07,.055);
+    leopardNose.position.set(0,1.29,-.75);
     body.add(leopardNose);
-    faceLine(body,[[0,1.21,-.557],[0,1.16,-.555],[-.075,1.13,-.545],[0,1.105,-.55],[.075,1.13,-.545]],dark,.014);
-    for(const ben of [-1,1])taoCanhTay(body,fur,ben,.425,.99,-.035,.54,.14,.31);
-    const tail=new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3([new THREE.Vector3(.42,.38,.25),new THREE.Vector3(.75,.35,.5),new THREE.Vector3(.82,.55,.72)]),16,.075,8,false),fur);
+    faceLine(body,[[0,1.23,-.743],[0,1.17,-.73],[-.08,1.13,-.71],[0,1.105,-.72],[.08,1.13,-.71]],dark,.016);
+    for(const ben of [-1,1])taoCanhTay(body,fur,ben,.435,.96,-.025,.56,.15,.30);
+    const tail=new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3([new THREE.Vector3(.42,.38,.27),new THREE.Vector3(.72,.37,.49),new THREE.Vector3(.83,.59,.68)]),20,.09,10,false),fur);
     body.add(tail);
-    sphere(body,.82,.55,.72,.12,.12,.12,mat('#593d2e'),10);
+    sphere(body,.83,.59,.68,.15,.15,.15,cream,16);
   } else {
-    sphere(body,0,.68,0,.55,.62,.44,cowBodyFur,18);
-    sphere(body,0,1.36,-.16,.49,.47,.42,cowHeadFur,18);
-    for(const x of [-.45,.45]) {
-      sphere(body,x,1.31,-.15,.17,.11,.1,fur,12);
-      const horn=new THREE.Mesh(new THREE.ConeGeometry(.1,.27,8),mats.cream); horn.position.set(x*.72,1.8,-.13); horn.rotation.z=x<0?.2:-.2; body.add(horn);
+    sphere(body,0,.68,0,.54,.64,.47,cowBodyFur,28);
+    sphere(body,0,1.36,-.14,.66,.65,.56,cowHeadFur,32);
+    for(const x of [-.51,.51]) {
+      sphere(body,x,1.42,-.13,.18,.135,.16,fur,18);
+      const horn=new THREE.Mesh(new THREE.ConeGeometry(.105,.31,12),cream);
+      horn.position.set(x*.72,1.88,-.12);
+      horn.rotation.z=x<0?.13:-.13;
+      horn.castShadow=true;
+      body.add(horn);
     }
-    const matNgu1=sphere(body,-.2,1.42,-.52,.07,.09,.05,eye,10),matNgu2=sphere(body,.2,1.42,-.52,.07,.09,.05,eye,10);matNgu1.userData.eyeOpen=true;matNgu2.userData.eyeOpen=true;
-    sphere(body,0,1.17,-.6,.28,.19,.12,blush,14);
-    sphere(body,-.09,1.17,-.7,.035,.055,.025,dark,8); sphere(body,.09,1.17,-.7,.035,.055,.025,dark,8);
-    for(const ben of [-1,1])taoCanhTay(body,macVest?cowBodyFur:fur,ben,.455,.99,-.045,.53,.15,.35);
+    for(const x of [-.22,.22]) {
+      const matNgu=sphere(body,x,1.48,-.657,.075,.11,.045,eye,16);matNgu.userData.eyeOpen=true;
+      const longMat=sphere(body,x-.02,1.51,-.695,.022,.03,.014,white,10);longMat.userData.eyeOpen=true;
+    }
+    sphere(body,0,1.18,-.69,.37,.26,.17,blush,24);
+    sphere(body,-.115,1.18,-.837,.032,.06,.022,dark,12);
+    sphere(body,.115,1.18,-.837,.032,.06,.022,dark,12);
+    for(const ben of [-1,1])taoCanhTay(body,macVest?cowBodyFur:fur,ben,.47,.98,-.025,.54,.16,.35);
   }
-  if(type!=='snake') for(const x of [-.3,.3]) {
+  if(type!=='snake') for(const x of [-.30,.30]) {
     const tall=type==='cow'||type==='leopard';
-    const dai=tall?.44:.34;
-    const tren=tall?.12:.1, duoi=tall?.14:.13;
+    const dai=type==='fish'?.25:tall?.40:.32;
+    const tren=tall?.12:.105, duoi=tall?.14:.12;
     const giua=(tren+duoi)/2;
     const chatLieu=type==='sloth'?fur:dark;
     const leg=new THREE.Group();
     const goi=new THREE.Group();
-    const dui=new THREE.CylinderGeometry(tren,giua,dai/2+.014,8);
+    const dui=new THREE.CylinderGeometry(tren,giua,dai/2+.014,12);
     dui.translate(0,-dai/4-.007,0);
-    const ongChan=new THREE.CylinderGeometry(giua,duoi,dai/2+.014,8);
+    const ongChan=new THREE.CylinderGeometry(giua,duoi,dai/2+.014,12);
     ongChan.translate(0,-dai/4+.007,0);
     leg.add(new THREE.Mesh(dui,chatLieu),goi);
     goi.position.y=-dai/2;
@@ -905,7 +931,6 @@ function animal(type, tint = null, macVest = false) {
   root.userData.body = body;
   return root;
 }
-
 function taoTaiNghe(type){
   const group=new THREE.Group(),banKinh=type==='fish'?.72:.58,nhua=new THREE.MeshBasicMaterial({color:'#f01835',toneMapped:false,depthWrite:false}),dem=new THREE.MeshBasicMaterial({color:'#ff394d',toneMapped:false,depthWrite:false});
   const vong=new THREE.Mesh(new THREE.TorusGeometry(banKinh,.065,12,40,Math.PI),nhua);vong.position.set(0,.025,.02);group.add(vong);
@@ -1098,7 +1123,7 @@ function createPlayer(data) {
   scene.add(group);
   const taiNghe=taoTaiNghe(data.avatar),zzz=taoZzz();(group.userData.dau||group.userData.body).add(taiNghe);group.add(zzz);
   const dauMat=group.userData.dau||group.userData.body;
-  const eyePositions={snake:[[-.17,1.98,-.46],[.17,1.98,-.46]],fish:[[-.379,.69,-.56],[.379,.69,-.56]],sloth:[[-.17,-.22,-.70],[.17,-.22,-.70]],cow:[[-.2,.12,-.56],[.2,.12,-.56]],leopard:[[-.18,.13,-.57],[.18,.13,-.57]]}[data.avatar]||[];
+  const eyePositions={snake:[[-.20,1.56,-.48],[.20,1.56,-.48]],fish:[[-.34,.78,-.50],[.34,.78,-.50]],sloth:[[-.22,.06,-.69],[.22,.06,-.69]],cow:[[-.22,.18,-.66],[.22,.18,-.66]],leopard:[[-.20,.15,-.62],[.20,.15,-.62]]}[data.avatar]||[];
   const closedEyes=new THREE.Group();for(const [x,y,z] of eyePositions){const lid=new THREE.Mesh(new THREE.BoxGeometry(.15,.026,.025),mat('#24212b'));lid.position.set(x,y,z);closedEyes.add(lid);}dauMat.add(closedEyes);
   const openEyes=[];group.traverse(o=>{if(o.userData.eyeOpen)openEyes.push(o);});
   const entry={...data,group,body:group.userData.body,nameSprite:name,bubbleSprite:null,taiNghe,zzzSprite:zzz,closedEyes,openEyes,target:new THREE.Vector3(data.x||0,0,data.z||0),poseUntil:0,working:Boolean(data.working),workSeatId:data.workSeatId||'',workStartedAt:data.workStartedAt||0,meditating:false,auraUntil:0,auraSprite:null,auraRing:null,maSoi:Boolean(data.maSoi)};
