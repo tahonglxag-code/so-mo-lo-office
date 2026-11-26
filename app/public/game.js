@@ -1,5 +1,4 @@
 import * as THREE from '/three.module.js';
-import { GLTFLoader } from '/gltfloader.js';
 import {tinhGocMay,tinhGocMayMaSoi} from './goc-may.js';
 import {dinhDangLichSuMaSoi} from './ma-soi-lich-su.js';
 import {TAM_BAN_MA_SOI,SO_GHE_TOI_DA_MA_SOI,taoViTriGheMaSoi} from './ma-soi-layout.js';
@@ -15,9 +14,9 @@ const canvas = document.querySelector('#world');
 const modal = document.querySelector('#join-modal');
 const feed = document.querySelector('#feed');
 const messages = document.querySelector('#messages');
-const avatarIcons = { snake: '🐍', fish: '🐟', sloth: '🦥', cow: '🐮', leopard: '🐆', capi: '🐹', panda: '🐼' };
-const avatarColors = { snake: '#399466', fish: '#247da9', sloth: '#73523d', cow: '#39343a', leopard: '#9e5b21', capi: '#9b673f', panda: '#29272b' };
-const selectionLines = { snake: 'tôi khổ quá mà', fish: 'thần thiếp không làm được', sloth: 'hả?', cow: 'là sao nữa...', leopard: 'cú bé', capi: 'đang nhai cà rốt…', panda: 'đang ăn tre…' };
+const avatarIcons = { snake: '🐍', fish: '🐟', sloth: '🦥', cow: '🐮', leopard: '🐆' };
+const avatarColors = { snake: '#399466', fish: '#247da9', sloth: '#73523d', cow: '#39343a', leopard: '#9e5b21' };
+const selectionLines = { snake: 'tôi khổ quá mà', fish: 'thần thiếp không làm được', sloth: 'hả?', cow: 'là sao nữa...', leopard: 'cú bé' };
 let selfId = '';
 let roomCode = '';
 let myName = '';
@@ -758,46 +757,155 @@ function taoCanhTay(than, chatLieu, ben, ngang, cao, sau, dai, rong, doXoe) {
   return tay;
 }
 
-const animalLoader=new GLTFLoader();
-const animalModelCache=new Map();
-function animal(type,tint=null,macVest=false){
-  const root=new THREE.Group();
-  const body=new THREE.Group();
+function animal(type, tint = null, macVest = false) {
+  const root = new THREE.Group();
+  const body = new THREE.Group();
   root.add(body);
-  const colors={snake:'#8bd978',fish:'#64c5e7',sloth:'#be895e',cow:'#fffaf3',leopard:'#ffc44e',panda:'#fffaf4',capi:'#bd8154'};
-  root.userData.body=body;
-  const dau=new THREE.Group();
-  dau.position.y=1.3;
-  body.add(dau);
-  root.userData.dau=dau;
-  root.userData.tay=[];
-  root.userData.chan=[];
-  body.userData.thanCuon=[];
-  body.userData.longRan=mat(colors[type]||'#be895e');
-  body.userData.caoDauRan=1.3;
-  root.userData.duoiRan=null;
-  const modelType=colors[type]?type:'capi';
-  let tai=animalModelCache.get(modelType);
-  if(!tai){
-    tai=new Promise(resolve=>animalLoader.load('/models/'+modelType+'.glb',gltf=>resolve(gltf.scene),undefined,()=>resolve(null)));
-    animalModelCache.set(modelType,tai);
+  const fur = tint ? mat(tint) : ({ snake: mat('#64bc83'), fish: mat('#57a9d8'), sloth: mat('#92745b'), cow: mat('#fffaf0'), leopard: mat('#d7a353') }[type]);
+  const cowBodyFur = macVest ? mat('#18191d') : type === 'cow' ? patternMaterial('#fffaf0', 'cow', 'body') : fur;
+  const cowHeadFur = type === 'cow' ? patternMaterial('#fffaf0', 'cow', 'head') : fur;
+  const leopardBodyFur = type === 'leopard' ? patternMaterial('#d7a353', 'leopard', 'body') : fur;
+  const leopardHeadFur = type === 'leopard' ? patternMaterial('#d7a353', 'leopard', 'head') : fur;
+  const blush = mat('#f39a9c');
+  const eye = mat('#24212b');
+  const dark = mat('#34303a');
+  if (type === 'snake') {
+    for (const [radius, y, thickness] of [[.74,.16,.13],[.59,.3,.12],[.44,.43,.105]]) {
+      const coil = new THREE.Mesh(new THREE.TorusGeometry(radius, thickness, 10, 36), fur);
+      coil.rotation.x = Math.PI / 2;
+      coil.position.set(0, y, .05);
+      body.add(coil);
+    }
+    const duoiRan=new THREE.Group();
+    duoiRan.position.set(.66,.17,.08);
+    taperedTube(duoiRan,[[0,0,0],[.18,0,.1],[.4,.06,.22]],.13,.012,fur);
+    body.add(duoiRan);
+    body.userData.duoiRan=duoiRan;
+    const middleHeight = .77;
+    const shortenedHeight = middleHeight * 2 / 3;
+    const headShift = middleHeight - shortenedHeight;
+    const connection = new THREE.Mesh(new THREE.CylinderGeometry(.14,.44,.8,20),fur);
+    connection.position.set(0,.55,-.02);
+    connection.castShadow = true;
+    body.add(connection);
+    sphere(body,0,1.11-headShift/2,-.02,.145,shortenedHeight,.15,fur,20);
+    body.userData.thanCuon=body.children.slice();
+    body.userData.longRan=fur;
+    body.userData.caoDauRan=-headShift;
+    const snakeHead = new THREE.Group();
+    snakeHead.userData.dauRan=true;
+    snakeHead.position.y = -headShift;
+    body.add(snakeHead);
+    sphere(snakeHead,0,1.91,-.08,.43,.39,.39,fur,20);
+    for(const x of [-.17,.17]) {
+      const matNgu=sphere(snakeHead,x,1.98,-.405,.064,.085,.035,eye,12);matNgu.userData.eyeOpen=true;
+      const longMat=sphere(snakeHead,x-.014,2.01,-.434,.016,.022,.01,mats.white,8);longMat.userData.eyeOpen=true;
+    }
+    sphere(snakeHead,-.04,1.83,-.45,.018,.022,.012,dark,8);
+    sphere(snakeHead,.04,1.83,-.45,.018,.022,.012,dark,8);
+    faceLine(snakeHead,[[-.09,1.76,-.435],[0,1.73,-.45],[.09,1.76,-.435]],dark,.014);
+  } else if (type === 'fish') {
+    const finMat = new THREE.MeshStandardMaterial({color:'#3297c7',side:THREE.DoubleSide,roughness:.8});
+    const gillMat = mat('#e78388');
+    sphere(body,0,.57,.04,.7,.43,.68,fur,20);
+    triangleFin(body,[[0,.59,.72],[-.37,.82,1.03],[0,.58,1.08]],finMat);
+    triangleFin(body,[[0,.58,1.08],[.37,.82,1.03],[0,.59,.72]],finMat);
+    triangleFin(body,[[0,.9,.1],[-.28,1.19,.35],[.25,.91,.43]],finMat);
+    triangleFin(body,[[0,.26,-.05],[-.22,-.02,.18],[.2,.25,.35]],finMat);
+    triangleFin(body,[[-.5,.48,-.12],[-.86,.32,.08],[-.58,.75,.15]],finMat);
+    triangleFin(body,[[.5,.48,-.12],[.86,.32,.08],[.58,.75,.15]],finMat);
+    for(const x of [-.52,.52]) {
+      sphere(body,x,.56,-.13,.095,.25,.11,gillMat,12);
+      sphere(body,x*.73,.69,-.49,.07,.09,.035,mats.white,12);
+      const matNgu=sphere(body,x*.73,.69,-.52,.032,.054,.018,eye,10);matNgu.userData.eyeOpen=true;
+    }
+    faceLine(body,[[-.11,.47,-.65],[0,.44,-.675],[.11,.47,-.65]],dark,.018);
+  } else if (type === 'sloth') {
+    sphere(body,0,.56,.02,.55,.53,.48,fur,18);
+    sphere(body,0,1.02,-.16,.48,.47,.42,fur,18);
+    sphere(body,0,1.03,-.52,.35,.31,.12,mat('#d7bd91'),16);
+    for(const x of [-.17,.17]) {
+      sphere(body,x,1.08,-.625,.12,.16,.045,mat('#654d3c'),12);
+      const matNgu=sphere(body,x,1.08,-.668,.047,.065,.025,eye,10);matNgu.userData.eyeOpen=true;
+    }
+    sphere(body,0,.91,-.635,.09,.06,.045,dark,10);
+    const smile=new THREE.Mesh(new THREE.TorusGeometry(.075,.012,6,12,Math.PI),dark); smile.position.set(0,.85,-.66); smile.rotation.z=Math.PI; body.add(smile);
+    for(const ben of [-1,1]) {
+      const tay=taoCanhTay(body,fur,ben,.41,.87,.02,.72,.126,.13);
+      for(let i=0;i<3;i++) {
+        const mong=new THREE.Mesh(new THREE.ConeGeometry(.029,.13,7),mat('#e8ddbd'));
+        mong.position.set((i-1)*.055,-.79-tay.userData.khuYu.position.y,-.025);
+        mong.rotation.x=Math.PI;
+        tay.userData.khuYu.add(mong);
+      }
+    }
+  } else if (type === 'leopard') {
+    sphere(body,0,.68,.02,.52,.66,.44,leopardBodyFur,18);
+    sphere(body,0,1.38,-.15,.48,.46,.4,leopardHeadFur,18);
+    sphere(body,0,.64,-.385,.28,.39,.075,mat('#f2d8a5'),14);
+    for(const x of [-.36,.36]) {
+      sphere(body,x,1.67,-.08,.16,.18,.1,fur,12);
+    }
+    for(const x of [-.18,.18]) {
+      const matNgu=sphere(body,x,1.43,-.525,.062,.085,.028,eye,12);matNgu.userData.eyeOpen=true;
+      const longMat=sphere(body,x-.012,1.46,-.548,.016,.022,.01,mats.white,8);longMat.userData.eyeOpen=true;
+    }
+    const leopardNose = new THREE.Mesh(new THREE.ConeGeometry(.105,.13,3),dark);
+    leopardNose.position.set(0,1.27,-.562);
+    leopardNose.rotation.x=-Math.PI/2;
+    body.add(leopardNose);
+    faceLine(body,[[0,1.21,-.557],[0,1.16,-.555],[-.075,1.13,-.545],[0,1.105,-.55],[.075,1.13,-.545]],dark,.014);
+    for(const ben of [-1,1])taoCanhTay(body,fur,ben,.425,.99,-.035,.54,.14,.31);
+    const tail=new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3([new THREE.Vector3(.42,.38,.25),new THREE.Vector3(.75,.35,.5),new THREE.Vector3(.82,.55,.72)]),16,.075,8,false),fur);
+    body.add(tail);
+    sphere(body,.82,.55,.72,.12,.12,.12,mat('#593d2e'),10);
+  } else {
+    sphere(body,0,.68,0,.55,.62,.44,cowBodyFur,18);
+    sphere(body,0,1.36,-.16,.49,.47,.42,cowHeadFur,18);
+    for(const x of [-.45,.45]) {
+      sphere(body,x,1.31,-.15,.17,.11,.1,fur,12);
+      const horn=new THREE.Mesh(new THREE.ConeGeometry(.1,.27,8),mats.cream); horn.position.set(x*.72,1.8,-.13); horn.rotation.z=x<0?.2:-.2; body.add(horn);
+    }
+    const matNgu1=sphere(body,-.2,1.42,-.52,.07,.09,.05,eye,10),matNgu2=sphere(body,.2,1.42,-.52,.07,.09,.05,eye,10);matNgu1.userData.eyeOpen=true;matNgu2.userData.eyeOpen=true;
+    sphere(body,0,1.17,-.6,.28,.19,.12,blush,14);
+    sphere(body,-.09,1.17,-.7,.035,.055,.025,dark,8); sphere(body,.09,1.17,-.7,.035,.055,.025,dark,8);
+    for(const ben of [-1,1])taoCanhTay(body,macVest?cowBodyFur:fur,ben,.455,.99,-.045,.53,.15,.35);
   }
-  tai.then(template=>{
-    if(!template||!body.parent)return;
-    const model=template.clone(true);
-    model.rotation.y=Math.PI;
-    model.traverse(object=>{
-      if(!object.isMesh)return;
-      object.castShadow=false;
-      object.receiveShadow=false;
-      if(Array.isArray(object.material))object.material=object.material.map(material=>material.clone());
-      else if(object.material)object.material=object.material.clone();
-    });
-    body.add(model);
-    root.userData.model3d=model;
-  });
+  if(type!=='snake') for(const x of [-.3,.3]) {
+    const tall=type==='cow'||type==='leopard';
+    const dai=tall?.44:.34;
+    const tren=tall?.12:.1, duoi=tall?.14:.13;
+    const giua=(tren+duoi)/2;
+    const chatLieu=type==='sloth'?fur:dark;
+    const leg=new THREE.Group();
+    const goi=new THREE.Group();
+    const dui=new THREE.CylinderGeometry(tren,giua,dai/2+.014,8);
+    dui.translate(0,-dai/4-.007,0);
+    const ongChan=new THREE.CylinderGeometry(giua,duoi,dai/2+.014,8);
+    ongChan.translate(0,-dai/4+.007,0);
+    leg.add(new THREE.Mesh(dui,chatLieu),goi);
+    goi.position.y=-dai/2;
+    goi.add(new THREE.Mesh(ongChan,chatLieu));
+    leg.userData.chan=true;
+    leg.userData.goi=goi;
+    leg.position.set(x,(tall?.21:.15)+dai/2,.05);
+    body.add(leg);
+  }
+  body.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true;}});
+  let dau;
+  if(type==='snake') dau=body.children.find(o=>o.userData.dauRan);
+  else if(type!=='fish'){
+    dau=new THREE.Group();dau.position.y=1.3;body.add(dau);
+    for(const o of [...body.children])if(o!==dau&&o.position.y>=1){body.remove(o);o.position.y-=1.3;dau.add(o);}
+  }
+  root.userData.dau=dau;
+  root.userData.duoiRan=body.userData.duoiRan;
+  root.userData.tay=[];body.traverse(o=>{if(o.userData.tay)root.userData.tay.push(o);});
+  root.userData.chan=body.children.filter(o=>o.userData.chan);
+  root.userData.body = body;
   return root;
 }
+
 function taoTaiNghe(type){
   const group=new THREE.Group(),banKinh=type==='fish'?.72:.58,nhua=new THREE.MeshBasicMaterial({color:'#f01835',toneMapped:false,depthWrite:false}),dem=new THREE.MeshBasicMaterial({color:'#ff394d',toneMapped:false,depthWrite:false});
   const vong=new THREE.Mesh(new THREE.TorusGeometry(banKinh,.065,12,40,Math.PI),nhua);vong.position.set(0,.025,.02);group.add(vong);
@@ -988,14 +1096,11 @@ function createPlayer(data) {
   const name=nameLabel(data.name,avatarColors[data.avatar]||'#493650');
   name.position.set(0,2.45,0); group.add(name);
   scene.add(group);
-  const taiNghe=taoTaiNghe(data.avatar),zzz=taoZzz();
-  taiNghe.visible=false;
-  group.userData.body.add(taiNghe);
-  group.add(zzz);
-  const closedEyes=new THREE.Group();
-  closedEyes.visible=false;
-  group.userData.body.add(closedEyes);
-  const openEyes=[];
+  const taiNghe=taoTaiNghe(data.avatar),zzz=taoZzz();(group.userData.dau||group.userData.body).add(taiNghe);group.add(zzz);
+  const dauMat=group.userData.dau||group.userData.body;
+  const eyePositions={snake:[[-.17,1.98,-.46],[.17,1.98,-.46]],fish:[[-.379,.69,-.56],[.379,.69,-.56]],sloth:[[-.17,-.22,-.70],[.17,-.22,-.70]],cow:[[-.2,.12,-.56],[.2,.12,-.56]],leopard:[[-.18,.13,-.57],[.18,.13,-.57]]}[data.avatar]||[];
+  const closedEyes=new THREE.Group();for(const [x,y,z] of eyePositions){const lid=new THREE.Mesh(new THREE.BoxGeometry(.15,.026,.025),mat('#24212b'));lid.position.set(x,y,z);closedEyes.add(lid);}dauMat.add(closedEyes);
+  const openEyes=[];group.traverse(o=>{if(o.userData.eyeOpen)openEyes.push(o);});
   const entry={...data,group,body:group.userData.body,nameSprite:name,bubbleSprite:null,taiNghe,zzzSprite:zzz,closedEyes,openEyes,target:new THREE.Vector3(data.x||0,0,data.z||0),poseUntil:0,working:Boolean(data.working),workSeatId:data.workSeatId||'',workStartedAt:data.workStartedAt||0,meditating:false,auraUntil:0,auraSprite:null,auraRing:null,maSoi:Boolean(data.maSoi)};
   players.set(data.id,entry);
   if(data.hoatCanh)batHoatCanh(entry,data.hoatCanh,true);
@@ -1064,7 +1169,7 @@ function removePlayer(id) {
     if(o.geometry)o.geometry.dispose();
     const materials=Array.isArray(o.material)?o.material:o.material?[o.material]:[];
     for(const material of materials){
-      if(material.userData.generatedAnimalPattern&&!material.userData.cachedAnimalMaterial){
+      if(material.userData.generatedAnimalPattern){
         material.map?.dispose();
         material.dispose();
       }else if(material.userData.wolfTint||material.userData.wolfEffect){
@@ -1951,9 +2056,9 @@ function veSep(now){
   than.position.y=khach?0:-.2;
   than.scale.y=khach?1:.76;
   than.rotation.x=.13*dap;
-  const [tayDap,tayChi]=sep.userData.tay||[];
-  if(tayDap)tayDap.rotation.x=khach?.77+dap*.85:0;
-  if(tayChi)tayChi.rotation.x=khach?1.48:0;
+  const [tayDap,tayChi]=sep.userData.tay;
+  tayDap.rotation.x=khach?.77+dap*.85:0;
+  tayChi.rotation.x=khach?1.48:0;
   banSep.rotation.z=.024*dap*Math.sin(t*29);
   if(!khach){
     for(const kyTu of kyTuBay)kyTu.visible=false;
@@ -2380,9 +2485,7 @@ const dieuNhayNhanVat={
   fish:[[3,.8],[2,.85],[5,1.1],[4,1.3],[3,.95]],
   sloth:[[1,.7],[1,.9],[3,.7],[2,.75],[2,1.3]],
   cow:[[2,.9],[1,1.1],[5,1.2],[2,1.05],[3,1.25]],
-  leopard:[[3,1.1],[2,1.2],[6,1.3],[3,1.45],[4,1.2]],
-  panda:[[2,.92],[2,1],[5,1.1],[3,1.18],[4,1]],
-  capi:[[2,.92],[1,1],[4,1.12],[3,1.16],[3,1.05]]
+  leopard:[[3,1.1],[2,1.2],[6,1.3],[3,1.45],[4,1.2]]
 };
 function batDauNhay(p,kieu,batDau,ketThuc){
   if(!Number.isInteger(kieu)||kieu<0||kieu>4)return;
@@ -2589,7 +2692,7 @@ function hoatAnhNhay(p,now){
     return;
   }else if(kieu===1){
     const doc=Math.min(1,t*5,(1-t)*5);
-    const cao={snake:1.94,fish:1.68,sloth:1.89,cow:2.03,leopard:1.91,panda:1.91,capi:1.85}[p.avatar];
+    const cao={snake:1.94,fish:1.68,sloth:1.89,cow:2.03,leopard:1.91}[p.avatar];
     p.body.rotation.set(Math.PI*doc,t*Math.PI*2*soNhip,.13*lac);
     p.body.position.y=cao*Math.sin(doc*Math.PI/2);
   }else if(kieu===2){
@@ -2641,9 +2744,7 @@ const nhanVatMuaVo={
   fish:{tay:.97,chan:.85,nghieng:1.4,nhip:.9},
   sloth:{tay:.79,chan:.51,nghieng:.72,nhip:.88},
   cow:{tay:.91,chan:.79,nghieng:.91,nhip:1},
-  leopard:{tay:1,chan:1,nghieng:1,nhip:1.12},
-  panda:{tay:.92,chan:.84,nghieng:.85,nhip:.95},
-  capi:{tay:.88,chan:.8,nghieng:.82,nhip:.9}
+  leopard:{tay:1,chan:1,nghieng:1,nhip:1.12}
 };
 
 function taoChiCa(p){
@@ -2668,7 +2769,7 @@ function taoChiCa(p){
 }
 
 function xepThuTuTheVo(avatar,cho){
-  const loai=['snake','fish','sloth','cow','leopard','panda','capi'].indexOf(avatar);
+  const loai=['snake','fish','sloth','cow','leopard'].indexOf(avatar);
   let ma=(cho*5+loai+1)*104729;
   const conLai=Array.from({length:theVo.length},(_,i)=>i);
   const thuTu=[];
@@ -2915,7 +3016,7 @@ function frame(now) {
     let dz=0;
     if(me.maSoi){dx=0;dz=0;targetWorld=null;}
     const running=animateRun(me,now);
-    if(!running&&targetWorld){const tx=targetWorld.x-me.group.position.x,tz=targetWorld.z-me.group.position.z;const d=Math.hypot(tx,tz);if(d>5.2*dt){dx=tx/d;dz=tz/d;}else{const buoc=buocDiAnToan(me.group.position,targetWorld);me.group.position.x=buoc.x;me.group.position.z=buoc.z;targetWorld=targetPath.shift()||null;}}
+    if(!running&&targetWorld){const tx=targetWorld.x-me.group.position.x,tz=targetWorld.z-me.group.position.z;const d=Math.hypot(tx,tz);if(d>.24){dx=tx/d;dz=tz/d;}else if(targetPath.length)targetWorld=targetPath.shift();else targetWorld=null;}
     if(!running&&me.workSeatId&&!me.working){dx=0;dz=0;}
     if(now<(me.khoaDen||0)){dx=0;dz=0;}
     if(!running&&(dx||dz)){const mag=Math.hypot(dx,dz);dx/=mag;dz/=mag;const buoc=buocDiAnToan({x:me.group.position.x,z:me.group.position.z},{x:me.group.position.x+dx*5.2*dt,z:me.group.position.z+dz*5.2*dt});me.group.position.x=buoc.x;me.group.position.z=buoc.z;me.group.rotation.y=Math.atan2(-dx,-dz);}

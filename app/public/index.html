@@ -43,12 +43,12 @@
     <dialog id="wolf-create-modal"><form id="wolf-create-form" method="dialog"><strong>🐺 Mời chơi Ma Sói</strong><p id="wolf-create-note">Chọn người trong phòng và tối đa 3 Máy. Có Máy thì ván bắt đầu từ 4 người.</p><div id="wolf-invite-list"></div><button value="huy">Hủy</button><button value="gui">Gửi lời mời · 15 giây</button></form></dialog>
     <dialog id="wolf-incoming-modal"><form method="dialog"><strong id="wolf-incoming-title">Lời mời chơi Ma Sói</strong><p id="wolf-incoming-timer"></p><button value="no">Từ chối</button><button value="yes">Tham gia</button></form></dialog>
     <div class="modal" id="join-modal"><form id="join-form" class="join-card"><div class="logo-mark">🏢</div><p class="eyebrow">NƠI MỌI DEADLINE ĐỀU BỊ DISLIKE</p><h1>Chào mừng tới<br><span>ĐI LÀM CÔNG TY</span></h1><label>Tên hiển thị<input id="name" maxlength="18" placeholder="VD: Cá sếp" required></label><label>Mã phòng <span>(mã trống tạo tự động; mã mới để đặt phòng)</span><input id="room" maxlength="10" placeholder="VD: TEAM2026" autocomplete="off"></label><p class="avatar-label">Chọn nhân vật của bạn</p><div class="avatars">
-      <button type="button" class="avatar selected" data-avatar="snake"><span>🐍</span><small>XÀ</small></button><button type="button" class="avatar" data-avatar="fish"><span>🐟</span><small>CÁ 2 MANG</small></button><button type="button" class="avatar" data-avatar="sloth"><span>🦥</span><small>LƯỜI</small></button><button type="button" class="avatar" data-avatar="cow"><span>🐮</span><small>BẦN ĐÒ</small></button><button type="button" class="avatar" data-avatar="leopard"><span>🐆</span><small>BÁO THỦ</small></button><button type="button" class="avatar" data-avatar="capi"><span>🐹</span><small>CAPI</small></button><button type="button" class="avatar" data-avatar="panda"><span>🐼</span><small>PANDA</small></button>
+      <button type="button" class="avatar selected" data-avatar="snake"><span>🐍</span><small>XÀ</small></button><button type="button" class="avatar" data-avatar="fish"><span>🐟</span><small>CÁ 2 MANG</small></button><button type="button" class="avatar" data-avatar="sloth"><span>🦥</span><small>LƯỜI</small></button><button type="button" class="avatar" data-avatar="cow"><span>🐮</span><small>BẦN ĐÒ</small></button><button type="button" class="avatar" data-avatar="leopard"><span>🐆</span><small>BÁO THỦ</small></button>
     </div><p id="avatar-quote" class="avatar-quote">“tôi khổ quá mà”</p><button class="primary" type="submit">Vào phòng thôi →</button><p id="join-error" class="error"></p><small class="free-note">Chơi miễn phí · Tối đa 50 người/phòng</small></form></div>
   </main>
   <script type="importmap">{"imports":{"three":"/three.module.js"}}</script>
   <script src="/socket.io/socket.io.js"></script>
-  <script id="game-module" type="module" src="/game.js?v=imported-models-v2"></script>
+  <script id="game-module" type="module" src="/game.js?v=sofa-4-v3"></script>
   <script>
     (() => {
       const form=document.querySelector('#join-form');
@@ -56,7 +56,7 @@
       const roomInput=document.querySelector('#room');
       const joinError=document.querySelector('#join-error');
       const quote=document.querySelector('#avatar-quote');
-      const cauHinh={snake:'tôi khổ quá mà',fish:'thần thiếp không làm được',sloth:'hả?',cow:'là sao nữa...',leopard:'cú bé',capi:'đang nhai cà rốt…',panda:'đang ăn tre…'};
+      const cauHinh={snake:'tôi khổ quá mà',fish:'thần thiếp không làm được',sloth:'hả?',cow:'là sao nữa...',leopard:'cú bé'};
       window.__smlJoinReady=false;
       const room=new URLSearchParams(location.search).get('room');
       if(room&&!roomInput.value)roomInput.value=room;

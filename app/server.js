@@ -137,15 +137,13 @@ function ghiThaoTac(code, player) {
   io.to(code).emit('mua-vo', { id: player.id, batDau: 0 });
 }
 
-const avatars = new Set(['snake', 'fish', 'sloth', 'cow', 'leopard', 'capi', 'panda']);
+const avatars = new Set(['snake', 'fish', 'sloth', 'cow', 'leopard']);
 const defaultLines = {
   snake: ['chị khổ lắm em', 'chị lạy em', 'chị hứa mai chị gửi', 'em ơi', 'ủa em', 'alo em'],
   fish: ['thần thiếp không làm được', 'thần thiếp có tội', 'thần thiếp đi làm ngay', 'mấy giờ rồi', 'lên link trà chiều đi chị em', 'không phải em đâu', 'tất cả tại thằng bò'],
   sloth: ['Hảaa?', 'Àaaa...', 'tôi cần đi toilet 30p', 'qua tết nghỉ làm', 'đang lướt tóp tóp vui lòng không làm phiền'],
   cow: ['a di đà lạt - Bần Đò có biết gì đâu', 'lào gì cũng tôn', 'là sao nữa', 'nếu người khác làm được - thì để họ làm', 'cái gì đổ tại người khác được thì không phải tại mình', 'a di đà lạt - không biết không có tội'],
-  leopard: ['em xin lỗi', 'chị ơi...', 'anh ơi...', 'cú bé', 'ta thà báo cả thiên hạ chứ không báo sếp', 'em mới pass thử việc ạ', 'e thề e chưa làm gì cả', 'công ty là gia đình 🎼🎼'],
-  capi: ['đang nhai cà rốt, deadline để sau', 'Capi xin nghỉ ăn trưa ạ', 'em đang ngâm nước cho tỉnh', 'chậm mà chắc nha', 'ai có cà rốt không'],
-  panda: ['em ăn tre để có sức làm tiếp', 'Panda đang nghỉ giải lao ạ', 'deadline tới đâu ăn tre tới đó', 'em xin thêm một khúc tre', 'năng lượng xanh đây rồi']
+  leopard: ['em xin lỗi', 'chị ơi...', 'anh ơi...', 'cú bé', 'ta thà báo cả thiên hạ chứ không báo sếp', 'em mới pass thử việc ạ', 'e thề e chưa làm gì cả', 'công ty là gia đình 🎼🎼']
 };
 const loiBanThanTai = [
   'Ta ban cho con tiền đầy túi',
@@ -162,17 +160,13 @@ const interactionLines = {
   fish: 'bệ hạ tha tội',
   sloth: 't méc sếp m',
   cow: 'em đã làm gì đâu',
-  leopard: 'em bị tổn thưn',
-  capi: 'Capi chỉ đang ăn nhẹ thôi',
-  panda: 'Panda chỉ muốn ăn tre thôi'
+  leopard: 'em bị tổn thưn'
 };
 
 app.use(express.static(path.join(root, 'public')));
 app.get('/css3d.js', (_req, res) => res.sendFile(path.join(root, 'node_modules/three/examples/jsm/renderers/CSS3DRenderer.js')));
 app.get('/three.module.js', (_req, res) => res.sendFile(path.join(root, 'node_modules/three/build/three.module.js')));
 app.get('/three.core.js', (_req, res) => res.sendFile(path.join(root, 'node_modules/three/build/three.core.js')));
-app.get('/gltfloader.js', (_req, res) => res.sendFile(path.join(root, 'node_modules/three/examples/jsm/loaders/GLTFLoader.js')));
-app.get('/utils/BufferGeometryUtils.js', (_req, res) => res.sendFile(path.join(root, 'node_modules/three/examples/jsm/utils/BufferGeometryUtils.js')));
 app.get('/healthz', (_req, res) => res.json({ ok: true, rooms: rooms.size, players: [...rooms.values()].reduce((n, room) => n + room.size, 0), uptime: Math.floor(process.uptime()) }));
 app.get('*', (_req, res) => res.sendFile(path.join(root, 'public/index.html')));
 
